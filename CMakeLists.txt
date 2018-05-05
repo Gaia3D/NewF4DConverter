@@ -1,11 +1,43 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
+﻿CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
 
 #--------------------------------------------------------------------
 # Project Information
 #--------------------------------------------------------------------
 PROJECT(F4DConverter)
 
+IF(CMAKE_VERSION VERSION_LESS "3.1")
+	IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+	ENDIF()
+ELSE()
+	SET(CMAKE_CXX_STANDARD 11)
+ENDIF()
+
+IF(WIN32)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_UNICODE /DUNICODE")
+ENDIF()
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+#--------------------------------------------------------------------
+# Find Boost
+#--------------------------------------------------------------------
+#SET(Boost_DEBUG ON)
+#IF(WIN32)
+#	SET(Boost_USE_STATIC_LIBS ON)
+#ENDIF()
+#FIND_PACKAGE(Boost COMPONENTS locale system)
+#IF(NOT Boost_FOUND)
+#	#SET(Boost_USE_STATIC_LIBS OFF)
+#	#SET(Boost_USE_MULTITHREADED ON)
+#	#SET(Boost_USE_STATIC_RUNTIME OFF)
+#ENDIF()
+#MESSAGE(STATUS "Boost_INCLUDE_DIRS : ${Boost_INCLUDE_DIRS}")
+#MESSAGE(STATUS "Boost_LIBRARIES : ${Boost_LIBRARIES}")
+#
+#INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+#LINK_LIBRARIES(${Boost_LIBRARIES})
+
 #--------------------------------------------------------------------
 # Find GLFW
 #--------------------------------------------------------------------
@@ -44,6 +76,22 @@ ENDIF()
 MESSAGE(STATUS "${GLM_INCLUDE_DIRS}")
 
 INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIRS})
+
+#--------------------------------------------------------------------
+# Find STB
+#--------------------------------------------------------------------
+#FIND_PACKAGE(STB)
+#IF(NOT STB_FOUND)
+#	MESSAGE(STATUS "STB not found! Using local source...")
+#
+#	ADD_SUBDIRECTORY(lib/stb)
+	SET(STB_INCLUDE_DIRS "${STB_INCLUDE_DIRS}" lib/stb)
+#ENDIF()
+
+MESSAGE(STATUS "${STB_INCLUDE_DIRS}")
+
+INCLUDE_DIRECTORIES(${STB_INCLUDE_DIRS})
+
 #--------------------------------------------------------------------
 # Find GLAD
 #--------------------------------------------------------------------
@@ -54,6 +102,35 @@ ENDIF()
 
 INCLUDE_DIRECTORIES(${GLAD_INCLUDE_DIRS})
 LINK_LIBRARIES(${GLAD_LIBRARIES})
+
+#--------------------------------------------------------------------
+# Find Assimp
+#--------------------------------------------------------------------
+FIND_PACKAGE(ASSIMP)
+IF(NOT ASSIMP_FOUND)
+	MESSAGE(STATUS "ASSIMP not found! Using local source...")
+
+	OPTION(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+	OPTION(ASSIMP_BUILD_SAMPLES OFF)
+	OPTION(ASSIMP_BUILD_TESTS OFF)
+
+	ADD_SUBDIRECTORY(lib/assimp)
+	SET(ASSIMP_INCLUDE_DIRS "${Assimp_BINARY_DIR}/include" lib/assimp/include)
+    SET(ASSIMP_LIBRARIES assimp)
+ENDIF()
+
+MESSAGE(STATUS "${ASSIMP_INCLUDE_DIRS}")
+MESSAGE(STATUS "${ASSIMP_LIBRARIES}")
+
+INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
+LINK_LIBRARIES(${ASSIMP_LIBRARIES})
+
+#--------------------------------------------------------------------
+#
+#--------------------------------------------------------------------
+#ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_SHIJT)
+#ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_IFC)
+ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_CLASSIC)
 
 INCLUDE_DIRECTORIES(include)
 
