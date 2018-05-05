@@ -1,0 +1,28 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "F4DConverter.exe (F4DConverter\\Debug\\F4DConverter.exe)",
+      "name": "F4DConverter.exe (F4DConverter\\Debug\\F4DConverter.exe)",
+      "args": [
+        "-inputFolder",
+        "C:/data/sampleData",
+        "-outputFolder",
+        "C:/data/conversionResult",
+        "-log",
+        "C:/data/logTest.txt",
+        "-idPrefix",
+        "design_",
+        "-idSuffix",
+        "_2018",
+        "-usf",
+        "0.01",
+        "-indexing",
+        "y"
+      ]
+    }
+  ]
+}
