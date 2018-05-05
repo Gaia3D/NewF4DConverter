@@ -10,3 +10,11 @@
 	path = lib/glad
 	url = https://github.com/Dav1dde/glad.git
 	branch = c
+[submodule "lib/assimp"]
+	path = lib/assimp
+	url = https://github.com/assimp/assimp.git
+	branch = master
+[submodule "lib/stb"]
+	path = lib/stb
+	url = https://github.com/nothings/stb.git
+	branch = master
