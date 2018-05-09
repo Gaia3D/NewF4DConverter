@@ -3,14 +3,17 @@
  */
 #include "F4DWriter.h"
 
-#ifdef __APPLE__
-        #include <sys/uio.h>
-#else
-        #include <sys/io.h>
-#endif
+#include <iostream>
 
-#ifdef __WIN32
-#define mkdir(dirname,mode)   _mkdir(dirname)
+#ifdef __APPLE__
+	#include <sys/uio.h>
+#elif defined WIN32
+	#include <direct.h>
+	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+	#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+	#define mkdir(dirname,mode)   _mkdir(dirname)
+#else
+	#include <sys/io.h>
 #endif
 
 #include <sys/stat.h>
