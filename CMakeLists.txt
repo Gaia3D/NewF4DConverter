@@ -23,20 +23,20 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Find Boost
 #--------------------------------------------------------------------
 #SET(Boost_DEBUG ON)
-#IF(WIN32)
-#	SET(Boost_USE_STATIC_LIBS ON)
-#ENDIF()
-#FIND_PACKAGE(Boost COMPONENTS locale system)
-#IF(NOT Boost_FOUND)
-#	#SET(Boost_USE_STATIC_LIBS OFF)
-#	#SET(Boost_USE_MULTITHREADED ON)
-#	#SET(Boost_USE_STATIC_RUNTIME OFF)
-#ENDIF()
-#MESSAGE(STATUS "Boost_INCLUDE_DIRS : ${Boost_INCLUDE_DIRS}")
-#MESSAGE(STATUS "Boost_LIBRARIES : ${Boost_LIBRARIES}")
-#
-#INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-#LINK_LIBRARIES(${Boost_LIBRARIES})
+IF(WIN32)
+	SET(Boost_USE_STATIC_LIBS ON)
+ENDIF()
+FIND_PACKAGE(Boost COMPONENTS locale system filesystem)
+IF(NOT Boost_FOUND)
+	#SET(Boost_USE_STATIC_LIBS OFF)
+	#SET(Boost_USE_MULTITHREADED ON)
+	#SET(Boost_USE_STATIC_RUNTIME OFF)
+ENDIF()
+MESSAGE(STATUS "Boost_INCLUDE_DIRS : ${Boost_INCLUDE_DIRS}")
+MESSAGE(STATUS "Boost_LIBRARIES : ${Boost_LIBRARIES}")
+
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+LINK_LIBRARIES(${Boost_LIBRARIES})
 
 #--------------------------------------------------------------------
 # Find GLFW
@@ -106,7 +106,7 @@ LINK_LIBRARIES(${GLAD_LIBRARIES})
 #--------------------------------------------------------------------
 # Find Assimp
 #--------------------------------------------------------------------
-FIND_PACKAGE(ASSIMP)
+FIND_PACKAGE(Assimp)
 IF(NOT ASSIMP_FOUND)
 	MESSAGE(STATUS "ASSIMP not found! Using local source...")
 
