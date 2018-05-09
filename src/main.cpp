@@ -21,11 +21,11 @@
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
-const std::wstring F4DCONVERTER_VERSION = L"1.0.0";
+const std::string F4DCONVERTER_VERSION = "1.0.0";
 
 void print_version()
 {
-	std::wcout << "F4DConverter " << F4DCONVERTER_VERSION.c_str() << std::endl;
+	std::cout << "F4DConverter " << F4DCONVERTER_VERSION.c_str() << std::endl;
 }
 
 /*
@@ -39,89 +39,90 @@ void print_version()
 -indexing [one of Y, y, N, n] : wheter objectIndexFile.ihe should be created or not. "NOT created" is default.
 */
 
-std::map<std::wstring, std::wstring> arguments;
+std::map<std::string, std::string> arguments;
 
 // arguments for conversion configuration
-std::wstring inputFolder(L"Input Folder");
-std::wstring outputFolder(L"Output Folder");
-std::wstring logPath(L"Log File Path");
-std::wstring indexCreation(L"Create Indices");
-std::wstring idPrefix(L"idPrefix");
-std::wstring idSuffix(L"idSuffix");
+std::string inputFolder("Input Folder");
+std::string outputFolder("Output Folder");
+std::string logPath("Log File Path");
+std::string indexCreation("Create Indices");
+std::string idPrefix("idPrefix");
+std::string idSuffix("idSuffix");
 // arguments for processing parameters
-std::wstring occlusionCulling(L"Occlusion Culling");
-std::wstring unitScaleFactor(L"Unit Scale Factor");
+std::string occlusionCulling("Occlusion Culling");
+std::string unitScaleFactor("Unit Scale Factor");
 
 bool extractArguments(int argc, char** argv)
 {
-	std::wstring token;
-	std::vector<std::wstring> tokens;
+	std::string token;
+	std::vector<std::string> tokens;
 
 	for (int i = 1; i < argc; i++)
 	{
-		token = gaia3d::s2ws(argv[i]);
-		tokens.push_back(token);
+		//token = gaia3d::s2ws(argv[i]);
+		token = std::string(argv[i]);
+		tokens.push_back(std::string(token));
 	}
 
 	size_t tokenCount = tokens.size();
 	for (size_t i = 0; i < tokenCount; i++)
 	{
-		std::wcout << i << L" : " << tokens[i] << std::endl;
-		if (tokens[i].substr(0, 1) == std::wstring(L"-"))
+		std::cout << i << " : " << tokens[i] << std::endl;
+		if (tokens[i].substr(0, 1) == std::string("-"))
 		{
-			if (i == tokenCount - 1 || tokens[i + 1].substr(0, 1) == std::wstring(L"-"))
+			if (i == tokenCount - 1 || tokens[i + 1].substr(0, 1) == std::string("-"))
 			{
 				return false;
 			}
 
-			if (tokens[i] == std::wstring(L"-inputFolder"))
+			if (tokens[i] == std::string("-inputFolder"))
 			{
 				arguments[inputFolder] = tokens[i + 1];
 				i++;
 				continue;
 			}
-			if (tokens[i] == std::wstring(L"-outputFolder"))
+			if (tokens[i] == std::string("-outputFolder"))
 			{
 				arguments[outputFolder] = tokens[i + 1];
 				i++;
 				continue;
 			}
-			if (tokens[i] == std::wstring(L"-log"))
+			if (tokens[i] == std::string("-log"))
 			{
 				arguments[logPath] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::wstring(L"-indexing"))
+			if (tokens[i] == std::string("-indexing"))
 			{
 				arguments[indexCreation] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::wstring(L"-idPrefix"))
+			if (tokens[i] == std::string("-idPrefix"))
 			{
 				arguments[idPrefix] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::wstring(L"-idSuffix"))
+			if (tokens[i] == std::string("-idSuffix"))
 			{
 				arguments[idSuffix] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::wstring(L"-oc"))
+			if (tokens[i] == std::string("-oc"))
 			{
 				arguments[occlusionCulling] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::wstring(L"-usf"))
+			if (tokens[i] == std::string("-usf"))
 			{
 				arguments[unitScaleFactor] = tokens[i + 1];
 				i++;
@@ -152,19 +153,19 @@ bool extractArguments(int argc, char** argv)
 
 	if (arguments.find(indexCreation) != arguments.end())
 	{
-		if (arguments[indexCreation] != std::wstring(L"Y") &&
-			arguments[indexCreation] != std::wstring(L"y") &&
-			arguments[indexCreation] != std::wstring(L"N") &&
-			arguments[indexCreation] != std::wstring(L"n"))
+		if (arguments[indexCreation] != std::string("Y") &&
+			arguments[indexCreation] != std::string("y") &&
+			arguments[indexCreation] != std::string("N") &&
+			arguments[indexCreation] != std::string("n"))
 			return false;
 	}
 
 	if (arguments.find(occlusionCulling) != arguments.end())
 	{
-		if (arguments[occlusionCulling] != std::wstring(L"Y") &&
-			arguments[occlusionCulling] != std::wstring(L"y") &&
-			arguments[occlusionCulling] != std::wstring(L"N") &&
-			arguments[occlusionCulling] != std::wstring(L"n"))
+		if (arguments[occlusionCulling] != std::string("Y") &&
+			arguments[occlusionCulling] != std::string("y") &&
+			arguments[occlusionCulling] != std::string("N") &&
+			arguments[occlusionCulling] != std::string("n"))
 			return false;
 	}
 
@@ -199,7 +200,10 @@ int main(int argc, char** argv)
 	if (argc != 0)
 	{
 		if (!(isValidParams = extractArguments(argc, argv)))
+		{
+			print_version();
 			return false;
+		}
 	}
 
 	if (arguments.find(logPath) != arguments.end())
@@ -221,8 +225,8 @@ int main(int argc, char** argv)
 
 			if (arguments.find(occlusionCulling) != arguments.end())
 			{
-				if (arguments[occlusionCulling] == std::wstring(L"Y") ||
-					arguments[occlusionCulling] == std::wstring(L"y"))
+				if (arguments[occlusionCulling] == std::string("Y") ||
+					arguments[occlusionCulling] == std::string("y"))
 					ConverterManager::getConverterManager()->setOcclusionCulling(true);
 				else
 					ConverterManager::getConverterManager()->setOcclusionCulling(false);
@@ -242,8 +246,8 @@ int main(int argc, char** argv)
 
 		if (arguments.find(indexCreation) != arguments.end())
 		{
-			if (arguments[indexCreation] == std::wstring(L"Y") ||
-				arguments[indexCreation] == std::wstring(L"y"))
+			if (arguments[indexCreation] == std::string("Y") ||
+				arguments[indexCreation] == std::string("y"))
 			{
 				ConverterManager::getConverterManager()->setIndexCreation(true);
 				ConverterManager::getConverterManager()->setOutputFolder(arguments[outputFolder]);

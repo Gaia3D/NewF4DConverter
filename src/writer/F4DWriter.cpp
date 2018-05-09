@@ -3,10 +3,20 @@
  */
 #include "F4DWriter.h"
 
-#include <direct.h>
-#include <io.h>
+#ifdef __APPLE__
+        #include <sys/uio.h>
+#else
+        #include <sys/io.h>
+#endif
+
+#ifdef __WIN32
+#define mkdir(dirname,mode)   _mkdir(dirname)
+#endif
+
 #include <sys/stat.h>
 #include <algorithm>
+
+#include <boost/filesystem.hpp>
 
 #include "../process/ConversionProcessor.h"
 #include "../converter/LogWriter.h"
@@ -27,87 +37,83 @@ F4DWriter::~F4DWriter()
 
 bool F4DWriter::write()
 {
+	// make target root folder
+	std::string resultPath = folder + "/F4D_" + processor->getAttribute("id");
+
+	struct stat status;
+
 	bool outputFolderExist = false;
-	std::wstring resultPath = folder + L"/F4D_" + processor->getAttribute(L"id");
-	if (_waccess(resultPath.c_str(), 0) == 0)
+	if (stat(resultPath.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(resultPath.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 	if (!outputFolderExist)
 	{
-		if (_wmkdir(resultPath.c_str()) != 0)
+		if (mkdir(resultPath.c_str(), 0755) != 0)
 		{
-			LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-			LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DIRECTORY), false);
+			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+			LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
 			return false;
 		}
 	}
 
-	std::wstring headerPath = resultPath + L"/HeaderAsimetric.hed";
-	FILE* file = _wfopen(headerPath.c_str(), L"wb");
+	std::string headerPath = resultPath + "/HeaderAsimetric.hed";
+	FILE* file = fopen(headerPath.c_str(), "wb");
 	// write header
 	writeHeader(file);
 	fclose(file);
 
 	// create reference directory
 	outputFolderExist = false;
-	std::wstring referencePath = resultPath + L"/References";
-	if (_waccess(referencePath.c_str(), 0) == 0)
+	std::string referencePath = resultPath + "/References";
+	if (stat(referencePath.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(referencePath.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 	if (!outputFolderExist)
 	{
-		if (_wmkdir(referencePath.c_str()) != 0)
+		if (mkdir(referencePath.c_str(), 0755) != 0)
 		{
-			LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-			LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DIRECTORY), false);
+			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+			LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
 			return false;
 		}
 	}
 
 	// create lego block directory
 	outputFolderExist = false;
-	std::wstring legoBlockPath = resultPath + L"/Bricks";
-	if (_waccess(legoBlockPath.c_str(), 0) == 0)
+	std::string legoBlockPath = resultPath + "/Bricks";
+	if (stat(legoBlockPath.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(legoBlockPath.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 	if (!outputFolderExist)
 	{
-		if (_wmkdir(legoBlockPath.c_str()) != 0)
+		if (mkdir(legoBlockPath.c_str(), 0755) != 0)
 		{
-			LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-			LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DIRECTORY), false);
+			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+			LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
 			return false;
 		}
 	}
 
 	// create model directory
 	outputFolderExist = false;
-	std::wstring modelPath = resultPath + L"/Models";
-	if (_waccess(modelPath.c_str(), 0) == 0)
+	std::string modelPath = resultPath + "/Models";
+	if (stat(modelPath.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(modelPath.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 	if (!outputFolderExist)
 	{
-		if (_wmkdir(modelPath.c_str()) != 0)
+		if (mkdir(modelPath.c_str(), 0755) != 0)
 		{
-			LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-			LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DIRECTORY), false);
+			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+			LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
 			return false;
 		}
 	}
@@ -119,20 +125,18 @@ bool F4DWriter::write()
 	if (!processor->getTextureInfo().empty())
 	{
 		outputFolderExist = false;
-		std::wstring imagePath = resultPath + L"/Images_Resized";
-		if (_waccess(imagePath.c_str(), 0) == 0)
+		std::string imagePath = resultPath + "/Images_Resized";
+		if (stat(imagePath.c_str(), &status) == 0)
 		{
-			struct _stat64i32 status;
-			_wstat(imagePath.c_str(), &status);
-			if (status.st_mode & S_IFDIR)
+			if (S_ISDIR(status.st_mode))
 				outputFolderExist = true;
 		}
 		if (!outputFolderExist)
 		{
-			if (_wmkdir(imagePath.c_str()) != 0)
+			if (mkdir(imagePath.c_str(), 0755) != 0)
 			{
-				LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-				LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DIRECTORY), false);
+				LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+				LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
 				return false;
 			}
 		}
@@ -254,14 +258,14 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 	return true;
 }
 
-bool F4DWriter::writeReferencesAndModels(std::wstring& referencePath, std::wstring& modelPath)
+bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string& modelPath)
 {
 	std::vector<gaia3d::OctreeBox*> leafBoxes;
 	gaia3d::OctreeBox* leafBox;
 	processor->getSpatialOctree()->getAllLeafBoxes(leafBoxes, true);
 	size_t leafCount = leafBoxes.size();
-	std::wstring referenceFilePath; // each reference file full path
-	std::wstring modelFilePath; // each model file full path
+	std::string referenceFilePath; // each reference file full path
+	std::string modelFilePath; // each model file full path
 	std::vector<gaia3d::TrianglePolyhedron*> models;
 	size_t modelCount;
 	FILE* file = NULL;
@@ -285,8 +289,8 @@ bool F4DWriter::writeReferencesAndModels(std::wstring& referencePath, std::wstri
 	{
 		leafBox = leafBoxes[i];
 
-		referenceFilePath = referencePath + L"/" + std::to_wstring((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + std::wstring(L"_Ref");
-		file = _wfopen(referenceFilePath.c_str(), L"wb");
+		referenceFilePath = referencePath + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + std::string("_Ref");
+		file = fopen(referenceFilePath.c_str(), "wb");
 
 		// reference count in each octrees
 		referenceCount = (unsigned int)leafBox->meshes.size();
@@ -320,11 +324,11 @@ bool F4DWriter::writeReferencesAndModels(std::wstring& referencePath, std::wstri
 			fwrite(&referenceId, sizeof(unsigned int), 1, file);
 
 			// reference object id
-			if(reference->doesStringAttributeExist(std::wstring(ObjectGuid)))
+			if(reference->doesStringAttributeExist(std::string(ObjectGuid)))
 			{
-				std::wstring wObjectId = reference->getStringAttribute(std::wstring(ObjectGuid));
-				//objectId = std::string(CW2A(wObjectId.c_str()));
-				objectId = std::string(gaia3d::ws2s(wObjectId.c_str()));
+				std::string wObjectId = reference->getStringAttribute(std::string(ObjectGuid));
+				//objectId = std::string(gaia3d::ws2s(wObjectId.c_str()));
+				objectId = std::string(wObjectId.c_str());
 
 				objectIdLength = (unsigned char)objectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
@@ -428,8 +432,9 @@ bool F4DWriter::writeReferencesAndModels(std::wstring& referencePath, std::wstri
 				fwrite(&typeLength, sizeof(unsigned int), 1, file);
 				fwrite(textureType.c_str(), sizeof(char), typeLength, file);
 
-				//std::string textureName(CW2A(reference->getStringAttribute(TextureName).c_str()));
-				std::string textureName(gaia3d::ws2s(reference->getStringAttribute(TextureName).c_str()));
+				//std::string textureName(gaia3d::ws2s(reference->getStringAttribute(TextureName).c_str()));
+				std::string textureName(reference->getStringAttribute(TextureName).c_str());
+
 				unsigned int nameLength = (unsigned int)textureName.length();
 				fwrite(&nameLength, sizeof(unsigned int), 1, file);
 				fwrite(textureName.c_str(), sizeof(char), nameLength, file);
@@ -445,8 +450,8 @@ bool F4DWriter::writeReferencesAndModels(std::wstring& referencePath, std::wstri
 		writeVisibilityIndices(file, (static_cast<gaia3d::SpatialOctreeBox*>(leafBox))->interiorOcclusionInfo);
 		fclose(file);
 
-		modelFilePath = modelPath + L"/" + std::to_wstring((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + L"_Model";
-		file = _wfopen(modelFilePath.c_str(), L"wb");
+		modelFilePath = modelPath + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) +  "_Model";
+		file = fopen(modelFilePath.c_str(), "wb");
 		this->writeModels(file, models);
 		fclose(file);
 		models.clear();
@@ -500,10 +505,10 @@ bool F4DWriter::writeVisibilityIndices(FILE* f, gaia3d::OctreeBox* octree)
 	return true;
 }
 
-bool F4DWriter::writeLegoBlocks(std::wstring& legoBlockPath)
+bool F4DWriter::writeLegoBlocks(std::string& legoBlockPath)
 {
 	std::map<size_t, gaia3d::TrianglePolyhedron*>::iterator itr = processor->getLegos().begin();
-	std::wstring octreeLegoFilePath;
+	std::string octreeLegoFilePath;
 	FILE* file = NULL;
 	size_t key;
 	gaia3d::TrianglePolyhedron* lego;
@@ -522,8 +527,8 @@ bool F4DWriter::writeLegoBlocks(std::wstring& legoBlockPath)
 		key = itr->first;
 		lego = itr->second;
 
-		octreeLegoFilePath = legoBlockPath + L"/"+ std::to_wstring((unsigned long long)key) + std::wstring(L"_Brick");
-		file = _wfopen(octreeLegoFilePath.c_str(), L"wb");
+		octreeLegoFilePath = legoBlockPath +  "/"+ std::to_string((unsigned long long)key) + std::string( "_Brick");
+		file = fopen(octreeLegoFilePath.c_str(),  "wb");
 
 		// bounding box
 		minX = (float)lego->getBoundingBox().minX; minY = (float)lego->getBoundingBox().minY; minZ = (float)lego->getBoundingBox().minZ;
@@ -686,10 +691,36 @@ void F4DWriter::writeColor(unsigned long color, unsigned short type, bool bAlpha
 
 bool F4DWriter::writeIndexFile()
 {
+	std::vector<std::string> convertedDataFolders;
+
+	namespace bfs = boost::filesystem;
+
+	bfs::path folderPath(folder);
+	if (bfs::is_directory(folderPath))
+	{
+		std::cout << "In directory: " << folderPath.string() << std::endl;
+		bfs::directory_iterator end;
+		for(bfs::directory_iterator it(folderPath); it != end; ++it)
+		{
+			try
+			{
+				if (bfs::is_directory(*it))
+				{
+					convertedDataFolders.push_back(it->path().string());
+					std::cout << "[directory]" << it->path() << std::endl;
+				}
+			}
+			catch (const std::exception &ex)
+			{
+				std::cout << it->path().filename() << " " << ex.what() << std::endl;
+			}
+		}
+	}
+	/*
 	_wfinddata64_t fd;
     long long handle;
     int result = 1;
-	std::wstring structureJtFilter = folder + std::wstring(L"/*.*");
+	std::string structureJtFilter = folder + std::string( "/*.*");
 	handle = _wfindfirsti64(structureJtFilter.c_str(), &fd);
 
 	if(handle == -1)
@@ -697,30 +728,30 @@ bool F4DWriter::writeIndexFile()
 		return false;
 	}
 
-	std::vector<std::wstring> convertedDataFolders;
+	std::vector<std::string> convertedDataFolders;
 	while(result != -1)
 	{
 		if((fd.attrib & _A_SUBDIR) == _A_SUBDIR)
 		{
-			if(std::wstring(fd.name) != L"." && std::wstring(fd.name) != L"..")
-				convertedDataFolders.push_back(std::wstring(fd.name));
+			if(std::string(fd.name) !=  "." && std::string(fd.name) !=  "..")
+				convertedDataFolders.push_back(std::string(fd.name));
 		}
 		result = _wfindnexti64(handle, &fd);
 	}
 
 	_findclose(handle);
-
+	*/
 	if(convertedDataFolders.size() == 0)
 		return false;
 
-	std::wstring targetFilePath = folder + L"/objectIndexFile.ihe";
+	std::string targetFilePath = folder +  "/objectIndexFile.ihe";
 	FILE* f;
-	f = _wfopen(targetFilePath.c_str(), L"wb");
+	f = fopen(targetFilePath.c_str(),  "wb");
 	
 	unsigned int dataFolderCount = (unsigned int)convertedDataFolders.size();
 	fwrite(&dataFolderCount, sizeof(unsigned int), 1, f);
 
-	std::wstring eachDataHeader;
+	std::string eachDataHeader;
 	char version[6];	
 	int guidLength;
 	char guid[256];
@@ -731,9 +762,16 @@ bool F4DWriter::writeIndexFile()
 	unsigned int dataFolderNameLength;
 	for(size_t i = 0; i < dataFolderCount; i++)
 	{
-		eachDataHeader = folder + L"/" + convertedDataFolders[i] + L"/HeaderAsimetric.hed";
+		eachDataHeader = convertedDataFolders[i] +  "/HeaderAsimetric.hed";
+		bfs::path headerPath(eachDataHeader);
+		
+		if(!bfs::exists(headerPath))
+		{
+			std::cout << "[ERROR]" << eachDataHeader << " file does not exist." << std::endl;
+			continue;
+		}
 		FILE* header;
-		header = _wfopen(eachDataHeader.c_str(), L"rb");
+		header = fopen(eachDataHeader.c_str(),  "rb");
 
 		// version
 		memset(version, 0x00, 6);
@@ -753,10 +791,15 @@ bool F4DWriter::writeIndexFile()
 
 		fclose(header);
 
-		dataFolderNameLength = (unsigned int)convertedDataFolders[i].length();
+		bfs::path convertedDataPath(convertedDataFolders[i]);
+		std::string singleConvertedDataFolder(convertedDataPath.filename().string());
+
+		dataFolderNameLength = (unsigned int)singleConvertedDataFolder.length();
 		fwrite(&dataFolderNameLength, sizeof(unsigned int), 1, f);
-		//std::string singleConvertedDataFolder(CW2A(convertedDataFolders[i].c_str()));
-		std::string singleConvertedDataFolder(gaia3d::ws2s(convertedDataFolders[i].c_str()));
+		
+		//std::string singleConvertedDataFolder(gaia3d::ws2s(convertedDataFolders[i].c_str()));
+		//std::string singleConvertedDataFolder(convertedDataFolders[i].c_str());
+
 		fwrite(singleConvertedDataFolder.c_str(), sizeof(char), dataFolderNameLength, f);
 
 		fwrite(&longitude, sizeof(double), 1, f);
@@ -773,7 +816,7 @@ bool F4DWriter::writeIndexFile()
 	return true;
 }
 
-void F4DWriter::writeLegoTexture(std::wstring resultPath)
+void F4DWriter::writeLegoTexture(std::string resultPath)
 {
 	unsigned int* legoTextureDimension = processor->getLegoTextureDimension();
 	unsigned char* legoTextureByteArray = processor->getLegoTextureBitmapArray();
@@ -783,42 +826,46 @@ void F4DWriter::writeLegoTexture(std::wstring resultPath)
 	int height = legoTextureDimension[1];
 	int nrChannels = 4;
 
-	std::wstring legoTextureFullPath = resultPath + L"/SimpleBuildingTexture3x3.png";
-	std::string singleFullPath(gaia3d::ws2s(legoTextureFullPath.c_str()));
+	std::string legoTextureFullPath = resultPath +  "/SimpleBuildingTexture3x3.png";
+
+	//std::string singleFullPath(gaia3d::ws2s(legoTextureFullPath.c_str()));
+	std::string singleFullPath(legoTextureFullPath.c_str());
 
 	stbi_flip_vertically_on_write(false);
 	stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, legoTextureByteArray, 0);
 }
 
-void F4DWriter::writeTextures(std::wstring imagePath)
+void F4DWriter::writeTextures(std::string imagePath)
 {
-	std::map<std::wstring, std::wstring>::iterator itr = processor->getTextureInfo().begin();
+	std::map<std::string, std::string>::iterator itr = processor->getTextureInfo().begin();
 	for (; itr != processor->getTextureInfo().end(); itr++)
 	{
-		std::wstring fileName = itr->first;
+		std::string fileName = itr->first;
 
-		std::wstring::size_type dotPosition = fileName.rfind(L".");
-		if (dotPosition == std::wstring::npos)
+		std::string::size_type dotPosition = fileName.rfind( ".");
+		if (dotPosition == std::string::npos)
 			continue;
 
-		std::wstring fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
-		std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), towlower);
+		std::string fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
+		std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), ::tolower);
 
 		int nrChannels = 4;
 		unsigned int width = processor->getAllTextureWidths()[fileName];
 		unsigned int height = processor->getAllTextureHeights()[fileName];
 		unsigned char* bmpArray = processor->getResizedTextures()[fileName];
 
-		std::wstring fullPath = imagePath + L"/" + fileName;
-		std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		std::string fullPath = imagePath +  "/" + fileName;
+
+		//std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		std::string singleFullPath(fullPath.c_str());
 
 		stbi_flip_vertically_on_write(false);
 
-		if (fileExt.compare(L"dds") == 0)
+		if (fileExt.compare( "dds") == 0)
 		{
-			std::wstring orginalImagePath = itr->second;
+			std::string orginalImagePath = itr->second;
 			FILE* file = NULL;
-			file = _wfopen(orginalImagePath.c_str(), L"rb");
+			file = fopen(orginalImagePath.c_str(),  "rb");
 			if (file == NULL)
 				continue;
 			
@@ -835,7 +882,7 @@ void F4DWriter::writeTextures(std::wstring imagePath)
 			fclose(file);
 			file = NULL;
 
-			file = _wfopen(fullPath.c_str(), L"wb");
+			file = fopen(fullPath.c_str(),  "wb");
 			if (file == NULL)
 			{
 				delete[] fileContents;
@@ -848,29 +895,29 @@ void F4DWriter::writeTextures(std::wstring imagePath)
 		}
 		else
 		{
-			if (fileExt.compare(L"jpg") == 0 || fileExt.compare(L"jpeg") == 0 || fileExt.compare(L"jpe") == 0)
+			if (fileExt.compare( "jpg") == 0 || fileExt.compare( "jpeg") == 0 || fileExt.compare( "jpe") == 0)
 			{
 				stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
 			}
-			else if (fileExt.compare(L"png") == 0)
+			else if (fileExt.compare( "png") == 0)
 			{
 				stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
 			}
-			else if (fileExt.compare(L"gif") == 0)
+			else if (fileExt.compare( "gif") == 0)
 			{
 				// TODO 
 				continue;
 			}
-			else if (fileExt.compare(L"tif") == 0 || fileExt.compare(L"tiff") == 0)
+			else if (fileExt.compare( "tif") == 0 || fileExt.compare( "tiff") == 0)
 			{
 				// TODO 
 				continue;
 			}
-			else if (fileExt.compare(L"bmp") == 0)
+			else if (fileExt.compare( "bmp") == 0)
 			{
 				stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
 			}
-			else if(fileExt.compare(L"tga") == 0)
+			else if(fileExt.compare( "tga") == 0)
 			{
 				stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
 			}

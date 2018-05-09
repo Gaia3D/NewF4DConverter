@@ -5,10 +5,11 @@
 #define _STRINGUTILITY_H_
 #pragma once
 
-#include <codecvt>
+//#include <codecvt>
 
 namespace gaia3d
 {
+	/*
 	static std::wstring s2ws(const std::string& str)
 	{
 		using convert_typeX = std::codecvt_utf8<wchar_t>;
@@ -38,6 +39,7 @@ namespace gaia3d
 		auto &facet = std::use_facet<std::codecvt<wchar_t, char, std::mbstate_t>>(loc);
 		return std::wstring_convert<std::remove_reference<decltype(facet)>::type, wchar_t>(&facet).from_bytes(var);
 	}
+	*/
 	/*
 	#include <boost/locale.hpp>
 	namespace lcv = boost::locale::conv;

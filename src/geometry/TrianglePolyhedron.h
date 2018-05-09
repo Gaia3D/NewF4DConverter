@@ -35,7 +35,7 @@ namespace gaia3d
 		std::vector<Vertex*> vertices;
 		std::vector<Surface*> surfaces;
 
-		std::map<std::wstring, std::wstring> stringAttributes;
+		std::map<std::string, std::string> stringAttributes;
 
 		bool hasNormals;
 		bool hasTextureCoordinates;
@@ -54,9 +54,9 @@ namespace gaia3d
 	public:
 		std::vector<Surface*>& getSurfaces() {return surfaces;}
 		std::vector<Vertex*>& getVertices() {return vertices;}
-		void addStringAttribute(std::wstring keyString, std::wstring valueString);
-		bool doesStringAttributeExist(std::wstring keyString);
-		std::wstring getStringAttribute(std::wstring keyString);
+		void addStringAttribute(std::string keyString, std::string valueString);
+		bool doesStringAttributeExist(std::string keyString);
+		std::string getStringAttribute(std::string keyString);
 
 		void setHasNormals(bool bHas) {hasNormals = bHas;}
 		bool doesThisHaveNormals() {return hasNormals;} 

@@ -45,8 +45,8 @@ namespace gaia3d
 
 	void Matrix4::rotationInDegree(double ang_degree, double axis_x, double axis_y, double axis_z)
 	{
-		double M_PI = 3.14159265358979323846;
-		double ang_rad = ang_degree * M_PI / 180.0;
+		double m_pi = 3.14159265358979323846;
+		double ang_rad = ang_degree * m_pi / 180.0;
 		this->rotation(ang_rad, axis_x, axis_y, axis_z);
 	}
 

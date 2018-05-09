@@ -19,10 +19,4 @@ namespace gaia3d
 #define GetBlueValue(rgb)	(LOWBYTE((rgb)>>16))
 #define DefaultColor		MakeColorU4(204, 204, 204)
 
-/*
-static gaia3d::ColorU4 rgba2hex(unsigned int r, unsigned int g, unsigned int b, unsigned int a)
-{
-	return ((a & 0xff) << 24) + ((b & 0xff) << 16) + ((g & 0xff) << 8) + (r & 0xff);
-}
-*/
 #endif // _ColorU4_H_

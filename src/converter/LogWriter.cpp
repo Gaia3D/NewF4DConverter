@@ -4,7 +4,8 @@
 #include "LogWriter.h"
 
 #include <fstream>
-#include <time.h>
+#include <chrono>
+#include <ctime>
 
 LogWriter LogWriter::logWriter; 
 
@@ -19,16 +20,16 @@ LogWriter::~LogWriter()
 {
 }
 
-void LogWriter::setFullPath(std::wstring& path)
+void LogWriter::setFullPath(std::string& path)
 {
 	fullPath = path;
 }
 
-void LogWriter::addContents(std::wstring& contents, bool newLine)
+void LogWriter::addContents(const std::string& contents, bool newLine)
 {
 	logContents += contents;
 	if(newLine)
-		logContents += std::wstring(L"\n");
+		logContents += std::string("\n");
 }
 
 void LogWriter::clearContents()
@@ -38,22 +39,22 @@ void LogWriter::clearContents()
 
 void LogWriter::save()
 {
-	std::wofstream outFile;
+	std::ofstream outFile;
 	outFile.open(fullPath);
 
 	// 1. result
-	wchar_t stringLine[1024];
-	memset(stringLine, 0x00, sizeof(wchar_t)* 1024);
-	wprintf(stringLine, L"%u of %u files have been converted.\n", numberOfFilesConverted, numberOfFilesToBeConverted);
+	char stringLine[1024];
+	std::memset(stringLine, 0x00, sizeof(char)* 1024);
+	sprintf(stringLine, "%u of %u files have been converted.\n", numberOfFilesConverted, numberOfFilesToBeConverted);
 	outFile << stringLine;
 
-	outFile << L"-----------------------------------------------------\n";
+	outFile << "-----------------------------------------------------\n";
 
 	// 2. conversion time
-	outFile << L"start time : " << startTime << L"\n";
-	outFile << L"end time   : " << endTime << L"\n";
+	outFile << "start time : " << startTime << "\n";
+	outFile << "end time   : " << endTime << "\n";
 
-	outFile << L"-----------------------------------------------------\n";
+	outFile << "-----------------------------------------------------\n";
 
 
 	// 3. detailed result
@@ -83,15 +84,10 @@ bool LogWriter::isStarted()
 	return !(startTime.empty());
 }
 
-std::wstring LogWriter::getCurrentTimeString()
+std::string LogWriter::getCurrentTimeString()
 {
-	time_t     now = time(0);
-    struct tm*  tstruct = NULL;
-    tstruct = localtime(&now);
+	std::chrono::time_point<std::chrono::system_clock> nowTime = std::chrono::system_clock::now();
+	std::time_t currentTime = std::chrono::system_clock::to_time_t(nowTime);
 
-	wchar_t       buf[80];
-	memset(buf, 0x00, sizeof(wchar_t)*80);
-	wcsftime(buf, sizeof(buf), L"%Y-%m-%d %X", tstruct);
-
-	return std::wstring(buf);
+	return std::string(std::ctime(&currentTime));
 }

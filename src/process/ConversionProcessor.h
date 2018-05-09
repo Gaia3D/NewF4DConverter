@@ -46,10 +46,10 @@ protected:
 
 	std::vector<gaia3d::TrianglePolyhedron*> allMeshes;
 
-	std::map<std::wstring, std::wstring> allTextureInfo;
-	std::map<std::wstring, unsigned char*> resizedTextures;
-	std::map<std::wstring, unsigned int> allTextureWidths;
-	std::map<std::wstring, unsigned int> allTextureHeights;
+	std::map<std::string, std::string> allTextureInfo;
+	std::map<std::string, unsigned char*> resizedTextures;
+	std::map<std::string, unsigned int> allTextureWidths;
+	std::map<std::string, unsigned int> allTextureHeights;
 
 	gaia3d::BoundingBox fullBbox;
 
@@ -63,7 +63,7 @@ protected:
 
 	gaia3d::Matrix4 bboxCenterToLocalOrigin;
 
-	std::map<std::wstring, std::wstring> attributes;
+	std::map<std::string, std::string> attributes;
 
 	double longitude, latitude;
 	float altitude;
@@ -76,13 +76,13 @@ public:
 	void defaultSpaceSetupForVisualization(int width, int height);
 
 	bool proceedConversion(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
-							std::map<std::wstring, std::wstring>& originalTextureInfo,
+							std::map<std::string, std::string>& originalTextureInfo,
 							bool bExtractExterior = false,
 							bool bOcclusionCulling = false);
 
 	gaia3d::SpatialOctreeBox* getSpatialOctree() {return &thisSpatialOctree;}
 
-	std::map<std::wstring, std::wstring>& getTextureInfo() { return allTextureInfo; }
+	std::map<std::string, std::string>& getTextureInfo() { return allTextureInfo; }
 
 	std::map<size_t, gaia3d::TrianglePolyhedron*>& getLegos() {return legos;}
 
@@ -94,11 +94,11 @@ public:
 
 	SceneControlVariables* getSceneControlVariables() {return scv;}
 
-	void addAttribute(std::wstring key, std::wstring value);
+	void addAttribute(std::string key, std::string value);
 
-	std::map<std::wstring, std::wstring>& getAttributes() {return attributes;}
+	std::map<std::string, std::string>& getAttributes() {return attributes;}
 
-	std::wstring getAttribute(std::wstring key) {return attributes[key];}
+	std::string getAttribute(std::string key) {return attributes[key];}
 
 	double getLongitude() {return longitude;}
 	void setLongitude(double lon) {longitude = lon;}
@@ -111,9 +111,9 @@ public:
 
 	unsigned char* getLegoTextureBitmapArray() { return legoTextureBitmap; }
 	unsigned int* getLegoTextureDimension() { return legoTextureDimension; }
-	std::map<std::wstring, unsigned char*>& getResizedTextures() { return resizedTextures; }
-	std::map<std::wstring, unsigned int>& getAllTextureWidths() { return allTextureWidths; }
-	std::map<std::wstring, unsigned int>& getAllTextureHeights() { return allTextureHeights; }
+	std::map<std::string, unsigned char*>& getResizedTextures() { return resizedTextures; }
+	std::map<std::string, unsigned int>& getAllTextureWidths() { return allTextureWidths; }
+	std::map<std::string, unsigned int>& getAllTextureHeights() { return allTextureHeights; }
 
 	bool isTextureFlipX() { return textureFlip[0]; }
 	bool isTextureFlipY() { return textureFlip[1]; }
@@ -152,9 +152,9 @@ protected:
 
 	void makeLegoStructure(gaia3d::SpatialOctreeBox& octree, double minLegoSize, std::map<size_t, gaia3d::TrianglePolyhedron*>& result, gaia3d::BoundingBox& textureBbox, bool bMakeTexutreCoordinate);
 
-	void makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, std::wstring>& textureInfo);
+	void makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, std::string>& textureInfo);
 
-	void normalizeTextures(std::map<std::wstring, std::wstring>& textureInfo);
+	void normalizeTextures(std::map<std::string, std::string>& textureInfo);
 	// main processing steps - end
 
 	void calculateBoundingBox(gaia3d::TrianglePolyhedron* mesh);
@@ -187,13 +187,13 @@ protected:
 							std::vector<gaia3d::Triangle*>& outputTriangles,
 							unsigned int* sizeIndexMarkers);
 
-	void loadAndBindTextures(std::map<std::wstring, std::wstring>& textureInfo, std::map<std::wstring, unsigned int>& bindingResult);
+	void loadAndBindTextures(std::map<std::string, std::string>& textureInfo, std::map<std::string, unsigned int>& bindingResult);
 
-	void extractLegoTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, unsigned int>& bindingResult, unsigned int shaderProgram);
+	void extractLegoTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult, unsigned int shaderProgram);
 
-	void drawMeshesWithTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, unsigned int>& bindingResult, unsigned int shaderProgram);
+	void drawMeshesWithTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult, unsigned int shaderProgram);
 
-	void unbindTextures(std::map<std::wstring, unsigned int>& bindingResult);
+	void unbindTextures(std::map<std::string, unsigned int>& bindingResult);
 
 	unsigned int makeShaders();
 

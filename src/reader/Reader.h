@@ -11,65 +11,30 @@
 
 #include "../geometry/TrianglePolyhedron.h"
 
-class Reader abstract
+class Reader
 {
 public:
-	Reader() {}
+	Reader();
 
-	virtual ~Reader() {}
+	virtual ~Reader();
 
 public:
-	virtual bool readRawDataFile(std::wstring& filePath) = 0;
+	virtual bool readRawDataFile(std::string& filePath) = 0;
 
 	virtual void clear() = 0;
 
-	virtual std::vector<gaia3d::TrianglePolyhedron*>& getDataContainer() {return container;}
+	virtual std::vector<gaia3d::TrianglePolyhedron*>& getDataContainer();
 
-	virtual std::map<std::wstring, std::wstring>& getTextureInfoContainer() { return textureContainer; }
+	virtual std::map<std::string, std::string>& getTextureInfoContainer();
 
-	virtual void setUnitScaleFactor(double factor) { unitScaleFactor = factor; }
+	virtual void setUnitScaleFactor(double factor);
 
-	void TexCoord_Flip_Y() {
-		for (int i = 0, count = container.size(); i < count; i++)
-		{
-			gaia3d::TrianglePolyhedron* polyhedron = container[i];
-			polyhedron->TexCoord_Flip_Y();
-		}
-		/*
-		for (int i = 0, count = container.size(); i < count; i++)
-		{
-		gaia3d::TrianglePolyhedron* polyhedron = container[i];
-		if (polyhedron->doesThisHaveTextureCoordinates())
-		{
-		std::vector<gaia3d::Surface*>& surfaces = polyhedron->getSurfaces();
-		gaia3d::Surface* surface;
-		gaia3d::Triangle* triangle;
-		gaia3d::Vertex** vertices;
-
-		size_t surfaceCount = surfaces.size();
-		for (size_t i = 0; i < surfaceCount; i++)
-		{
-		surface = surfaces[i];
-		size_t triangleCount = surface->getTriangles().size();
-		for (size_t j = 0; j < triangleCount; j++)
-		{
-		triangle = surface->getTriangles()[j];
-		vertices = triangle->getVertices();
-		for (size_t k = 0; k < 3; k++)
-		{
-		vertices[k]->textureCoordinate[1] = abs(vertices[k]->textureCoordinate[1]);
-		}
-		}
-		}
-		}
-		}
-		*/
-	}
+	void TexCoord_Flip_Y() ;
 
 protected:
 	std::vector<gaia3d::TrianglePolyhedron*> container;
 
-	std::map<std::wstring, std::wstring> textureContainer;
+	std::map<std::string, std::string> textureContainer;
 
 	double unitScaleFactor;
 };

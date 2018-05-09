@@ -15,7 +15,7 @@ public:
 	virtual ~ReaderFactory();
 
 public:
-	static Reader* makeReader(std::wstring& filePath);
+	static Reader* makeReader(std::string& filePath);
 };
 
 #endif // _READERFACTORY_H_

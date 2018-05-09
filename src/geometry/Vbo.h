@@ -5,9 +5,11 @@
 #define _VBO_H_
 #pragma once
 
+#include <cstring>
 #include <vector>
 
 #include "predefinition.h"
+#include "Vertex.h"
 
 namespace gaia3d
 {
@@ -21,7 +23,7 @@ namespace gaia3d
 		Vbo()
 		{
 			double value[TriangleSizeLevels] = TriangleSizeThresholds;
-			memcpy(triangleSizeThresholds, value, sizeof(double)*TriangleSizeLevels);
+			std::memcpy(triangleSizeThresholds, value, sizeof(double)*TriangleSizeLevels);
 		}
 	};
 }

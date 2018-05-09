@@ -5,6 +5,7 @@
 #define _QUADTREE_H_
 #pragma once
 
+#include <cstddef>
 #include <vector>
 
 #include "LegoBlock.h"

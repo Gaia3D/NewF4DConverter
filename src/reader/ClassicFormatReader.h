@@ -14,7 +14,7 @@ public:
 	virtual ~ClassicFormatReader();
 
 public:
-	virtual bool readRawDataFile(std::wstring& filePath);
+	virtual bool readRawDataFile(std::string& filePath);
 
 	virtual void clear();
 

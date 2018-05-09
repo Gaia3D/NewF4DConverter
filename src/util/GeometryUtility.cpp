@@ -11,6 +11,7 @@
 #define PointCoincidenceTolerance 10E-4
 #define AngleComparisonTolerance 10E-9
 
+using namespace std;
 
 namespace gaia3d
 {
@@ -45,7 +46,7 @@ namespace gaia3d
 
 	bool GeometryUtility::areTwoCongruentWithEachOther(void* geom1, void* geom2, void* transform, double tolerance, GeomType geomType)
 	{
-		// TODO(khj 20170317) : ³ªÁß¿¡ geometry Å¸ÀÔÀÇ Á¾¼Ó¼ºÀÌ ¾øµµ·Ï Á¦°ÅÇØ¾ß ÇÑ´Ù.
+		// TODO(khj 20170317) : ë‚˜ì¤‘ì— geometry íƒ€ì…ì˜ ì¢…ì†ì„±ì´ ì—†ë„ë¡ ì œê±°í•´ì•¼ í•œë‹¤.
 		switch(geomType)
 		{
 		case POLYHEDRON:

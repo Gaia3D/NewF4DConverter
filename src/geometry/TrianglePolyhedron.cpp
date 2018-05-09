@@ -43,12 +43,12 @@ namespace gaia3d
 		vbos.clear();
 	}
 
-	void TrianglePolyhedron::addStringAttribute(std::wstring keyString, std::wstring valueString)
+	void TrianglePolyhedron::addStringAttribute(std::string keyString, std::string valueString)
 	{
-		stringAttributes.insert(std::map<std::wstring, std::wstring>::value_type(keyString, valueString));
+		stringAttributes.insert(std::map<std::string, std::string>::value_type(keyString, valueString));
 	}
 
-	bool TrianglePolyhedron::doesStringAttributeExist(std::wstring keyString)
+	bool TrianglePolyhedron::doesStringAttributeExist(std::string keyString)
 	{
 		if (stringAttributes.find(keyString) == stringAttributes.end())
 			return false;
@@ -56,10 +56,10 @@ namespace gaia3d
 		return true;
 	}
 
-	std::wstring TrianglePolyhedron::getStringAttribute(std::wstring keyString)
+	std::string TrianglePolyhedron::getStringAttribute(std::string keyString)
 	{
 		if (!doesStringAttributeExist(keyString))
-			return std::wstring();
+			return std::string();
 
 		return stringAttributes[keyString];
 	}
@@ -90,7 +90,7 @@ namespace gaia3d
 			{
 				surface = surfaces[i];
 				size_t triangleCount = surface->getTriangles().size();
-				LogWriter::getLogWriter()->addContents(L"Total Count of triangle : " + std::to_wstring(triangleCount), true);
+				LogWriter::getLogWriter()->addContents("Total Count of triangle : " + std::to_string(triangleCount), true);
 				for (size_t j = 0; j < triangleCount; j++)
 				{
 					triangle = surface->getTriangles()[j];
@@ -99,14 +99,14 @@ namespace gaia3d
 					{
 						vertices[k]->textureCoordinate[1] = 1.0 - vertices[k]->textureCoordinate[1];
 						//std::cout << k <<":"<< vertices[k]->textureCoordinate[0] << ":" << vertices[k]->textureCoordinate[1] << std::endl;
-						LogWriter::getLogWriter()->addContents(std::to_wstring(k) + L":" + std::to_wstring(vertices[k]->textureCoordinate[0]) + L":" + std::to_wstring(vertices[k]->textureCoordinate[1]), true);
+						LogWriter::getLogWriter()->addContents(std::to_string(k) + ":" + std::to_string(vertices[k]->textureCoordinate[0]) + ":" + std::to_string(vertices[k]->textureCoordinate[1]), true);
 					}
 				}
 			}
 
 			size_t vboCount = vbos.size();
 			if (vboCount == 0)	return;
-			LogWriter::getLogWriter()->addContents(L"Total Count of VBO : " + std::to_wstring(vboCount), true);
+			LogWriter::getLogWriter()->addContents("Total Count of VBO : " + std::to_string(vboCount), true);
 			for (size_t i = 0; i < vboCount; i++)
 			{
 				vbo = vbos[i];
@@ -114,7 +114,7 @@ namespace gaia3d
 				for (size_t j = 0; j < vertexCount; j++)
 				{
 					vbo->vertices[j]->textureCoordinate[1] = 1.0 - vbo->vertices[j]->textureCoordinate[1];
-					LogWriter::getLogWriter()->addContents(std::to_wstring(j) + L":" + std::to_wstring(vbo->vertices[j]->textureCoordinate[0]) + L":" + std::to_wstring(vbo->vertices[j]->textureCoordinate[1]), true);
+					LogWriter::getLogWriter()->addContents(std::to_string(j) + ":" + std::to_string(vbo->vertices[j]->textureCoordinate[0]) + ":" + std::to_string(vbo->vertices[j]->textureCoordinate[1]), true);
 				}
 			}
 		}

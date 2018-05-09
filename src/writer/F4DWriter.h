@@ -28,7 +28,7 @@ public:
 public:
 	ConversionProcessor* processor;
 
-	std::wstring folder;
+	std::string folder;
 
 	std::string version;
 
@@ -38,7 +38,7 @@ public:
 
 
 public:
-	void setWriteFolder(std::wstring folderPath) {folder = folderPath;}
+	void setWriteFolder(std::string folderPath) {folder = folderPath;}
 
 	bool write();
 
@@ -51,16 +51,16 @@ protected:
 
 	bool writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& models);
 
-	bool writeReferencesAndModels(std::wstring& referencePath, std::wstring& modelPath);
+	bool writeReferencesAndModels(std::string& referencePath, std::string& modelPath);
 
-	bool writeLegoBlocks(std::wstring& legoBlockPath);
+	bool writeLegoBlocks(std::string& legoBlockPath);
 
 	bool writeOctreeInfo(gaia3d::OctreeBox* octree, FILE* f);
 
 	void writeColor(unsigned long color, unsigned short type, bool bAlpha, FILE* file);
 
-	void writeLegoTexture(std::wstring resultPath);
-	void writeTextures(std:: wstring imagePath);
+	void writeLegoTexture(std::string resultPath);
+	void writeTextures(std::string imagePath);
 };
 
 #endif // _F4DWRITER_H_

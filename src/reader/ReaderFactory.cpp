@@ -26,40 +26,40 @@ ReaderFactory::~ReaderFactory()
 {
 }
 
-Reader* ReaderFactory::makeReader(std::wstring& filePath)
+Reader* ReaderFactory::makeReader(std::string& filePath)
 {
-	std::wstring::size_type dotPosition = filePath.rfind(L".");
-	if(dotPosition == std::wstring::npos)
+	std::string::size_type dotPosition = filePath.rfind(".");
+	if(dotPosition == std::string::npos)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(INVALID_TRIANGLE_COUNT), false);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(INVALID_TRIANGLE_COUNT), false);
 		return NULL;
 	}
 
-	std::wstring::size_type fileExtLength = filePath.length() - dotPosition - 1;
+	std::string::size_type fileExtLength = filePath.length() - dotPosition - 1;
 
-	std::wstring fileExt = filePath.substr(dotPosition + 1, fileExtLength);
+	std::string fileExt = filePath.substr(dotPosition + 1, fileExtLength);
 
-	std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), towlower);
+	std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), ::tolower);
 
 #ifdef F4D_FORMAT_SUPPORT_SHIJT
-	if(fileExt.compare(std::wstring(L"jt")) == 0)
+	if(fileExt.compare(std::string("jt")) == 0)
 	{
 		return new JtReader;
 	}
 #endif
 
 #ifdef F4D_FORMAT_SUPPORT_IFC
-	if (fileExt.compare(std::wstring(L"ifc")) == 0)
+	if (fileExt.compare(std::string("ifc")) == 0)
 	{
 		return new IfcReader;
 	}
 #endif
 
 #ifdef F4D_FORMAT_SUPPORT_CLASSIC
-	if (fileExt.compare(std::wstring(L"obj")) == 0 ||
-		fileExt.compare(std::wstring(L"dae")) == 0||
-		fileExt.compare(std::wstring(L"3ds")) == 0)
+	if (fileExt.compare(std::string("obj")) == 0 ||
+		fileExt.compare(std::string("dae")) == 0||
+		fileExt.compare(std::string("3ds")) == 0)
 	{
 		return new ClassicFormatReader;
 	}

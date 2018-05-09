@@ -5,6 +5,7 @@
 #define _SURFACE_H_
 #pragma once
 
+#include <cstddef>
 #include <vector>
 
 #include "Triangle.h"

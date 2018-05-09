@@ -31,9 +31,9 @@ private:
 	bool bOcclusionCulling;
 	double unitScaleFactor;
 
-	std::wstring inputFolderPath, outputFolderPath;
+	std::string inputFolderPath, outputFolderPath;
 
-	std::wstring idPrefix, idSuffix;
+	std::string idPrefix, idSuffix;
 
 public:
 	static ConverterManager* getConverterManager() { return &m_ConverterManager; }
@@ -49,15 +49,15 @@ public:
 
 	bool writeIndexFile();
 
-	bool processSingleFile(std::wstring& filePath);
+	bool processSingleFile(std::string& filePath);
 
 	void setIsCliMode(bool bMode) {bCliMode = bMode;}
 	bool getIsCliMode() {return bCliMode;}
 	bool isInitialized();
-	void setInputFolder(std::wstring input) {inputFolderPath = input;}
-	void setOutputFolder(std::wstring output) {outputFolderPath = output;}
-	void setIdPrefix(std::wstring prefix) { idPrefix = prefix; }
-	void setIdSuffix(std::wstring suffix) { idSuffix = suffix; }
+	void setInputFolder(std::string input) {inputFolderPath = input;}
+	void setOutputFolder(std::string output) {outputFolderPath = output;}
+	void setIdPrefix(std::string prefix) { idPrefix = prefix; }
+	void setIdSuffix(std::string suffix) { idSuffix = suffix; }
 	void setIndexCreation(bool bIndexing) {bCreateIndices = bIndexing;}
 	bool getIndexCreation() {return bCreateIndices;}
 	void setConversionOn(bool bOn) {bConversion = bOn;}
@@ -67,9 +67,9 @@ public:
 	void setUnitScaleFactor(double factor) { unitScaleFactor = factor; }
 
 private:
-	void processDataFolder(std::wstring inputFolder);
+	void processDataFolder(std::string inputFolder);
 
-	bool processDataFile(std::wstring& filePath, Reader* reader);
+	bool processDataFile(std::string& filePath, Reader* reader);
 };
 
 #endif // _CONVERTERMANAGER_H_

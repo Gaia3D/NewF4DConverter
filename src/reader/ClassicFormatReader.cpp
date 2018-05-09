@@ -13,13 +13,13 @@
 
 #include <iostream>
 
-std::wstring folder;
+std::string folder;
 
 bool proceedMesh(aiMesh* mesh,
 				const aiScene* scene,
 				gaia3d::Matrix4& transform,
 				std::vector<gaia3d::TrianglePolyhedron*>& container,
-				std::map<std::wstring, std::wstring>& textureContainer)
+				std::map<std::string, std::string>& textureContainer)
 {
 	if (mesh->mNumVertices < 3)
 	{
@@ -39,12 +39,13 @@ bool proceedMesh(aiMesh* mesh,
 		// collect texture info
 		aiString texturePath;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-		//std::wstring fullPath = folder + L"/" + std::wstring(CA2W(texturePath.C_Str()));
-		std::wstring fullPath = folder + L"/" + std::wstring(gaia3d::s2ws(texturePath.C_Str()));
+		
+		//std::string fullPath = folder + "/" + std::string(gaia3d::s2ws(texturePath.C_Str()));
+		std::string fullPath = folder + "/" + std::string(texturePath.C_Str());
 
-		size_t lastSlashIndex = fullPath.find_last_of(L"\\/");
-		std::wstring fileName;
-		if (lastSlashIndex == std::wstring::npos)
+		size_t lastSlashIndex = fullPath.find_last_of("\\/");
+		std::string fileName;
+		if (lastSlashIndex == std::string::npos)
 			fileName = fullPath;
 		else
 		{
@@ -54,10 +55,10 @@ bool proceedMesh(aiMesh* mesh,
 
 		if (textureContainer.find(fileName) == textureContainer.end())
 		{
-			textureContainer.insert(std::map<std::wstring, std::wstring>::value_type(fileName, fullPath));
+			textureContainer.insert(std::map<std::string, std::string>::value_type(fileName, fullPath));
 		}
 
-		polyhedron->addStringAttribute(std::wstring(TextureName), fileName);
+		polyhedron->addStringAttribute(std::string(TextureName), fileName);
 	}
 
 	// check if color info exists.
@@ -112,7 +113,7 @@ bool proceedMesh(aiMesh* mesh,
 		{
 			vertex->textureCoordinate[0] = mesh->mTextureCoords[0][i].x;
 			vertex->textureCoordinate[1] = mesh->mTextureCoords[0][i].y;
-			//LogWriter::getLogWriter()->addContents(std::to_wstring(vertex->textureCoordinate[0]) + L":" + std::to_wstring(vertex->textureCoordinate[1]), true);
+			//LogWriter::getLogWriter()->addContents(std::to_wstring(vertex->textureCoordinate[0]) + ":" + std::to_wstring(vertex->textureCoordinate[1]), true);
 		}
 		else
 		{
@@ -177,7 +178,7 @@ bool proceedNode(aiNode* node,
 				const aiScene* scene,
 				gaia3d::Matrix4& parentMatrix,
 				std::vector<gaia3d::TrianglePolyhedron*>& container,
-				std::map<std::wstring, std::wstring>& textureContainer)
+				std::map<std::string, std::string>& textureContainer)
 {
 	// TransformationMatrix
 	gaia3d::Matrix4 thisMatrix;
@@ -214,12 +215,12 @@ ClassicFormatReader::~ClassicFormatReader()
 {
 }
 
-bool ClassicFormatReader::readRawDataFile(std::wstring& filePath)
+bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 {
 	Assimp::Importer importer;
 
-	//std::string singleCharFilePath = std::string(CW2A(filePath.c_str()));
-	std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
+	//std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
+	std::string singleCharFilePath = std::string(filePath.c_str());
 
 	const aiScene* scene = importer.ReadFile(singleCharFilePath,
 		//aiProcess_SplitLargeMeshes |
@@ -237,8 +238,8 @@ bool ClassicFormatReader::readRawDataFile(std::wstring& filePath)
 	if (scene->mRootNode == NULL)
 		return false;
 
-	size_t slashPosition = filePath.find_last_of(L"\\/");
-	if (slashPosition == std::wstring::npos)
+	size_t slashPosition = filePath.find_last_of("\\/");
+	if (slashPosition == std::string::npos)
 		folder = filePath;
 	else
 		folder = filePath.substr(0, slashPosition);

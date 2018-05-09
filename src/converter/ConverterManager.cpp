@@ -4,8 +4,15 @@
 #include "ConverterManager.h"
 
 #include <iostream>
-#include <io.h>
+
+#ifdef __APPLE__
+        #include <sys/uio.h>
+#else
+        #include <sys/io.h>
+#endif
 #include <sys/stat.h>
+
+#include <boost/filesystem.hpp>
 
 #include "../reader/ReaderFactory.h"
 #include "../process/ConversionProcessor.h"
@@ -41,8 +48,8 @@ bool ConverterManager::initialize(GLFWwindow* window, int width, int height)
 	if(window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_DC), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_INITIALIZE_WND), true);
 		glfwTerminate();
 		return false;
 	}
@@ -57,93 +64,89 @@ void ConverterManager::changeGLDimension(int width, int height)
 
 bool ConverterManager::processDataFolder()
 {
-	std::wstring inputFolder = inputFolderPath;
-	std::wstring outputFolder = outputFolderPath;
+	std::string inputFolder = inputFolderPath;
+	std::string outputFolder = outputFolderPath;
 	// test if output folder exist
+	struct stat status;
+
 	bool outputFolderExist = false;
-	if (_waccess(outputFolder.c_str(), 0) == 0)
+	if (stat(outputFolder.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(outputFolder.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 
 	if (!outputFolderExist)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
 		return false;
 	}
 
 	bool inputFolderExist = false;
-	if (_waccess(inputFolder.c_str(), 0) == 0)
+	if (stat(inputFolder.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(inputFolder.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			inputFolderExist = true;
 	}
 
 	if (!inputFolderExist)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
 		return false;
 	}
 
 	processDataFolder(inputFolder);
 
-
 	return true;
 }
 
-bool ConverterManager::processSingleFile(std::wstring& filePath)
+bool ConverterManager::processSingleFile(std::string& filePath)
 {
-	std::wstring outputFolder = outputFolderPath;
+	std::string outputFolder = outputFolderPath;
+
+	struct stat status;
+
 	bool outputFolderExist = false;
-	if (_waccess(outputFolder.c_str(), 0) == 0)
+	if (stat(outputFolder.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(outputFolder.c_str(), &status);
-		if (status.st_mode & S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 
 	if (!outputFolderExist)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
 		return false;
 	}
 
 	bool bRawDataFileExists = false;
-	if (_waccess(filePath.c_str(), 0) == 0)
+	if (stat(filePath.c_str(), &status) == 0)
 	{
-		struct _stat64i32 status;
-		_wstat(filePath.c_str(), &status);
-		if ((status.st_mode & S_IFDIR) != S_IFDIR)
+		if (S_ISDIR(status.st_mode))
 			bRawDataFileExists = true;
 	}
 
 	if (!bRawDataFileExists)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
 		return false;
 	}
-	/*
-	aReader* reader = ReaderFactory::makeReader(filePath);
+	
+	Reader* reader = ReaderFactory::makeReader(filePath);
 	if (reader == NULL)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(UNSUPPORTED_FORMAT), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(UNSUPPORTED_FORMAT), true);
 		return false;
 	}
 
-	std::wstring fileName;
-	std::wstring::size_type slashPosition = filePath.find_last_of(L"\\/");
-	if (slashPosition == std::wstring::npos)
+	std::string fileName;
+	std::string::size_type slashPosition = filePath.find_last_of("\\/");
+	if (slashPosition == std::string::npos)
 		fileName = filePath;
 	else
 		fileName = filePath.substr(slashPosition + 1, filePath.length() - slashPosition - 1);
@@ -160,15 +163,15 @@ bool ConverterManager::processSingleFile(std::wstring& filePath)
 
 	delete reader;
 
-	std::wstring::size_type dotPosition = fileName.rfind(L".");
-	std::wstring fullId = fileName.substr(0, dotPosition);
+	std::string::size_type dotPosition = fileName.rfind(".");
+	std::string fullId = fileName.substr(0, dotPosition);
 	if (!idPrefix.empty())
 		fullId = idPrefix + fullId;
 
 	if (!idSuffix.empty())
 		fullId += idSuffix;
 
-	processor->addAttribute(std::wstring(L"id"), fullId);
+	processor->addAttribute(std::string("id"), fullId);
 
 	F4DWriter writer(processor);
 	writer.setWriteFolder(outputFolder);
@@ -180,43 +183,75 @@ bool ConverterManager::processSingleFile(std::wstring& filePath)
 	}
 
 	processor->clear();
-	*/
+	
 	return true;
 }
 
-void ConverterManager::processDataFolder(std::wstring inputFolder)
+void ConverterManager::processDataFolder(std::string inputFolder)
 {
+	std::vector<std::string> dataFiles;
+	std::vector<std::string> subFolders;
+	
+	namespace bfs = boost::filesystem;
+
+	bfs::path folderPath(inputFolder);
+	if (bfs::is_directory(folderPath))
+	{
+		std::cout << "In directory: " << folderPath.string() << std::endl;
+		bfs::directory_iterator end;
+		for(bfs::directory_iterator it(folderPath); it != end; ++it)
+		{
+			try
+			{
+				if (bfs::is_directory(*it))
+				{
+					subFolders.push_back(it->path().string());
+					std::cout << "[directory]" << it->path() << std::endl;
+				}
+				else
+				{
+					dataFiles.push_back(it->path().filename().string());
+					std::cout << "[file]" << it->path().filename() << std::endl;
+				}
+			}
+			catch (const std::exception &ex)
+			{
+				std::cout << it->path().filename() << " " << ex.what() << std::endl;
+			}
+		}
+	}
+/*
 	_wfinddata64_t fd;
 	long long handle;
 	int result = 1;
-	std::wstring fileFilter = inputFolder + std::wstring(L"/*.*");
+	std::string fileFilter = inputFolder + std::string("/*.*");
 	handle = _wfindfirsti64(fileFilter.c_str(), &fd);
 
 	if (handle == -1)
 		return;
 
-	std::vector<std::wstring> dataFiles;
-	std::vector<std::wstring> subFolders;
+	std::vector<std::string> dataFiles;
+	std::vector<std::string> subFolders;
 	while (result != -1)
 	{
 		if ((fd.attrib & _A_SUBDIR) == _A_SUBDIR)
 		{
-			if (std::wstring(fd.name) != std::wstring(L".") && std::wstring(fd.name) != std::wstring(L".."))
+			if (std::string(fd.name) != std::string(".") && std::string(fd.name) != std::string(".."))
 			{
-				std::wstring subFolderFullPath = inputFolder + L"/" + std::wstring(fd.name);
+				std::string subFolderFullPath = inputFolder + "/" + std::string(fd.name);
 				subFolders.push_back(subFolderFullPath);
 			}
 		}
 		else
 		{
-			dataFiles.push_back(std::wstring(fd.name));
+			dataFiles.push_back(std::string(fd.name));
 		}
 
 		result = _wfindnexti64(handle, &fd);
 	}
 
 	_findclose(handle);
-
+*/
 	size_t subFolderCount = subFolders.size();
 	for (size_t i = 0; i < subFolderCount; i++)
 	{
@@ -227,13 +262,13 @@ void ConverterManager::processDataFolder(std::wstring inputFolder)
 	if (dataFileCount == 0)
 		return;
 
-	std::wstring outputFolder = outputFolderPath;
+	std::string outputFolder = outputFolderPath;
 
-	std::wstring fullId;
+	std::string fullId;
 	for (size_t i = 0; i < dataFileCount; i++)
 	{
 		// 1. raw data file을 하나씩 변환
-		std::wstring dataFileFullPath = inputFolder + std::wstring(L"/") + dataFiles[i];
+		std::string dataFileFullPath = inputFolder + std::string("/") + dataFiles[i];
 		
 		Reader* reader = ReaderFactory::makeReader(dataFileFullPath);
 		if (reader == NULL)
@@ -252,7 +287,7 @@ void ConverterManager::processDataFolder(std::wstring inputFolder)
 
 		delete reader;
 		
-		std::wstring::size_type dotPosition = dataFiles[i].rfind(L".");
+		std::string::size_type dotPosition = dataFiles[i].rfind(".");
 		fullId = dataFiles[i].substr(0, dotPosition);
 		if (!idPrefix.empty())
 			fullId = idPrefix + fullId;
@@ -260,7 +295,7 @@ void ConverterManager::processDataFolder(std::wstring inputFolder)
 		if (!idSuffix.empty())
 			fullId += idSuffix;
 
-		processor->addAttribute(std::wstring(L"id"), fullId);
+		processor->addAttribute(std::string("id"), fullId);
 
 
 		// 2. 변환 결과에서 bbox centerpoint를 로컬 원점으로 이동시키는 변환행렬 추출
@@ -290,20 +325,20 @@ bool ConverterManager::writeIndexFile()
 	return true;
 }
 
-bool ConverterManager::processDataFile(std::wstring& filePath, Reader* reader)
+bool ConverterManager::processDataFile(std::string& filePath, Reader* reader)
 {
 	
 	if (!reader->readRawDataFile(filePath))
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_LOAD_FILE), false);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_LOAD_FILE), false);
 		return false;
 	}
 
 	if (reader->getDataContainer().size() == 0)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(NO_DATA_IN_RAW_DATA), false);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_IN_RAW_DATA), false);
 		return false;
 	}
 
@@ -311,8 +346,8 @@ bool ConverterManager::processDataFile(std::wstring& filePath, Reader* reader)
 
 	if(!processor->proceedConversion(reader->getDataContainer(), reader->getTextureInfoContainer(), true, bOcclusionCulling))
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CONVERSION_FAILURE), false);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CONVERSION_FAILURE), false);
 		return false;
 	}
 	

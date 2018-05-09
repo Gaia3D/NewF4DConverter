@@ -59,12 +59,12 @@ namespace gaia3d
 		// Nota: |a|*|b| = ab2
 		double ang;
 		double ab, ab2;
-		double M_PI = 3.14159265358979323846;
+		double m_pi = 3.14159265358979323846;
 
 		ab= x*v.x+ y*v.y+ z*v.z;
 		ab2= module()*v.module();
 
-		if(ab/ab2<=-1.0)ang=M_PI;
+		if(ab/ab2<=-1.0)ang=m_pi;
 		else
 		{
 			if(ab/ab2>=1.0)ang=0.0;
@@ -158,7 +158,7 @@ namespace gaia3d
 		// Funcio 2D.***
 		double ang;
 		double tolerance=10E-11;
-		double M_PI = 3.14159265358979323846;
+		double m_pi = 3.14159265358979323846;
 
 		double xa, ya;
 
@@ -173,19 +173,19 @@ namespace gaia3d
 			// Hem de fer un post-tractament.***
 			if(xa>=0.0)
 			{
-				if(ya<0.0)ang+=2.0*M_PI;
+				if(ya<0.0)ang+=2.0*m_pi;
 			}
 			else
 			{
-				if(ya>0.0)ang=M_PI+ang;
-				else ang+=M_PI;// Aquesta sentencia es igual a l'anterior.***
+				if(ya>0.0)ang=m_pi+ang;
+				else ang+=m_pi;// Aquesta sentencia es igual a l'anterior.***
 			}
 		}
 		else
 		{
 			// El vector sembla vertical.***
-			if(ya>0.0)ang=M_PI*0.5;
-			else ang=M_PI*1.5;
+			if(ya>0.0)ang=m_pi*0.5;
+			else ang=m_pi*1.5;
 		}
 		return ang;
 	}
@@ -197,14 +197,14 @@ namespace gaia3d
 		// L'ang pot ser positiu o negatiu.***
 		double ang_v, ang_meu_v;
 		double ang;
-		double M_PI = 3.14159265358979323846;
+		double m_pi = 3.14159265358979323846;
 
 		ang_v=v.angleFromXAxis();
 		ang_meu_v=this->angleFromXAxis();
 		// Hem de fer un tractament.***
-		if(ang_meu_v>ang_v)ang_v+=2.0*M_PI;
+		if(ang_meu_v>ang_v)ang_v+=2.0*m_pi;
 		ang=ang_v-ang_meu_v;
-		if(ang>M_PI)ang-=M_PI*2.0;
+		if(ang>m_pi)ang-=m_pi*2.0;
 
 		return ang;
 	}

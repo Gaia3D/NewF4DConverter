@@ -5,6 +5,8 @@
 #define _TRIANGLE_H_
 #pragma once
 
+#include <cstddef>
+
 #include "Vertex.h"
 
 namespace gaia3d

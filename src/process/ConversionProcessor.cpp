@@ -111,38 +111,38 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	PixelFormat = ChoosePixelFormat(scv->m_myhDC, &pfd);
 	if(PixelFormat == 0)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CHOOSE_PF), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CHOOSE_PF), true);
 		return false;
 	}
 
 	if(SetPixelFormat(scv->m_myhDC,PixelFormat,&pfd) == FALSE)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_SET_PF), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_SET_PF), true);
 		return false;
 	}
 
 	scv->m_hRC = wglCreateContext(scv->m_myhDC);
 	if(scv->m_hRC == NULL)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CREATE_GL_CONTEXT), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_GL_CONTEXT), true);
 		return false;
 	}
 
 	if(wglMakeCurrent(scv->m_myhDC, scv->m_hRC) == FALSE)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CONNECT_GLC_TO_DC), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CONNECT_GLC_TO_DC), true);
 		return false;
 	}
 */
 	glfwMakeContextCurrent(window);
 	if (window == NULL)
 	{
-		LogWriter::getLogWriter()->addContents(std::wstring(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::wstring(CANNOT_CONNECT_GLC_TO_DC), true);
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CONNECT_GLC_TO_DC), true);
 		return false;
 	}
 
@@ -248,7 +248,7 @@ void ConversionProcessor::clear()
 
 	if (!resizedTextures.empty())
 	{
-		std::map<std::wstring, unsigned char*>::iterator itr = resizedTextures.begin();
+		std::map<std::string, unsigned char*>::iterator itr = resizedTextures.begin();
 		for (; itr != resizedTextures.end(); itr++)
 			delete[] itr->second;
 
@@ -264,13 +264,13 @@ void ConversionProcessor::changeSceneControlVariables()
 	// TODO(khj 20170210) : NYI 여기서 SceneControlVariables를 바꿀 수 있다.
 }
 
-void ConversionProcessor::addAttribute(std::wstring key, std::wstring value)
+void ConversionProcessor::addAttribute(std::string key, std::string value)
 {
-	attributes.insert(std::map<std::wstring, std::wstring>::value_type(key, value));
+	attributes.insert(std::map<std::string, std::string>::value_type(key, value));
 }
 
 bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
-											std::map<std::wstring, std::wstring>& originalTextureInfo,
+											std::map<std::string, std::string>& originalTextureInfo,
 											bool bExtractExterior,
 											bool bOcclusionCulling)
 {
@@ -767,7 +767,7 @@ void ConversionProcessor::makeLegoStructure(gaia3d::SpatialOctreeBox& spatialOct
 	}
 }
 
-void ConversionProcessor::makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, std::wstring>& textureInfo)
+void ConversionProcessor::makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, std::string>& textureInfo)
 {
 	// prepare shaders for texture drawing
 	unsigned int shaderProgram = makeShaders();
@@ -775,7 +775,7 @@ void ConversionProcessor::makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron
 		return;
 
 	// load and bind textures
-	std::map<std::wstring, unsigned int> bindingResult;
+	std::map<std::string, unsigned int> bindingResult;
 	loadAndBindTextures(textureInfo, bindingResult);
 
 	// let's draw full meshes and extract lego textures
@@ -790,28 +790,29 @@ void ConversionProcessor::makeLegoTexture(std::vector<gaia3d::TrianglePolyhedron
 /**
  * resize texture
  */
-void ConversionProcessor::normalizeTextures(std::map<std::wstring, std::wstring>& textureInfo)
+void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& textureInfo)
 {
-	std::map<std::wstring, std::wstring>::iterator itr = textureInfo.begin();
-	std::wstring fileExt;
-	std::wstring fileName, fullPath;
+	std::map<std::string, std::string>::iterator itr = textureInfo.begin();
+	std::string fileExt;
+	std::string fileName, fullPath;
 	for (; itr != textureInfo.end(); itr++)
 	{
 		fileName = itr->first;
 		fullPath = itr->second;
 
-		std::wstring::size_type dotPosition = fileName.rfind(L".");
-		if (dotPosition == std::wstring::npos)
+		std::string::size_type dotPosition = fileName.rfind(".");
+		if (dotPosition == std::string::npos)
 			continue;
 
-		std::wstring fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
+		std::string fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
 		std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), towlower);
 
-		std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		//std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		std::string singleFullPath(fullPath.c_str());
 
-		if (fileExt.compare(L"jpg") != 0 && fileExt.compare(L"jpeg") != 0 && fileExt.compare(L"jpe") != 0 &&
-			fileExt.compare(L"png") != 0 && fileExt.compare(L"gif") != 0 && fileExt.compare(L"bmp") != 0 &&
-			fileExt.compare(L"tif") != 0 && fileExt.compare(L"tiff") != 0)
+		if (fileExt.compare("jpg") != 0 && fileExt.compare("jpeg") != 0 && fileExt.compare("jpe") != 0 &&
+			fileExt.compare("png") != 0 && fileExt.compare("gif") != 0 && fileExt.compare("bmp") != 0 &&
+			fileExt.compare("tif") != 0 && fileExt.compare("tiff") != 0)
 			continue;
 
 		unsigned char* pData;
@@ -979,14 +980,10 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 	data = (GLuint*)malloc(sizeof(GLuint) * data_size);
 	if (data)
 	{
-		//glReadBuffer(GL_FRONT);
 		glReadPixels(0, 0, scv->m_width, scv->m_height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	}
 #endif
 	
-	stbi_flip_vertically_on_write(false);
-	stbi_write_png("IndexColor.png", scv->m_width, scv->m_height, 4, data, 0);
-
 	int pixels_count = data_size;
 	size_t triSurfaces_count = surfaces.size();
 
@@ -1835,32 +1832,32 @@ void ConversionProcessor::sortTrianglesBySize(std::vector<gaia3d::Triangle*>& in
 	delete[] squaredSizeArray;
 }
 
-void ConversionProcessor::loadAndBindTextures(std::map<std::wstring, std::wstring>& textureInfo, std::map<std::wstring, unsigned int>& bindingResult)
+void ConversionProcessor::loadAndBindTextures(std::map<std::string, std::string>& textureInfo, std::map<std::string, unsigned int>& bindingResult)
 {
-	std::map<std::wstring, std::wstring>::iterator itr = textureInfo.begin();
-	std::wstring fileName, fullPath;
+	std::map<std::string, std::string>::iterator itr = textureInfo.begin();
+	std::string fileName, fullPath;
 	for (; itr != textureInfo.end(); itr++)
 	{
 		fileName = itr->first;
 		fullPath = itr->second;
 
-		std::wstring::size_type dotPosition = fileName.rfind(L".");
-		if (dotPosition == std::wstring::npos)
+		std::string::size_type dotPosition = fileName.rfind(".");
+		if (dotPosition == std::string::npos)
 			continue;
 
-		std::wstring fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
+		std::string fileExt = fileName.substr(dotPosition + 1, fileName.length() - dotPosition - 1);
 		std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), towlower);
 
 		unsigned char* pDest = NULL;
 		int width, height;
 		unsigned int idTextureBound;
 
-		//std::string singleFullPath(CW2A(fullPath.c_str()));
-		std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		//std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
+		std::string singleFullPath(fullPath.c_str());
 
-		if (fileExt.compare(L"jpg") == 0 || fileExt.compare(L"jpeg") == 0 || fileExt.compare(L"jpe") == 0 ||
-			fileExt.compare(L"png") == 0 || fileExt.compare(L"gif") == 0 || fileExt.compare(L"tif") == 0 || 
-			fileExt.compare(L"tiff") == 0 || fileExt.compare(L"tga") == 0)
+		if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0 ||
+			fileExt.compare("png") == 0 || fileExt.compare("gif") == 0 || fileExt.compare("tif") == 0 || 
+			fileExt.compare("tiff") == 0 || fileExt.compare("tga") == 0)
 		{
 			// binding
 			glGenTextures(1, &idTextureBound);
@@ -1885,7 +1882,7 @@ void ConversionProcessor::loadAndBindTextures(std::map<std::wstring, std::wstrin
 			if (pDest)
 			{
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pDest);
-				//glGenerateMipmap(GL_TEXTURE_2D);
+				glGenerateMipmap(GL_TEXTURE_2D);
 			}
 			else
 			{
@@ -1896,7 +1893,7 @@ void ConversionProcessor::loadAndBindTextures(std::map<std::wstring, std::wstrin
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 		/*
-		else if (fileExt.compare(L"tga") == 0)
+		else if (fileExt.compare("tga") == 0)
 		{
 			//std::string singleFullPath(CW2A(fullPath.c_str()));
 			
@@ -1905,7 +1902,7 @@ void ConversionProcessor::loadAndBindTextures(std::map<std::wstring, std::wstrin
 				SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
 			
 		}
-		else if (fileExt.compare(L"dds") == 0)
+		else if (fileExt.compare("dds") == 0)
 		{
 			//std::string singleFullPath(CW2A(fullPath.c_str()));
 			
@@ -1920,11 +1917,11 @@ void ConversionProcessor::loadAndBindTextures(std::map<std::wstring, std::wstrin
 			continue;
 		}
 	
-		bindingResult.insert(std::map<std::wstring, unsigned int>::value_type(fileName, idTextureBound));
+		bindingResult.insert(std::map<std::string, unsigned int>::value_type(fileName, idTextureBound));
 	}
 }
 
-void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, unsigned int>& bindingResult,unsigned int shaderProgram)
+void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult,unsigned int shaderProgram)
 {
 	scv->ClearColor[0] = 188.0f / 255.0f;
 	scv->ClearColor[1] = 188.0f / 255.0f;
@@ -2069,16 +2066,8 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 
 	unsigned char* tempBitmap = new unsigned char[imageSize];
 	memset(tempBitmap, 0x00, sizeof(unsigned char)*imageSize);
-	/*
-	GLenum lastBuffer;
-	glPixelStorei(GL_PACK_ALIGNMENT, 4);
-	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
-	glPixelStorei(GL_PACK_SKIP_ROWS, 0);
-	glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
-	glPixelStorei(GL_PACK_SWAP_BYTES, 1);
-	glGetIntegerv(GL_READ_BUFFER, (GLint*)&lastBuffer);
-	*/
-	glReadBuffer(GL_FRONT);
+
+	//glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, tempBitmap);
 	
 	// Flip an image vertically
@@ -2108,7 +2097,7 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
 }
 
-void ConversionProcessor::drawMeshesWithTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::wstring, unsigned int>& bindingResult, unsigned int shaderProgram)
+void ConversionProcessor::drawMeshesWithTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult, unsigned int shaderProgram)
 {
 	// do this only once.
 	//glDisable(GL_LIGHTING);
@@ -2241,7 +2230,7 @@ void ConversionProcessor::drawMeshesWithTextures(std::vector<gaia3d::TrianglePol
 			{
 				glActiveTexture(GL_TEXTURE0 + 0);
 				// 이 polyhedron을 그릴 때 필요한 texture를 activate 시킨다.
-				std::wstring textureName = polyhedron->getStringAttribute(std::wstring(TextureName));
+				std::string textureName = polyhedron->getStringAttribute(std::string(TextureName));
 				if (bindingResult.find(textureName) != bindingResult.end())
 				{
 					unsigned int textureId = bindingResult[textureName];
@@ -2303,9 +2292,9 @@ void ConversionProcessor::drawMeshesWithTextures(std::vector<gaia3d::TrianglePol
 	glUseProgram(0);
 }
 
-void ConversionProcessor::unbindTextures(std::map<std::wstring, unsigned int>& bindingResult)
+void ConversionProcessor::unbindTextures(std::map<std::string, unsigned int>& bindingResult)
 {
-	std::map<std::wstring, unsigned int>::iterator itr;
+	std::map<std::string, unsigned int>::iterator itr;
 	for (itr = bindingResult.begin(); itr != bindingResult.end(); itr++)
 	{
 		unsigned int textureId = itr->second;
@@ -2329,9 +2318,9 @@ unsigned int ConversionProcessor::makeShaders()
 		"attribute vec3 aVertexNormal;\n"
 		"varying vec3 uAmbientColor;\n"
 		"varying vec3 vLightWeighting;\n"
-		"//uniform vec3 uLightingDirection;\n"
+		"uniform vec3 uLightingDirection;\n"
 		"uniform mat3 uNMatrix;\n"
-		"void main(void) { //pre-built function\n"
+		"void main(void) {\n"
 		"vec4 pos = vec4(position.xyz, 1.0);\n"
 		"gl_Position = ModelViewProjectionMatrix * pos;\n"
 		"vColor = aVertexColor;\n"
@@ -2344,7 +2333,7 @@ unsigned int ConversionProcessor::makeShaders()
 		"vec3 transformedNormal = uNMatrix * aVertexNormal;\n"
 		"float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);\n"
 		"vLightWeighting = uAmbientColor + directionalLightColor * directionalLightWeighting;\n"
-		"};\n"
+		"}\n"
 	};
 
 	const GLchar* vertexShaderSource = vs_source;
@@ -2358,6 +2347,21 @@ unsigned int ConversionProcessor::makeShaders()
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
 	if (isCompiled == GL_FALSE)
 	{
+		GLint maxLength = 0;
+        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::vector<char> errorLog(maxLength);
+        glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &errorLog[0]);
+
+        std::cout << "vertexShader failed to compile" << std::endl;
+
+		for (std::vector<char>::const_iterator i = errorLog.begin(); i != errorLog.end(); ++i)
+		{
+			std::cout << *i;
+		}
+    	std::cout << std::endl;
+
 		glDeleteShader(vertexShader);
 		return 0;
 	}
@@ -2365,7 +2369,6 @@ unsigned int ConversionProcessor::makeShaders()
 	// fragment shader source
 	GLchar fs_source[] =
 	{
-		"precision mediump float;\n"
 		"varying vec4 vColor;\n"
 		"varying vec2 vTextureCoord;\n"
 		"uniform sampler2D uSampler;\n"
@@ -2398,7 +2401,6 @@ unsigned int ConversionProcessor::makeShaders()
 		"gl_FragColor = textureColor;\n"
 		"}\n"
 		"}\n"
-
 		"}\n"
 	};
 
@@ -2412,6 +2414,21 @@ unsigned int ConversionProcessor::makeShaders()
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
 	if (isCompiled == GL_FALSE)
 	{
+		GLint maxLength = 0;
+        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::vector<char> errorLog(maxLength);
+        glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &errorLog[0]);
+
+        std::cout << "fragmentShader failed to compile" << std::endl;
+
+		for (std::vector<char>::const_iterator i = errorLog.begin(); i != errorLog.end(); ++i)
+		{
+			std::cout << *i;
+		}
+    	std::cout << std::endl;
+
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
 		return 0;
