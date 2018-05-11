@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Implementation of the GeometryUtility class
  */
 #include "GeometryUtility.h"
@@ -46,7 +46,7 @@ namespace gaia3d
 
 	bool GeometryUtility::areTwoCongruentWithEachOther(void* geom1, void* geom2, void* transform, double tolerance, GeomType geomType)
 	{
-		// TODO(khj 20170317) : 나중에 geometry 타입의 종속성이 없도록 제거해야 한다.
+		// TODO(khj 20170317) : ?섏쨷??geometry ??낆쓽 醫낆냽?깆씠 ?녿룄濡??쒓굅?댁빞 ?쒕떎.
 		switch(geomType)
 		{
 		case POLYHEDRON:
@@ -545,5 +545,3 @@ namespace gaia3d
 		}
 	}
 }
-
-

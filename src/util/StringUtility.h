@@ -1,59 +1,22 @@
-/**
+﻿/**
  * StringUtility Header
  */
 #ifndef _STRINGUTILITY_H_
 #define _STRINGUTILITY_H_
 #pragma once
 
-//#include <codecvt>
+#ifdef WIN32
+#include <codecvt>
+#endif
 
 namespace gaia3d
 {
-	/*
-	static std::wstring s2ws(const std::string& str)
+	class StringUtility
 	{
-		using convert_typeX = std::codecvt_utf8<wchar_t>;
-		std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-		return converterX.from_bytes(str);
-	}
-
-	static std::string ws2s(const std::wstring& wstr)
-	{
-		using convert_typeX = std::codecvt_utf8<wchar_t>;
-		std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-		return converterX.to_bytes(wstr);
-	}
-
-	static std::string w2s(const std::wstring &var)
-	{
-		static std::locale loc("");
-		auto &facet = std::use_facet<std::codecvt<wchar_t, char, std::mbstate_t>>(loc);
-		return std::wstring_convert<std::remove_reference<decltype(facet)>::type, wchar_t>(&facet).to_bytes(var);
-	}
-
-	static std::wstring s2w(const std::string &var)
-	{
-		static std::locale loc("");
-		auto &facet = std::use_facet<std::codecvt<wchar_t, char, std::mbstate_t>>(loc);
-		return std::wstring_convert<std::remove_reference<decltype(facet)>::type, wchar_t>(&facet).from_bytes(var);
-	}
-	*/
-	/*
-	#include <boost/locale.hpp>
-	namespace lcv = boost::locale::conv;
-
-	inline std::wstring fromUTF8(const std::string& s)
-	{
-		return lcv::utf_to_utf<wchar_t>(s);
-	}
-
-	inline std::string toUTF8(const std::wstring& ws)
-	{
-		return lcv::utf_to_utf<char>(ws);
-	}
-	*/
+	public:
+		static std::string convertWideStringToUtf8(const std::wstring& sourceString);
+		static std::wstring convertUtf8ToWideString(const std::string& sourceString);
+	};
 }
 
 #endif // _STRINGUTILITY_H_
