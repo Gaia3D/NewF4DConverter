@@ -71,6 +71,8 @@ protected:
 public:
 	bool initialize(GLFWwindow* window, int width, int height);
 
+	void uninitialize();
+
 	void clear();
 
 	void defaultSpaceSetupForVisualization(int width, int height);
@@ -100,6 +102,8 @@ public:
 
 	std::string getAttribute(std::string key) {return attributes[key];}
 
+	bool doesAttributeExist(std::string key) { return attributes.find(key) != attributes.end(); }
+	
 	double getLongitude() {return longitude;}
 	void setLongitude(double lon) {longitude = lon;}
 	double getLatitude() {return latitude;}

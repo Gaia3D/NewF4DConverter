@@ -9,6 +9,8 @@
 #include <codecvt>
 #endif
 
+#include <string>
+
 namespace gaia3d
 {
 	class StringUtility

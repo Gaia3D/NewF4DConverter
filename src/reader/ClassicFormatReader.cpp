@@ -220,9 +220,9 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 	Assimp::Importer importer;
 
 	//std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
-	std::string singleCharFilePath = std::string(filePath.c_str());
+	//std::string singleCharFilePath = std::string(filePath.c_str());
 
-	const aiScene* scene = importer.ReadFile(singleCharFilePath,
+	const aiScene* scene = importer.ReadFile(filePath,
 		//aiProcess_SplitLargeMeshes |
 		aiProcess_CalcTangentSpace |
 		aiProcess_Triangulate |

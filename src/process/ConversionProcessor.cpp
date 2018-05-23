@@ -62,6 +62,7 @@ ConversionProcessor::~ConversionProcessor()
 	delete scv;
 
 	clear();
+	uninitialize();
 }
 
 bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
@@ -69,6 +70,8 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	// TODO(khj 20170210) : NYI 여기서 SceneControlVariables를 초기화 해야 한다.
 
 	// dc와 연결
+	float ratio = (float)width / height;
+
 	scv->m_window = window;
 	scv->m_width = width;
 	scv->m_height = height;
@@ -165,12 +168,21 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	glDepthFunc(GL_LEQUAL);  
 	glClearDepth(1.0f); 
 
+	// set buffer draw/read mode
+	glReadBuffer(GL_BACK);
+	glDrawBuffer(GL_BACK);
+
 	// Reset the current projection matrix
 	scv->m_perspective_far = 10000.0;
 	glViewport(0, 0, scv->m_width, scv->m_height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	//gluPerspective(scv->m_perspective_angle,(GLfloat)scv->m_width/(GLfloat)scv->m_height, scv->m_perspective_near, scv->m_perspective_far);
+	glm::mat4 projection = glm::perspective(glm::radians(scv->m_perspective_angle),
+											(double)ratio,
+											scv->m_perspective_near,
+											scv->m_perspective_far);
+	glLoadMatrixf((const GLfloat*)&projection[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -179,6 +191,14 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	glCullFace(GL_BACK);
 
 	glShadeModel(GL_SMOOTH);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); 
+	glEnable(GL_POLYGON_SMOOTH);
+
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.0,1.0);
 
 	/*
 	glPolygonOffset(0.0, 0.0);
@@ -221,6 +241,14 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	// End SetUp lighting.---------------------------------------------------------------------------------------------------------------------------------
 
 	return true;
+}
+void ConversionProcessor::uninitialize()
+{
+	if(scv->m_window != NULL)
+	{
+		glfwDestroyWindow(scv->m_window);
+		scv->m_window = NULL;
+	}
 }
 
 void ConversionProcessor::clear()
@@ -858,6 +886,7 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 
 		pDest = new unsigned char[bmpWidthResized * bmpHeightResized * nrChannels];
 		stbir_resize_uint8(pData, bmpWidth, bmpHeight, 0, pDest, bmpWidthResized, bmpHeightResized, 0, nrChannels);
+		stbi_image_free(pData);
 
 		// 최종 결과물을 container에 넣는다.
 		resizedTextures[itr->first] = pDest;
@@ -955,7 +984,7 @@ void ConversionProcessor::setupPerspectiveViewSetting(gaia3d::BoundingBox& bbox)
 	}
 	else if(scv->tp_projection== PROJECTION_ORTHO)
 	{
-		scv->m_nRange = (float)(max_length_bc*0.9f)/2.0f;
+		scv->m_nRange = (float)(max_length_bc*1.2f)/2.0f;
 		scv->m_xPos = -centerPoint.x;
 		scv->m_yPos = -centerPoint.y;
 		scv->m_zPos = -centerPoint.z;
@@ -1134,17 +1163,16 @@ void ConversionProcessor::makeVisibilityIndices(gaia3d::VisionOctreeBox& octree,
 
 	glViewport (0, 0, (GLsizei) screenSize, (GLsizei) screenSize); // Set the viewport 
 
+	// Setup perspective perspective matrix
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	// gluPerspective(scv->m_perspective_angle, (GLfloat)1.0f , scv->m_perspective_near, scv->m_perspective_far);
 	glm::mat4 projection = glm::perspective(glm::radians(scv->m_perspective_angle),
 											(double)1.0f, 
 											scv->m_perspective_near, 
 											scv->m_perspective_far);
-	// Setup perspective perspective matrix
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
 	glLoadMatrixf((const GLfloat*)&projection[0][0]);
 
-
-	//gluPerspective();
     glMatrixMode(GL_MODELVIEW);
 
 	glReadBuffer(GL_BACK);
@@ -1245,7 +1273,7 @@ void ConversionProcessor::makeVisibilityIndices(gaia3d::VisionOctreeBox& octree,
 	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
 	setupPerspectiveViewSetting(fullBbox);
 
-	glReadBuffer(GL_BACK);
+	//glReadBuffer(GL_BACK);
 }
 
 void ConversionProcessor::drawAndDetectVisibleColorIndices(std::map<size_t, size_t>& container)
@@ -2071,7 +2099,7 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 	unsigned char* tempBitmap = new unsigned char[imageSize];
 	memset(tempBitmap, 0x00, sizeof(unsigned char)*imageSize);
 
-	glReadBuffer(GL_FRONT);
+	//glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, tempBitmap);
 	
 	// Flip an image vertically
