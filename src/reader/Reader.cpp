@@ -1,5 +1,5 @@
 ﻿/**
- * Implementation of the ReaderFactory class
+ * Implementation of the Reader class
  */
 #include "Reader.h"
 

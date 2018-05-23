@@ -1,4 +1,4 @@
-#--------------------------------------------------------------------
+﻿#--------------------------------------------------------------------
 # GLFW_INCLUDE_DIRS - include directories for GLFW
 # GLFW_LIBRARIES - libraries to link against GLFW
 # GLFW_FOUND - true if GLFW has been found and can be used
@@ -24,4 +24,4 @@ IF(GLFW_FOUND)
 	MESSAGE(STATUS "GLFW_LIBRARIES = ${GLFW_LIBRARIES}")
 ENDIF() 
 
-mark_as_advanced(GLFW_INCLUDE_DIRS GLFW_LIBRARIES)
+MARK_AS_ADVANCED(GLFW_INCLUDE_DIRS GLFW_LIBRARIES)

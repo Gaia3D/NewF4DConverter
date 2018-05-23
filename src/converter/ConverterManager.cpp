@@ -6,10 +6,15 @@
 #include <iostream>
 
 #ifdef __APPLE__
-        #include <sys/uio.h>
+	#include <sys/uio.h>
+#elif defined WIN32
+	#include <direct.h>
+	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+	#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #else
-        #include <sys/io.h>
+	#include <sys/io.h>
 #endif
+
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>

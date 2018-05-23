@@ -156,6 +156,8 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 		return false;
 	}
 
+	glfwSwapInterval(1);
+
 	//// initialize gl
 	glEnable(GL_TEXTURE_2D);    
 	// Enables Depth Testing
@@ -177,14 +179,16 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	glCullFace(GL_BACK);
 
 	glShadeModel(GL_SMOOTH);
-	glPolygonMode(GL_FRONT, GL_FILL);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); 
-	glEnable(GL_POLYGON_SMOOTH);
 
+	/*
+	glPolygonOffset(0.0, 0.0);
 	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.0,1.0);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); 
+	//glEnable(GL_POLYGON_SMOOTH);
+	*/
 	//InitGL();
 	//End InitGL------------------------------------------------------------------------------------------------------------------------------------------------
 	// SetUp lighting.******************************************************************************************************************************************
@@ -2067,7 +2071,7 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 	unsigned char* tempBitmap = new unsigned char[imageSize];
 	memset(tempBitmap, 0x00, sizeof(unsigned char)*imageSize);
 
-	//glReadBuffer(GL_FRONT);
+	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, tempBitmap);
 	
 	// Flip an image vertically

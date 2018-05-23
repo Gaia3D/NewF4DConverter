@@ -18,3 +18,11 @@
 	path = lib/stb
 	url = https://github.com/nothings/stb.git
 	branch = master
+[submodule "lib/ifcplusplus"]
+	path = lib/ifcplusplus
+	url = https://github.com/ifcquery/ifcplusplus.git
+	branch = master
+[submodule "lib/jsoncpp"]
+	path = lib/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
+	branch = master
