@@ -1,4 +1,4 @@
-﻿#--------------------------------------------------------------------
+#--------------------------------------------------------------------
 # GLFW_INCLUDE_DIRS - include directories for GLFW
 # GLFW_LIBRARIES - libraries to link against GLFW
 # GLFW_FOUND - true if GLFW has been found and can be used
