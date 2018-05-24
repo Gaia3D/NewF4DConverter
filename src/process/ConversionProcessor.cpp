@@ -195,7 +195,7 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); 
-	glEnable(GL_POLYGON_SMOOTH);
+	//glEnable(GL_POLYGON_SMOOTH);
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.0,1.0);
@@ -2072,7 +2072,7 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 	//-------------------------------------------------------------------------------------------------------------
 	glFlush();
 
-	glfwSwapBuffers(scv->m_window);
+	//glfwSwapBuffers(scv->m_window);
 
 	// Get the window size
 	int width = std::min((int)screen_size, scv->m_width);
@@ -2121,6 +2121,8 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 
 	delete[] tempBitmap;
 	
+	glfwSwapBuffers(scv->m_window);
+
 	// Return the normal values.***
 	scv->ClearColor[0] = 1.0;
 	scv->ClearColor[1] = 1.0;
