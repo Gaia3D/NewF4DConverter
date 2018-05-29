@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/detail/utf8_codecvt_facet.hpp>
 
 #include "../process/ConversionProcessor.h"
 #include "../converter/LogWriter.h"
@@ -172,7 +173,7 @@ bool F4DWriter::writeHeader(FILE* f)
 	fwrite(&minX, sizeof(float), 1, f); fwrite(&minY, sizeof(float), 1, f); fwrite(&minZ, sizeof(float), 1, f);
 	fwrite(&maxX, sizeof(float), 1, f); fwrite(&maxY, sizeof(float), 1, f); fwrite(&maxZ, sizeof(float), 1, f);
 
-	// assymetric octree info
+	// spatial octree info
 	writeOctreeInfo(processor->getSpatialOctree(), f);
 	// versoin div : end
 
@@ -195,7 +196,7 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 	bool bInterleavedMode = false;
 	char padding = 0;
 	unsigned short index;
-	for(size_t i = 0; i < modelCount; i++)
+	for (size_t i = 0; i < modelCount; i++)
 	{
 		model = models[i];
 		modelIndex = (unsigned int)model->getReferenceInfo().modelIndex;
@@ -212,14 +213,14 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 		fwrite(&vboCount, sizeof(unsigned int), 1, f);
 
 		// vbo
-		for(unsigned int j = 0; j < vboCount; j++)
+		for (unsigned int j = 0; j < vboCount; j++)
 		{
 			vertexCount = (unsigned int)model->getVbos()[j]->vertices.size();
 			// vertex count
 			fwrite(&vertexCount, sizeof(unsigned int), 1, f);
 
 			// vertex positions
-			for(unsigned int k = 0; k < vertexCount; k++)
+			for (unsigned int k = 0; k < vertexCount; k++)
 			{
 				x = (float)model->getVbos()[j]->vertices[k]->position.x;
 				y = (float)model->getVbos()[j]->vertices[k]->position.y;
@@ -231,26 +232,26 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 			fwrite(&vertexCount, sizeof(unsigned int), 1, f);
 
 			// normals
-			for(unsigned int k = 0; k < vertexCount; k++)
+			for (unsigned int k = 0; k < vertexCount; k++)
 			{
 				nx = (char)(127.0f * model->getVbos()[j]->vertices[k]->normal.x);
 				ny = (char)(127.0f * model->getVbos()[j]->vertices[k]->normal.y);
 				nz = (char)(127.0f * model->getVbos()[j]->vertices[k]->normal.z);
 				fwrite(&nx, sizeof(char), 1, f); fwrite(&ny, sizeof(char), 1, f); fwrite(&nz, sizeof(char), 1, f);
-				if(bInterleavedMode)
+				if (bInterleavedMode)
 					fwrite(&padding, sizeof(char), 1, f);
 			}
 
 			// index count
-			indexCount =  (unsigned int)model->getVbos()[j]->indices.size();
+			indexCount = (unsigned int)model->getVbos()[j]->indices.size();
 			fwrite(&indexCount, sizeof(unsigned int), 1, f); // 전체 index개수
 			sizeLevels = TriangleSizeLevels; // 삼각형을 크기별로 정렬할 때 적용된 크기 개수
 			fwrite(&sizeLevels, sizeof(unsigned char), 1, f);
-			for(unsigned char k = 0; k < sizeLevels; k++)
+			for (unsigned char k = 0; k < sizeLevels; k++)
 				thresholds[k] = (float)model->getVbos()[j]->triangleSizeThresholds[k]; // 삼각형을 크기별로 정렬할 때 적용된 크기들
 			fwrite(thresholds, sizeof(float), sizeLevels, f);
 			fwrite(model->getVbos()[j]->indexMarker, sizeof(unsigned int), sizeLevels, f); // 정렬된 vertex들의 index에서 크기 기준이 변경되는 최초 삼각형의 vertex의 index 위치 marker
-			for(size_t k = 0; k < indexCount; k++)
+			for (size_t k = 0; k < indexCount; k++)
 			{
 				index = models[i]->getVbos()[j]->indices[k];
 				fwrite(&index, sizeof(unsigned short), 1, f);
@@ -288,7 +289,7 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 	bool bTextureCoordinate; // if texture coordinate exists
 	//float u, v;	// texture coordinate
 	unsigned int textureCount = 0;
-	for(size_t i = 0; i < leafCount; i++)
+	for (size_t i = 0; i < leafCount; i++)
 	{
 		leafBox = leafBoxes[i];
 
@@ -299,27 +300,27 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 		referenceCount = (unsigned int)leafBox->meshes.size();
 		fwrite(&referenceCount, sizeof(unsigned int), 1, file);
 
-		for(unsigned int j = 0; j < referenceCount; j++)
+		for (unsigned int j = 0; j < referenceCount; j++)
 		{
 			reference = leafBox->meshes[j];
 
 			// extract models
-			if(reference->getReferenceInfo().model == NULL)
+			if (reference->getReferenceInfo().model == NULL)
 				model = reference;
 			else
 				model = reference->getReferenceInfo().model;
 			bFound = false;
 			modelCount = models.size();
-			for(size_t k = 0; k < modelCount; k++)
+			for (size_t k = 0; k < modelCount; k++)
 			{
-				if(models[k] == model)
+				if (models[k] == model)
 				{
 					bFound = true;
 					break;
 				}
 			}
 
-			if(!bFound)
+			if (!bFound)
 				models.push_back(model);
 
 			// reference id
@@ -327,11 +328,12 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			fwrite(&referenceId, sizeof(unsigned int), 1, file);
 
 			// reference object id
-			if(reference->doesStringAttributeExist(std::string(ObjectGuid)))
+			if (reference->doesStringAttributeExist(std::string(ObjectGuid)))
 			{
-				std::string wObjectId = reference->getStringAttribute(std::string(ObjectGuid));
+				objectId = reference->getStringAttribute(std::string(ObjectGuid));
+				//std::string wObjectId = reference->getStringAttribute(std::string(ObjectGuid));
 				//objectId = std::string(gaia3d::ws2s(wObjectId.c_str()));
-				objectId = std::string(wObjectId.c_str());
+				//objectId = std::string(wObjectId.c_str());
 
 				objectIdLength = (unsigned char)objectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
@@ -350,9 +352,9 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			fwrite(&modelId, sizeof(unsigned int), 1, file);
 
 			// transform matrix
-			for(size_t c = 0; c < 4; c++)
+			for (size_t c = 0; c < 4; c++)
 			{
-				for(size_t r = 0; r < 4; r++)
+				for (size_t r = 0; r < 4; r++)
 				{
 					m = (float)reference->getReferenceInfo().mat.m[c][r];
 					fwrite(&m, sizeof(float), 1, file);
@@ -362,7 +364,7 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			vertexCount = (unsigned int)reference->getVertices().size();
 
 			// representative color of this reference
-			if(reference->getColorMode() == gaia3d::SingleColor)
+			if (reference->getColorMode() == gaia3d::SingleColor)
 			{
 				bColor = true;
 				fwrite(&bColor, sizeof(bool), 1, file);
@@ -425,7 +427,7 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			}
 
 			// texture file info if exists
-			if(bTextureCoordinate)
+			if (bTextureCoordinate)
 			{
 				textureCount = 1;
 				fwrite(&textureCount, sizeof(unsigned int), 1, file);
@@ -524,14 +526,14 @@ bool F4DWriter::writeLegoBlocks(std::string& legoBlockPath)
 	char padding = 0;
 	bool bColor;
 	bool bTexture;
-	for(; itr != processor->getLegos().end(); itr++)
+	for (; itr != processor->getLegos().end(); itr++)
 	{
 		// octree lego file
 		key = itr->first;
 		lego = itr->second;
 
-		octreeLegoFilePath = legoBlockPath +  "/"+ std::to_string((unsigned long long)key) + std::string( "_Brick");
-		file = fopen(octreeLegoFilePath.c_str(),  "wb");
+		octreeLegoFilePath = legoBlockPath + "/" + std::to_string((unsigned long long)key) + std::string("_Brick");
+		file = fopen(octreeLegoFilePath.c_str(), "wb");
 
 		// bounding box
 		minX = (float)lego->getBoundingBox().minX; minY = (float)lego->getBoundingBox().minY; minZ = (float)lego->getBoundingBox().minZ;
@@ -542,9 +544,9 @@ bool F4DWriter::writeLegoBlocks(std::string& legoBlockPath)
 		// vertices count
 		vertexCount = (unsigned int)lego->getVertices().size();
 		fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-		
+
 		// vertex positions
-		for(unsigned int i = 0; i < vertexCount; i++)
+		for (unsigned int i = 0; i < vertexCount; i++)
 		{
 			x = (float)lego->getVertices()[i]->position.x; y = (float)lego->getVertices()[i]->position.y; z = (float)lego->getVertices()[i]->position.z;
 			fwrite(&x, sizeof(float), 1, file); fwrite(&y, sizeof(float), 1, file); fwrite(&z, sizeof(float), 1, file);
@@ -553,27 +555,27 @@ bool F4DWriter::writeLegoBlocks(std::string& legoBlockPath)
 		// normals
 		bNormal = lego->doesThisHaveNormals();
 		fwrite(&bNormal, sizeof(bool), 1, file);
-		if(bNormal)
+		if (bNormal)
 		{
 			fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-			for(unsigned int i = 0; i < vertexCount; i++)
+			for (unsigned int i = 0; i < vertexCount; i++)
 			{
 				nx = (char)(127.0f * lego->getVertices()[i]->normal.x);
 				ny = (char)(127.0f * lego->getVertices()[i]->normal.y);
 				nz = (char)(127.0f * lego->getVertices()[i]->normal.z);
 				fwrite(&nx, sizeof(char), 1, file); fwrite(&ny, sizeof(char), 1, file); fwrite(&nz, sizeof(char), 1, file);
-				if(bInterleavedMode)
+				if (bInterleavedMode)
 					fwrite(&padding, sizeof(char), 1, file);
 			}
 		}
 
 		// colors
-		if(lego->getColorMode() == gaia3d::ColorsOnVertices)
+		if (lego->getColorMode() == gaia3d::ColorsOnVertices)
 		{
 			bColor = true;
 			fwrite(&bColor, sizeof(bool), 1, file);
 			fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-			for(unsigned int i = 0; i < vertexCount; i++)
+			for (unsigned int i = 0; i < vertexCount; i++)
 			{
 				writeColor(lego->getVertices()[i]->color, 5121, true, file);
 			}
@@ -617,7 +619,7 @@ bool F4DWriter::writeOctreeInfo(gaia3d::OctreeBox* octree, FILE* f)
 	fwrite(&level, sizeof(unsigned int), 1, f);
 
 	float minX, minY, minZ, maxX, maxY, maxZ;
-	if(level == 0)
+	if (level == 0)
 	{
 		minX = (float)octree->minX;
 		minY = (float)octree->minY;
@@ -636,15 +638,15 @@ bool F4DWriter::writeOctreeInfo(gaia3d::OctreeBox* octree, FILE* f)
 	unsigned int triangleCount = 0;
 	size_t meshCount = octree->meshes.size();
 	size_t surfaceCount;
-	for(size_t i = 0; i < meshCount; i++)
+	for (size_t i = 0; i < meshCount; i++)
 	{
 		surfaceCount = octree->meshes[i]->getSurfaces().size();
-		for(size_t j = 0; j < surfaceCount; j++)
+		for (size_t j = 0; j < surfaceCount; j++)
 			triangleCount += (unsigned int)octree->meshes[i]->getSurfaces()[j]->getTriangles().size();
 	}
 	fwrite(&triangleCount, sizeof(unsigned int), 1, f);
 
-	for(unsigned char i = 0; i < childCount; i++)
+	for (unsigned char i = 0; i < childCount; i++)
 	{
 		writeOctreeInfo(octree->children[i], f);
 	}
@@ -661,32 +663,32 @@ void F4DWriter::writeColor(unsigned long color, unsigned short type, bool bAlpha
 	unsigned char blue = GetBlueValue(color);
 	unsigned char alpha = 255;
 
-	switch(type)
+	switch (type)
 	{
 	case 5121: // unsigned char mode
-		{
-			fwrite(&red, sizeof(unsigned char), 1, file);
-			fwrite(&green, sizeof(unsigned char), 1, file);
-			fwrite(&blue, sizeof(unsigned char), 1, file);
-			if(bAlpha)
-				fwrite(&alpha, sizeof(unsigned char), 1, file);
-		}
-		break;
+	{
+		fwrite(&red, sizeof(unsigned char), 1, file);
+		fwrite(&green, sizeof(unsigned char), 1, file);
+		fwrite(&blue, sizeof(unsigned char), 1, file);
+		if (bAlpha)
+			fwrite(&alpha, sizeof(unsigned char), 1, file);
+	}
+	break;
 	case 5126: // float mode
+	{
+		float fRed = red / 255.0f;
+		float fGreen = green / 255.0f;
+		float fBlue = blue / 255.0f;
+		fwrite(&fRed, sizeof(float), 1, file);
+		fwrite(&fGreen, sizeof(float), 1, file);
+		fwrite(&fBlue, sizeof(float), 1, file);
+		if (bAlpha)
 		{
-			float fRed = red / 255.0f;
-			float fGreen = green / 255.0f;
-			float fBlue = blue / 255.0f;
-			fwrite(&fRed, sizeof(float), 1, file);
-			fwrite(&fGreen, sizeof(float), 1, file);
-			fwrite(&fBlue, sizeof(float), 1, file);
-			if(bAlpha)
-			{
-				float fAlpha = 1.0f;
-				fwrite(&fAlpha, sizeof(float), 1, file);
-			}
+			float fAlpha = 1.0f;
+			fwrite(&fAlpha, sizeof(float), 1, file);
 		}
-		break;
+	}
+	break;
 	default: // TODO(khj 20170324) : NYI the other color type
 		break;
 	}
@@ -703,7 +705,7 @@ bool F4DWriter::writeIndexFile()
 	{
 		std::cout << "In directory: " << folderPath.string() << std::endl;
 		bfs::directory_iterator end;
-		for(bfs::directory_iterator it(folderPath); it != end; ++it)
+		for (bfs::directory_iterator it(folderPath); it != end; ++it)
 		{
 			try
 			{
@@ -721,8 +723,8 @@ bool F4DWriter::writeIndexFile()
 	}
 	/*
 	_wfinddata64_t fd;
-    long long handle;
-    int result = 1;
+	long long handle;
+	int result = 1;
 	std::string structureJtFilter = folder + std::string( "/*.*");
 	handle = _wfindfirsti64(structureJtFilter.c_str(), &fd);
 
@@ -744,18 +746,18 @@ bool F4DWriter::writeIndexFile()
 
 	_findclose(handle);
 	*/
-	if(convertedDataFolders.size() == 0)
+	if (convertedDataFolders.size() == 0)
 		return false;
 
-	std::string targetFilePath = folder +  "/objectIndexFile.ihe";
+	std::string targetFilePath = folder + "/objectIndexFile.ihe";
 	FILE* f;
-	f = fopen(targetFilePath.c_str(),  "wb");
-	
+	f = fopen(targetFilePath.c_str(), "wb");
+
 	unsigned int dataFolderCount = (unsigned int)convertedDataFolders.size();
 	fwrite(&dataFolderCount, sizeof(unsigned int), 1, f);
 
 	std::string eachDataHeader;
-	char version[6];	
+	char version[6];
 	int guidLength;
 	char guid[256];
 	memset(guid, 0x00, 256);
@@ -763,18 +765,18 @@ bool F4DWriter::writeIndexFile()
 	float altitude;
 	float minX, minY, minZ, maxX, maxY, maxZ;
 	unsigned int dataFolderNameLength;
-	for(size_t i = 0; i < dataFolderCount; i++)
+	for (size_t i = 0; i < dataFolderCount; i++)
 	{
-		eachDataHeader = convertedDataFolders[i] +  "/HeaderAsimetric.hed";
+		eachDataHeader = convertedDataFolders[i] + "/HeaderAsimetric.hed";
 		bfs::path headerPath(eachDataHeader);
-		
-		if(!bfs::exists(headerPath))
+
+		if (!bfs::exists(headerPath))
 		{
 			std::cout << "[ERROR]" << eachDataHeader << " file does not exist." << std::endl;
 			continue;
 		}
 		FILE* header;
-		header = fopen(eachDataHeader.c_str(),  "rb");
+		header = fopen(eachDataHeader.c_str(), "rb");
 
 		// version
 		memset(version, 0x00, 6);
@@ -794,12 +796,13 @@ bool F4DWriter::writeIndexFile()
 
 		fclose(header);
 
+		bfs::detail::utf8_codecvt_facet utf8;
 		bfs::path convertedDataPath(convertedDataFolders[i]);
-		std::string singleConvertedDataFolder(convertedDataPath.filename().string());
+		std::string singleConvertedDataFolder(convertedDataPath.filename().string(utf8));
 
 		dataFolderNameLength = (unsigned int)singleConvertedDataFolder.length();
 		fwrite(&dataFolderNameLength, sizeof(unsigned int), 1, f);
-		
+
 		//std::string singleConvertedDataFolder(gaia3d::ws2s(convertedDataFolders[i].c_str()));
 		//std::string singleConvertedDataFolder(convertedDataFolders[i].c_str());
 
@@ -829,7 +832,7 @@ void F4DWriter::writeLegoTexture(std::string resultPath)
 	int height = legoTextureDimension[1];
 	int nrChannels = 4;
 
-	std::string legoTextureFullPath = resultPath +  "/SimpleBuildingTexture3x3.png";
+	std::string legoTextureFullPath = resultPath + "/SimpleBuildingTexture3x3.png";
 
 	//std::string singleFullPath(gaia3d::ws2s(legoTextureFullPath.c_str()));
 	std::string singleFullPath(legoTextureFullPath.c_str());
@@ -845,7 +848,7 @@ void F4DWriter::writeTextures(std::string imagePath)
 	{
 		std::string fileName = itr->first;
 
-		std::string::size_type dotPosition = fileName.rfind( ".");
+		std::string::size_type dotPosition = fileName.rfind(".");
 		if (dotPosition == std::string::npos)
 			continue;
 
@@ -857,21 +860,21 @@ void F4DWriter::writeTextures(std::string imagePath)
 		unsigned int height = processor->getAllTextureHeights()[fileName];
 		unsigned char* bmpArray = processor->getResizedTextures()[fileName];
 
-		std::string fullPath = imagePath +  "/" + fileName;
+		std::string fullPath = imagePath + "/" + fileName;
 
 		//std::string singleFullPath(gaia3d::ws2s(fullPath.c_str()));
 		std::string singleFullPath(fullPath.c_str());
 
 		stbi_flip_vertically_on_write(false);
 
-		if (fileExt.compare( "dds") == 0)
+		if (fileExt.compare("dds") == 0)
 		{
 			std::string orginalImagePath = itr->second;
 			FILE* file = NULL;
-			file = fopen(orginalImagePath.c_str(),  "rb");
+			file = fopen(orginalImagePath.c_str(), "rb");
 			if (file == NULL)
 				continue;
-			
+
 			fseek(file, 0, SEEK_END);
 			long fileSize = ftell(file);
 			if (fileSize <= 0)
@@ -885,7 +888,7 @@ void F4DWriter::writeTextures(std::string imagePath)
 			fclose(file);
 			file = NULL;
 
-			file = fopen(fullPath.c_str(),  "wb");
+			file = fopen(fullPath.c_str(), "wb");
 			if (file == NULL)
 			{
 				delete[] fileContents;
@@ -898,29 +901,29 @@ void F4DWriter::writeTextures(std::string imagePath)
 		}
 		else
 		{
-			if (fileExt.compare( "jpg") == 0 || fileExt.compare( "jpeg") == 0 || fileExt.compare( "jpe") == 0)
+			if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
 			{
 				stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
 			}
-			else if (fileExt.compare( "png") == 0)
+			else if (fileExt.compare("png") == 0)
 			{
 				stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
 			}
-			else if (fileExt.compare( "gif") == 0)
+			else if (fileExt.compare("gif") == 0)
 			{
 				// TODO 
 				continue;
 			}
-			else if (fileExt.compare( "tif") == 0 || fileExt.compare( "tiff") == 0)
+			else if (fileExt.compare("tif") == 0 || fileExt.compare("tiff") == 0)
 			{
 				// TODO 
 				continue;
 			}
-			else if (fileExt.compare( "bmp") == 0)
+			else if (fileExt.compare("bmp") == 0)
 			{
 				stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
 			}
-			else if(fileExt.compare( "tga") == 0)
+			else if (fileExt.compare("tga") == 0)
 			{
 				stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
 			}
