@@ -15,12 +15,11 @@
 #include <map>
 #include <vector>
 
+#include "argdefinition.h"
 #include "converter/ConverterManager.h"
 #include "util/StringUtility.h"
 #include "converter/LogWriter.h"
 
-// Window dimensions
-const GLuint WIDTH = 800, HEIGHT = 600;
 const std::string F4DCONVERTER_VERSION = "1.0.0";
 
 void print_version()
@@ -41,17 +40,6 @@ void print_version()
 
 std::map<std::string, std::string> arguments;
 
-// arguments for conversion configuration
-std::string inputFolder("Input Folder");
-std::string outputFolder("Output Folder");
-std::string logPath("Log File Path");
-std::string indexCreation("Create Indices");
-std::string idPrefix("idPrefix");
-std::string idSuffix("idSuffix");
-// arguments for processing parameters
-std::string occlusionCulling("Occlusion Culling");
-std::string unitScaleFactor("Unit Scale Factor");
-
 bool extractArguments(int argc, char** argv)
 {
 	std::string token;
@@ -67,7 +55,7 @@ bool extractArguments(int argc, char** argv)
 	size_t tokenCount = tokens.size();
 	for (size_t i = 0; i < tokenCount; i++)
 	{
-		std::cout << i << " : " << tokens[i] << std::endl;
+		//std::cout << i << " : " << tokens[i] << std::endl;
 		if (tokens[i].substr(0, 1) == std::string("-"))
 		{
 			if (i == tokenCount - 1 || tokens[i + 1].substr(0, 1) == std::string("-"))
@@ -75,105 +63,103 @@ bool extractArguments(int argc, char** argv)
 				return false;
 			}
 
-			if (tokens[i] == std::string("-inputFolder"))
+			if (tokens[i] == std::string(InputFolder))
 			{
-				arguments[inputFolder] = tokens[i + 1];
-				i++;
-				continue;
-			}
-			if (tokens[i] == std::string("-outputFolder"))
-			{
-				arguments[outputFolder] = tokens[i + 1];
-				i++;
-				continue;
-			}
-			if (tokens[i] == std::string("-log"))
-			{
-				arguments[logPath] = tokens[i + 1];
+				arguments[InputFolder] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::string("-indexing"))
+			if (tokens[i] == std::string(OutputFolder))
 			{
-				arguments[indexCreation] = tokens[i + 1];
+				arguments[OutputFolder] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::string("-idPrefix"))
+			if (tokens[i] == std::string(LogFilePath))
 			{
-				arguments[idPrefix] = tokens[i + 1];
+				arguments[LogFilePath] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::string("-idSuffix"))
+			if (tokens[i] == std::string(CreateIndex))
 			{
-				arguments[idSuffix] = tokens[i + 1];
+				arguments[CreateIndex] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::string("-oc"))
+			if (tokens[i] == std::string(IdPrefix))
 			{
-				arguments[occlusionCulling] = tokens[i + 1];
+				arguments[IdPrefix] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			if (tokens[i] == std::string("-usf"))
+			if (tokens[i] == std::string(IdSuffix))
 			{
-				arguments[unitScaleFactor] = tokens[i + 1];
+				arguments[IdSuffix] = tokens[i + 1];
 				i++;
 				continue;
 			}
 
-			// TODO(khj 20170305) : LOG invalid arguments
-			return false;
+			if (tokens[i] == std::string(PerformOC))
+			{
+				arguments[PerformOC] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(UnitScaleFactor))
+			{
+				arguments[UnitScaleFactor] = tokens[i + 1];
+				i++;
+				continue;
+			}
 		}
 		else
 		{
-			// TODO(khj 20170305) : LOG invalid arguments
 			return false;
 		}
 	}
 
-	if (arguments.find(outputFolder) == arguments.end())
+	if (arguments.find(OutputFolder) == arguments.end())
 		return false;
 
-	if (arguments.find(inputFolder) == arguments.end() && arguments.find(indexCreation) == arguments.end())
+	if (arguments.find(InputFolder) == arguments.end() && arguments.find(CreateIndex) == arguments.end())
 		return false;
 
-	if (arguments.find(inputFolder) != arguments.end())
+	if (arguments.find(InputFolder) != arguments.end())
 	{
-		if (arguments.find(logPath) == arguments.end())
+		if (arguments.find(LogFilePath) == arguments.end())
 			return false;
 	}
 
-	if (arguments.find(indexCreation) != arguments.end())
+	if (arguments.find(CreateIndex) != arguments.end())
 	{
-		if (arguments[indexCreation] != std::string("Y") &&
-			arguments[indexCreation] != std::string("y") &&
-			arguments[indexCreation] != std::string("N") &&
-			arguments[indexCreation] != std::string("n"))
+		if (arguments[CreateIndex] != std::string("Y") &&
+			arguments[CreateIndex] != std::string("y") &&
+			arguments[CreateIndex] != std::string("N") &&
+			arguments[CreateIndex] != std::string("n"))
 			return false;
 	}
 
-	if (arguments.find(occlusionCulling) != arguments.end())
+	if (arguments.find(PerformOC) != arguments.end())
 	{
-		if (arguments[occlusionCulling] != std::string("Y") &&
-			arguments[occlusionCulling] != std::string("y") &&
-			arguments[occlusionCulling] != std::string("N") &&
-			arguments[occlusionCulling] != std::string("n"))
+		if (arguments[PerformOC] != std::string("Y") &&
+			arguments[PerformOC] != std::string("y") &&
+			arguments[PerformOC] != std::string("N") &&
+			arguments[PerformOC] != std::string("n"))
 			return false;
 	}
 
-	if (arguments.find(unitScaleFactor) != arguments.end())
+	if (arguments.find(UnitScaleFactor) != arguments.end())
 	{
 		try
 		{
-			double scaleFactor = std::stod(arguments[unitScaleFactor]);
+			double scaleFactor = std::stod(arguments[UnitScaleFactor]);
 
 			if (scaleFactor < 0.001)
 				return false;
@@ -206,167 +192,37 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (arguments.find(logPath) != arguments.end())
+	// arguments log
+	printf("[STEP]Arguments are following.\n");
+	std::map<std::string, std::string>::iterator iter = arguments.begin();
+	for (; iter != arguments.end(); iter++)
+	{
+		printf("%s : %s\n", iter->first.c_str(), iter->second.c_str());
+	}
+
+	// TODO(khj 20180424) : NYI must make log file through logger system
+	// start log writer if needed
+	if (arguments.find(LogFilePath) != arguments.end())
 	{
 		LogWriter::getLogWriter()->start();
-		LogWriter::getLogWriter()->setFullPath(arguments[logPath]);
+		LogWriter::getLogWriter()->setFullPath(arguments[LogFilePath]);
 	}
 
 	print_version();
 
-	if (isValidParams)
+	// process
+	ConverterManager::getConverterManager()->initialize();
+	ConverterManager::getConverterManager()->setProcessConfiguration(arguments);
+	ConverterManager::getConverterManager()->process();
+	ConverterManager::getConverterManager()->uninitialize();
+
+	// TODO(khj 20180424) : NYI must make log file through logger system
+	// finish and save log if log writing started
+	if (LogWriter::getLogWriter()->isStarted())
 	{
-		ConverterManager::getConverterManager()->setIsCliMode(true);
-		if (arguments.find(inputFolder) != arguments.end())
-		{
-			ConverterManager::getConverterManager()->setConversionOn(true);
-			ConverterManager::getConverterManager()->setInputFolder(arguments[inputFolder]);
-			ConverterManager::getConverterManager()->setOutputFolder(arguments[outputFolder]);
-
-			if (arguments.find(occlusionCulling) != arguments.end())
-			{
-				if (arguments[occlusionCulling] == std::string("Y") ||
-					arguments[occlusionCulling] == std::string("y"))
-					ConverterManager::getConverterManager()->setOcclusionCulling(true);
-				else
-					ConverterManager::getConverterManager()->setOcclusionCulling(false);
-			}
-			else
-				ConverterManager::getConverterManager()->setOcclusionCulling(false);
-
-			if (arguments.find(unitScaleFactor) != arguments.end())
-			{
-				ConverterManager::getConverterManager()->setUnitScaleFactor(std::stod(arguments[unitScaleFactor]));
-			}
-		}
-		else
-		{
-			ConverterManager::getConverterManager()->setConversionOn(false);
-		}
-
-		if (arguments.find(indexCreation) != arguments.end())
-		{
-			if (arguments[indexCreation] == std::string("Y") ||
-				arguments[indexCreation] == std::string("y"))
-			{
-				ConverterManager::getConverterManager()->setIndexCreation(true);
-				ConverterManager::getConverterManager()->setOutputFolder(arguments[outputFolder]);
-			}
-			else
-			{
-				ConverterManager::getConverterManager()->setIndexCreation(false);
-			}
-		}
-		else
-		{
-			ConverterManager::getConverterManager()->setIndexCreation(false);
-		}
-
-
-		if (arguments.find(idPrefix) != arguments.end())
-		{
-			ConverterManager::getConverterManager()->setIdPrefix(arguments[idPrefix]);
-		}
-
-		if (arguments.find(idSuffix) != arguments.end())
-		{
-			ConverterManager::getConverterManager()->setIdSuffix(arguments[idSuffix]);
-		}
+		LogWriter::getLogWriter()->finish();
+		LogWriter::getLogWriter()->save();
 	}
-	else
-	{
-		ConverterManager::getConverterManager()->setIsCliMode(false);
-	}
-
-	std::cout << "Starting GLFW context, OpenGL 3.3" << std::endl;
-
-	// Init GLFW
-	glfwInit();
-
-	// Set all the required options for GLFW
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-	//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-#if __APPLE__
-	// uncomment this statement to fix compilation on OS X
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-	// Create a GLFWwindow object that we can use for GLFW's functions
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "F4DConverter", NULL, NULL);
-	
-	if (ConverterManager::getConverterManager()->getIsCliMode())
-	{
-		if (ConverterManager::getConverterManager()->getConversionOn())
-		{
-			if (!ConverterManager::getConverterManager()->isInitialized())
-			{
-				if (!ConverterManager::getConverterManager()->initialize(window, WIDTH, HEIGHT))
-				{
-					LogWriter::getLogWriter()->finish();
-					LogWriter::getLogWriter()->save();
-					return false;
-				}
-
-				ConverterManager::getConverterManager()->processDataFolder();
-
-				LogWriter::getLogWriter()->finish();
-				LogWriter::getLogWriter()->save();
-			}
-		}
-
-		if (ConverterManager::getConverterManager()->getIndexCreation())
-			ConverterManager::getConverterManager()->writeIndexFile();
-
-		//::AfxGetMainWnd()->PostMessage(WM_CLOSE);
-	}
-	else
-	{
-		if (ConverterManager::getConverterManager()->isInitialized())
-		{
-			ConverterManager::getConverterManager()->changeGLDimension(WIDTH, HEIGHT);
-		}
-		else
-		{
-			ConverterManager::getConverterManager()->initialize(window, WIDTH, HEIGHT);
-		}
-	}
-	/*
-	// RenderLoop
-	while (!glfwWindowShouldClose(window))
-	{
-		float ratio;
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-		ratio = width / (float)height;
-		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glRotatef((float)glfwGetTime() * 50.f, 0.f, 0.f, 1.f);
-		glBegin(GL_TRIANGLES);
-		glColor3f(1.f, 0.f, 0.f);
-		glVertex3f(-0.6f, -0.4f, 0.f);
-		glColor3f(0.f, 1.f, 0.f);
-		glVertex3f(0.6f, -0.4f, 0.f);
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex3f(0.f, 0.6f, 0.f);
-		glEnd();
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-	*/
-
-	glfwDestroyWindow(window);
-
-	// Terminates GLFW, clearing any resources allocated by GLFW.
-	glfwTerminate();
 
 	return 0;
 }

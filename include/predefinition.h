@@ -5,6 +5,10 @@
 #define _PREDEFINITION_H_
 #pragma once
 
+#define WindowTitle		"F4DConverter"
+#define WindowWidth		1024
+#define WindowHeight	1024
+
 #define MemoryDeviceContextEdgeLength 512
 
 #define ExteriorDetectionThreshold 6
@@ -35,5 +39,6 @@
 // attribute key names
 #define ObjectGuid "objectGuid"
 #define TextureName "textureName"
+#define F4dId "id"
 
 #endif // _PREDEFINITION_H_

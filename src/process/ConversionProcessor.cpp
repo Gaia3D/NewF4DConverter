@@ -65,16 +65,43 @@ ConversionProcessor::~ConversionProcessor()
 	uninitialize();
 }
 
-bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
+bool ConversionProcessor::initialize()
 {
-	// TODO(khj 20170210) : NYI 여기서 SceneControlVariables를 초기화 해야 한다.
+	float ratio = (float)WindowWidth / WindowHeight;
+	
+	if (scv->m_window == NULL)
+	{
+		std::cout << "Starting GLFW context with OpenGL" << std::endl;
 
-	// dc와 연결
-	float ratio = (float)width / height;
+		// Init GLFW
+		glfwInit();
 
-	scv->m_window = window;
-	scv->m_width = width;
-	scv->m_height = height;
+		// Set all the required options for GLFW
+		//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+		//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+		//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+		//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+	#if __APPLE__
+		// uncomment this statement to fix compilation on OS X
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	#endif
+
+		// Create a GLFWwindow object that we can use for GLFW's functions
+		scv->m_window = glfwCreateWindow(WindowWidth, WindowHeight, WindowTitle, NULL, NULL);
+		if (scv->m_window == NULL)
+		{
+			std::cout << "Failed to create GLFW window" << std::endl;
+			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+			LogWriter::getLogWriter()->addContents(std::string(CANNOT_INITIALIZE_WND), true);
+			glfwTerminate();
+			return false;
+		}
+	}
+	//scv->m_window = window;
+	scv->m_width = (int)WindowWidth;
+	scv->m_height = (int)WindowHeight;
 
 	// projection mode
 	scv->tp_projection = PROJECTION_PERSPECTIVE;
@@ -86,63 +113,9 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 	scv->lightPos[0]=-1000000.0f; scv->lightPos[1]=-1000000.0f; scv->lightPos[2]=2000000.0f; scv->lightPos[3]=1.0f; // Hem de ferlo fixe.***
 	scv->specref[0]=0.7f; scv->specref[1]=0.7f; scv->specref[2]=0.7f; scv->specref[3]=1.0f; 
 	scv->ClearColor[0]=1.0f; scv->ClearColor[1]=1.0f; scv->ClearColor[2]=1.0f; scv->ClearColor[3]=1.0f; 
-/*
-	static PIXELFORMATDESCRIPTOR pfd= {
-	sizeof(PIXELFORMATDESCRIPTOR),
-	// Size Of This Pixel Format Descriptor
-	1,
-	// Version Number (?)
-	PFD_DRAW_TO_WINDOW | // Format Must Support Window
-	PFD_SUPPORT_OPENGL | // Format Must Support OpenGL
-	PFD_DOUBLEBUFFER, // Must Support Double Buffering
-	PFD_TYPE_RGBA, // Request An RGBA Format
-	24, // Select A 24Bit Color Depth
-	0, 0, 0, 0, 0, 0, // Color Bits Ignored (?)
-	0, // No Alpha Buffer
-	0, // Shift Bit Ignored (?)
-	0, // No Accumulation Buffer
-	0, 0, 0, 0, // Accumulation Bits Ignored (?)
-	32, // 16Bit Z-Buffer (Depth Buffer)
-	0, // No Stencil Buffer
-	0, // No Auxiliary Buffer (?)
-	PFD_MAIN_PLANE, // Main Drawing Layer
-	0, // Reserved (?)
-	0, 0, 0 // Layer Masks Ignored (?)
-	};
 
-	GLuint PixelFormat;
-	PixelFormat = ChoosePixelFormat(scv->m_myhDC, &pfd);
-	if(PixelFormat == 0)
-	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CHOOSE_PF), true);
-		return false;
-	}
-
-	if(SetPixelFormat(scv->m_myhDC,PixelFormat,&pfd) == FALSE)
-	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(CANNOT_SET_PF), true);
-		return false;
-	}
-
-	scv->m_hRC = wglCreateContext(scv->m_myhDC);
-	if(scv->m_hRC == NULL)
-	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_GL_CONTEXT), true);
-		return false;
-	}
-
-	if(wglMakeCurrent(scv->m_myhDC, scv->m_hRC) == FALSE)
-	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CONNECT_GLC_TO_DC), true);
-		return false;
-	}
-*/
-	glfwMakeContextCurrent(window);
-	if (window == NULL)
+	glfwMakeContextCurrent(scv->m_window);
+	if (scv->m_window == NULL)
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 		LogWriter::getLogWriter()->addContents(std::string(CANNOT_CONNECT_GLC_TO_DC), true);
@@ -151,7 +124,7 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 
 	// Set the required callback functions
 	glfwSetErrorCallback(error_callback);
-	glfwSetKeyCallback(window, key_callback);
+	glfwSetKeyCallback(scv->m_window, key_callback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -242,6 +215,7 @@ bool ConversionProcessor::initialize(GLFWwindow* window, int width, int height)
 
 	return true;
 }
+
 void ConversionProcessor::uninitialize()
 {
 	if(scv->m_window != NULL)
@@ -249,6 +223,9 @@ void ConversionProcessor::uninitialize()
 		glfwDestroyWindow(scv->m_window);
 		scv->m_window = NULL;
 	}
+
+	// Terminates GLFW, clearing any resources allocated by GLFW.
+	glfwTerminate();
 }
 
 void ConversionProcessor::clear()
@@ -404,8 +381,6 @@ void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedr
 						triangle->getVertices()[2]->position.x, triangle->getVertices()[2]->position.y, triangle->getVertices()[2]->position.z,
 						planeNormal.x, planeNormal.y, planeNormal.z,
 						true);
-
-					
 
 					anglePNormalAndVNormal0 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
 						triangle->getVertices()[0]->normal.x,
@@ -741,8 +716,13 @@ void ConversionProcessor::makeOcclusionInformation(std::vector<gaia3d::TriangleP
 	if(interiorBbox.isInitialized)
 	{
 		interiorOcclusionOctree.setSize(interiorBbox.minX, interiorBbox.minY, interiorBbox.minZ, interiorBbox.maxX, interiorBbox.maxY, interiorBbox.maxZ);
-		interiorOcclusionOctree.makeTree(InteriorOcclusionCullingDepth);
-		makeVisibilityIndices(interiorOcclusionOctree, meshes, InteriorOcclusionCullingStep, InteriorOcclusionCullingStep, InteriorOcclusionCullingStep, NULL);
+		interiorOcclusionOctree.makeTree(settings.interiorVisibilityIndexingOctreeDepth);
+		makeVisibilityIndices(interiorOcclusionOctree,
+							meshes,
+							settings.interiorVisibilityIndexingCameraStep,
+							settings.interiorVisibilityIndexingCameraStep,
+							settings.interiorVisibilityIndexingCameraStep,
+							NULL);
 	}
 
 	// occlusion culling for exterior
@@ -751,8 +731,13 @@ void ConversionProcessor::makeOcclusionInformation(std::vector<gaia3d::TriangleP
 		double bufferLength = exteriorBbox.getMaxLength() * 0.5;
 		exteriorOcclusionOctree.setSize(exteriorBbox.minX - bufferLength, exteriorBbox.minY - bufferLength, exteriorBbox.minZ - bufferLength,
 										exteriorBbox.maxX + bufferLength, exteriorBbox.maxY + bufferLength, exteriorBbox.maxZ + bufferLength);
-		exteriorOcclusionOctree.makeTree(ExteriorOcclusionCullingDepth);
-		makeVisibilityIndices(exteriorOcclusionOctree, meshes, ExteriorOcclusionCullingStep, ExteriorOcclusionCullingStep, ExteriorOcclusionCullingStep, &interiorOcclusionOctree);
+		exteriorOcclusionOctree.makeTree(settings.exteriorVisibilityIndexingOctreeDepth);
+		makeVisibilityIndices(exteriorOcclusionOctree,
+							meshes,
+							settings.exteriorVisibilityIndexingCameraStep,
+							settings.exteriorVisibilityIndexingCameraStep,
+							settings.exteriorVisibilityIndexingCameraStep,
+							&interiorOcclusionOctree);
 	}
 
 	glEnable( GL_TEXTURE_2D );
@@ -1132,6 +1117,7 @@ void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface
 	}
 	glEnd();
 	//-----------------------------------------------------------------------------------
+	
  	glPopMatrix();
 	glFlush();
 
@@ -2134,7 +2120,6 @@ void ConversionProcessor::extractLegoTextures(std::vector<gaia3d::TrianglePolyhe
 void ConversionProcessor::drawMeshesWithTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult, unsigned int shaderProgram)
 {
 	// do this only once.
-	//glDisable(GL_LIGHTING);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);

@@ -30,6 +30,7 @@
 #include "../geometry/BoundingBox.h"
 #include "../geometry/ColorU4.h"
 #include "../geometry/OctreeBox.h"
+#include "ProcessSetting.h"
 
 
 class SceneControlVariables;
@@ -41,7 +42,18 @@ public:
 
 	virtual ~ConversionProcessor();
 
+	void setExteriorExtraction(bool bDo) { settings.bExtractExterior = bDo; }
+	void setVisibilityIndexing(bool bDo) { settings.bOcclusionCulling = bDo; }
+	void setSpatialOctreeSize(float fSize) { settings.leafSpatialOctreeSize = fSize; }
+	void setTextureCoordinateUFlip(bool bDo) { settings.bFlipTextureCoordinateU = bDo; }
+	void setInteriorVisibilityIndexingCameraStep(float step) { settings.interiorVisibilityIndexingCameraStep = step; }
+	void setExteriorVisibilityIndexingCameraStep(float step) { settings.exteriorVisibilityIndexingCameraStep = step; }
+	void setInteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.interiorVisibilityIndexingOctreeDepth = depth; }
+	void setExteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.exteriorVisibilityIndexingOctreeDepth = depth; }
+
 protected:
+	ProcessSetting settings;
+
 	SceneControlVariables* scv;
 
 	std::vector<gaia3d::TrianglePolyhedron*> allMeshes;
@@ -69,7 +81,7 @@ protected:
 	float altitude;
 	
 public:
-	bool initialize(GLFWwindow* window, int width, int height);
+	bool initialize();
 
 	void uninitialize();
 

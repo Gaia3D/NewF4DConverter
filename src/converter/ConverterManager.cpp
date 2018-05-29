@@ -19,6 +19,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "argdefinition.h"
 #include "../reader/ReaderFactory.h"
 #include "../process/ConversionProcessor.h"
 #include "../process/SceneControlVariables.h"
@@ -31,7 +32,7 @@ ConverterManager ConverterManager::m_ConverterManager;
 
 ConverterManager::ConverterManager()
 {
-	processor = new ConversionProcessor();
+	processor = NULL;
 
 	bCreateIndices = bCliMode = bConversion = false;
 
@@ -42,24 +43,26 @@ ConverterManager::ConverterManager()
 
 ConverterManager::~ConverterManager()
 {
-	delete processor;
+	if(processor != NULL)
+		delete processor;
 }
 
 
 // ConverterManager 멤버 함수
-
-bool ConverterManager::initialize(GLFWwindow* window, int width, int height)
+bool ConverterManager::initialize()
 {
-	if(window == NULL)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(CANNOT_INITIALIZE_WND), true);
-		glfwTerminate();
-		return false;
-	}
 
-	return processor->initialize(window, width, height);
+
+	if(processor == NULL)
+		processor = new ConversionProcessor();
+
+	return processor->initialize();
+}
+
+void ConverterManager::uninitialize()
+{
+	if (processor != NULL)
+		processor->uninitialize();
 }
 
 void ConverterManager::changeGLDimension(int width, int height)
@@ -84,7 +87,8 @@ bool ConverterManager::processDataFolder()
 	if (!outputFolderExist)
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
+		LogWriter::getLogWriter()->addContents(outputFolder, true);
 		return false;
 	}
 
@@ -98,7 +102,8 @@ bool ConverterManager::processDataFolder()
 	if (!inputFolderExist)
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), true);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
+		LogWriter::getLogWriter()->addContents(inputFolder, true);
 		return false;
 	}
 
@@ -176,7 +181,7 @@ bool ConverterManager::processSingleFile(std::string& filePath)
 	if (!idSuffix.empty())
 		fullId += idSuffix;
 
-	processor->addAttribute(std::string("id"), fullId);
+	processor->addAttribute(std::string(F4dId), fullId);
 
 	F4DWriter writer(processor);
 	writer.setWriteFolder(outputFolder);
@@ -267,6 +272,7 @@ void ConverterManager::processDataFolder(std::string inputFolder)
 	if (dataFileCount == 0)
 		return;
 
+	processor->setVisibilityIndexing(bOcclusionCulling);
 	std::string outputFolder = outputFolderPath;
 
 	std::string fullId;
@@ -300,7 +306,7 @@ void ConverterManager::processDataFolder(std::string inputFolder)
 		if (!idSuffix.empty())
 			fullId += idSuffix;
 
-		processor->addAttribute(std::string("id"), fullId);
+		processor->addAttribute(std::string(F4dId), fullId);
 
 
 		// 2. 변환 결과에서 bbox centerpoint를 로컬 원점으로 이동시키는 변환행렬 추출
@@ -367,4 +373,77 @@ bool ConverterManager::isInitialized()
 		return false;
 
 	return true;
+}
+void ConverterManager::setProcessConfiguration(std::map<std::string, std::string>& arguments)
+{
+	if (arguments.find(InputFolder) != arguments.end())
+	{
+		bConversion = true;
+		inputFolderPath = arguments[InputFolder];
+		outputFolderPath = arguments[OutputFolder];
+
+		if (arguments.find(PerformOC) != arguments.end())
+		{
+			if (arguments[PerformOC] == std::string("Y") ||
+				arguments[PerformOC] == std::string("y"))
+				bOcclusionCulling = true;
+			else
+				bOcclusionCulling = false;
+		}
+		else
+		{
+			bOcclusionCulling = false;
+		}
+
+		if (arguments.find(UnitScaleFactor) != arguments.end())
+		{
+			unitScaleFactor = std::stod(arguments[UnitScaleFactor]);
+		}
+	}
+	else
+	{
+		bConversion = false;
+	}
+
+	if (arguments.find(CreateIndex) != arguments.end())
+	{
+		if (arguments[CreateIndex] == std::string("Y") ||
+			arguments[CreateIndex] == std::string("y"))
+		{
+			bCreateIndices = true;
+		}
+		else
+		{
+			bCreateIndices = false;
+		}
+	}
+	else
+	{
+		bCreateIndices = false;
+	}
+
+	if (arguments.find(IdPrefix) != arguments.end())
+	{
+		idPrefix = arguments[IdPrefix];
+	}
+
+	if (arguments.find(IdSuffix) != arguments.end())
+	{
+		idSuffix = arguments[IdSuffix];
+	}
+}
+
+void ConverterManager::process()
+{
+	if (bConversion)
+	{
+		if (!isInitialized())	return;
+
+		processDataFolder();
+	}
+
+	if (bCreateIndices)
+	{
+		writeIndexFile();
+	}
 }
