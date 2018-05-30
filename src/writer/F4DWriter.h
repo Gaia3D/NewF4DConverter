@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include <vector>
 
 #include "stb_image_write.h"
@@ -45,13 +46,13 @@ public:
 	bool writeIndexFile();
 
 protected:
-	bool writeHeader(FILE* f);
+	bool writeHeader(FILE* f, std::map<std::string, size_t>& textureIndices);
 
 	bool writeVisibilityIndices(FILE* f, gaia3d::OctreeBox* octree);
 
 	bool writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& models);
 
-	bool writeReferencesAndModels(std::string& referencePath, std::string& modelPath);
+	bool writeReferencesAndModels(std::string& referencePath, std::string& modelPath, std::string& lod2Path, std::map<std::string, size_t>& textureIndices);
 
 	bool writeLegoBlocks(std::string& legoBlockPath);
 
@@ -60,7 +61,12 @@ protected:
 	void writeColor(unsigned long color, unsigned short type, bool bAlpha, FILE* file);
 
 	void writeLegoTexture(std::string resultPath);
+
 	void writeTextures(std::string imagePath);
+
+	void writeNetSurfaceMesh(gaia3d::TrianglePolyhedron* mesh, FILE* f);
+
+	void writeNetSurfaceTextures(std::string resultPath);
 };
 
 #endif // _F4DWRITER_H_

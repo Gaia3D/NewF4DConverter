@@ -118,6 +118,13 @@ bool extractArguments(int argc, char** argv)
 				i++;
 				continue;
 			}
+
+			if (tokens[i] == std::string(SkinLevelNsm))
+			{
+				arguments[SkinLevelNsm] = tokens[i + 1];
+				i++;
+				continue;
+			}
 		}
 		else
 		{
@@ -162,6 +169,28 @@ bool extractArguments(int argc, char** argv)
 			double scaleFactor = std::stod(arguments[UnitScaleFactor]);
 
 			if (scaleFactor < 0.001)
+				return false;
+		}
+		catch (const std::invalid_argument& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+		catch (const std::out_of_range& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+	}
+
+	if (arguments.find(SkinLevelNsm) != arguments.end())
+	{
+		try
+		{
+			std::string skinLevel = arguments[SkinLevelNsm];
+			int nSkinLevel = std::stoi(skinLevel);
+
+			if (nSkinLevel > 3 || nSkinLevel < 1)
 				return false;
 		}
 		catch (const std::invalid_argument& error)

@@ -31,7 +31,8 @@
 F4DWriter::F4DWriter(ConversionProcessor* conversionResult)
 :processor(conversionResult)
 {
-	version = "v.0.0";
+	//version = "v.0.0";
+	version = "0.0.1";
 	guid = "abcdefghi";
 	guidLength = 9;
 }
@@ -64,8 +65,9 @@ bool F4DWriter::write()
 
 	std::string headerPath = resultPath + "/HeaderAsimetric.hed";
 	FILE* file = fopen(headerPath.c_str(), "wb");
-	// write header
-	writeHeader(file);
+	// write header and get order of texture recorded
+	std::map<std::string, size_t> textureIndices;
+	writeHeader(file, textureIndices);
 	fclose(file);
 
 	// create reference directory
@@ -86,17 +88,17 @@ bool F4DWriter::write()
 		}
 	}
 
-	// create lego block directory
+	// create lod2 geometries directory
 	outputFolderExist = false;
-	std::string legoBlockPath = resultPath + "/Bricks";
-	if (stat(legoBlockPath.c_str(), &status) == 0)
+	std::string lod2Path = resultPath + "/Bricks";
+	if (stat(lod2Path.c_str(), &status) == 0)
 	{
 		if (S_ISDIR(status.st_mode))
 			outputFolderExist = true;
 	}
 	if (!outputFolderExist)
 	{
-		if (mkdir(legoBlockPath.c_str(), 0755) != 0)
+		if (mkdir(lod2Path.c_str(), 0755) != 0)
 		{
 			LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 			LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
@@ -122,8 +124,8 @@ bool F4DWriter::write()
 		}
 	}
 
-	writeReferencesAndModels(referencePath, modelPath);
-	writeLegoBlocks(legoBlockPath);
+	writeReferencesAndModels(referencePath, modelPath, lod2Path, textureIndices);
+	//writeLegoBlocks(legoBlockPath);
 
 	// create image directory
 	if (!processor->getTextureInfo().empty())
@@ -147,12 +149,28 @@ bool F4DWriter::write()
 
 		writeTextures(imagePath);
 	}
-	writeLegoTexture(resultPath);
+
+	//writeLegoTexture(resultPath);
+
+	// net surface mesh lod 3~5
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMesh = processor->getNetSurfaceMeshes().begin();
+	for (; iterNetSurfaceMesh != processor->getNetSurfaceMeshes().end(); iterNetSurfaceMesh++)
+	{
+		unsigned char lod = iterNetSurfaceMesh->first;
+		gaia3d::TrianglePolyhedron* netSurfaceMesh = iterNetSurfaceMesh->second;
+		std::string filePath = resultPath + "/lod" + std::to_string(lod);
+		file = fopen(filePath.c_str(), "wb");
+		writeNetSurfaceMesh(netSurfaceMesh, file);
+		fclose(file);
+	}
+
+	// mosaic textures for net surface mesh lod 2 ~ 5
+	writeNetSurfaceTextures(resultPath);
 
 	return true;
 }
 
-bool F4DWriter::writeHeader(FILE* f)
+bool F4DWriter::writeHeader(FILE* f, std::map<std::string, size_t>& textureIndices)
 {
 	// versoin div : start(20170323)
 	// version
@@ -175,6 +193,69 @@ bool F4DWriter::writeHeader(FILE* f)
 
 	// spatial octree info
 	writeOctreeInfo(processor->getSpatialOctree(), f);
+
+	// material info
+	unsigned int textureCount = (unsigned int)processor->getTextureInfo().size();
+	fwrite(&textureCount, sizeof(unsigned int), 1, f);
+	std::map<std::string, std::string>::iterator iterTexture = processor->getTextureInfo().begin();
+	std::string materialType("diffuse");
+	unsigned int typeLength = (unsigned int)materialType.size();
+	for (size_t i = 0; iterTexture != processor->getTextureInfo().end(); iterTexture++, i++)
+	{
+		std::string textureFileName = iterTexture->first;
+		unsigned int textureFileNameLength = (unsigned int)textureFileName.size();
+
+		fwrite(&typeLength, sizeof(unsigned int), 1, f);
+		fwrite(materialType.c_str(), sizeof(char), typeLength, f);
+		fwrite(&textureFileNameLength, sizeof(int), 1, f);
+		fwrite(textureFileName.c_str(), sizeof(char), textureFileNameLength, f);
+
+		textureIndices[textureFileName] = i;
+	}
+
+	// lod info
+	unsigned char geomLodCount = 6;
+	fwrite(&geomLodCount, sizeof(unsigned char), 1, f);
+	unsigned char lod;
+	bool bDividedBySpatialOctree;
+	std::string lodFileName;
+	unsigned char lodFileNameLength;
+	std::string lodTextureFileName;
+	unsigned char lodTextureFileNameLength;
+	for (lod = 0; lod < geomLodCount; lod++)
+	{
+		// lod
+		fwrite(&lod, sizeof(unsigned char), 1, f);
+
+		// if data is divided by spatial octrees or not
+		if (lod < 3)
+			bDividedBySpatialOctree = true;
+		else
+			bDividedBySpatialOctree = false;
+		fwrite(&bDividedBySpatialOctree, sizeof(bool), 1, f);
+
+		// merged lod data file name
+		if (lod > 2)
+		{
+			lodFileName = "lod" + std::to_string(lod);
+			lodFileNameLength = (unsigned char)lodFileName.length();
+			fwrite(&lodFileNameLength, sizeof(unsigned char), 1, f);
+			fwrite(lodFileName.c_str(), sizeof(char), lodFileNameLength, f);
+		}
+
+		// merged lod data texture file name
+		if (lod > 1)
+		{
+			lodTextureFileName = "mosaicTextureLod" + std::to_string(lod) + ".jpg";
+			lodTextureFileNameLength = (unsigned char)lodTextureFileName.length();
+			fwrite(&lodTextureFileNameLength, sizeof(unsigned char), 1, f);
+			fwrite(lodTextureFileName.c_str(), sizeof(char), lodTextureFileNameLength, f);
+		}
+	}
+
+	// end marker
+	char endMarker = 0;
+	fwrite(&endMarker, sizeof(char), 1, f);
 	// versoin div : end
 
 	return true;
@@ -182,6 +263,8 @@ bool F4DWriter::writeHeader(FILE* f)
 
 bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& models)
 {
+	fwrite(&version, sizeof(char), 5, f);
+
 	unsigned int modelCount = (unsigned int)models.size();
 	fwrite(&modelCount, sizeof(unsigned int), 1, f);
 
@@ -256,13 +339,16 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 				index = models[i]->getVbos()[j]->indices[k];
 				fwrite(&index, sizeof(unsigned short), 1, f);
 			}
+
+			bool bLegoExist = false;
+			fwrite(&bLegoExist, sizeof(bool), 1, f);
 		}
 	}
 
 	return true;
 }
 
-bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string& modelPath)
+bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string& modelPath, std::string& lod2Path, std::map<std::string, size_t>& textureIndices)
 {
 	std::vector<gaia3d::OctreeBox*> leafBoxes;
 	gaia3d::OctreeBox* leafBox;
@@ -270,6 +356,7 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 	size_t leafCount = leafBoxes.size();
 	std::string referenceFilePath; // each reference file full path
 	std::string modelFilePath; // each model file full path
+	std::string lod2FilePath; // each lod 2 file full path
 	std::vector<gaia3d::TrianglePolyhedron*> models;
 	size_t modelCount;
 	FILE* file = NULL;
@@ -288,13 +375,19 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 	unsigned char colorDimension; // color channel count
 	bool bTextureCoordinate; // if texture coordinate exists
 	//float u, v;	// texture coordinate
-	unsigned int textureCount = 0;
+	//unsigned int textureCount = 0;
+	unsigned int textureIndex;
+	unsigned int totalTriangleCount;
 	for (size_t i = 0; i < leafCount; i++)
 	{
 		leafBox = leafBoxes[i];
+		totalTriangleCount = 0;
+
+		//--------- save reference info of each spatial octree -----------
 
 		referenceFilePath = referencePath + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + std::string("_Ref");
 		file = fopen(referenceFilePath.c_str(), "wb");
+		fwrite(&version, sizeof(char), 5, file);
 
 		// reference count in each octrees
 		referenceCount = (unsigned int)leafBox->meshes.size();
@@ -342,23 +435,47 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			}
 			else
 			{
-				objectIdLength = (unsigned char)0;
+				//objectIdLength = (unsigned char)0;
+				std::string tmpObjectId = std::to_string(referenceId);
+				objectIdLength = (unsigned char)tmpObjectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
+				fwrite(tmpObjectId.c_str(), sizeof(char), objectIdLength, file);
 			}
-			
+
 
 			// model id
 			modelId = (unsigned int)reference->getReferenceInfo().modelIndex;
 			fwrite(&modelId, sizeof(unsigned int), 1, file);
 
 			// transform matrix
-			for (size_t c = 0; c < 4; c++)
+			unsigned char matrixType = reference->getReferenceInfo().mat.getMatrixType(10E-8);
+			fwrite(&matrixType, sizeof(unsigned char), 1, file);
+			switch (matrixType)
 			{
-				for (size_t r = 0; r < 4; r++)
+			case 0: // nothing to do
+			{
+			}break;
+			case 1: // translation
+			{
+				// save translation vector.
+				float translation_x = float(reference->getReferenceInfo().mat.m[3][0]);
+				float translation_y = float(reference->getReferenceInfo().mat.m[3][1]);
+				float translation_z = float(reference->getReferenceInfo().mat.m[3][2]);
+				fwrite(&translation_x, sizeof(float), 1, file);// SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.***
+				fwrite(&translation_y, sizeof(float), 1, file);// SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.***
+				fwrite(&translation_z, sizeof(float), 1, file);// SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.*** SAVE.***
+			}break;
+			case 2: // transform
+			{
+				for (size_t c = 0; c < 4; c++)
 				{
-					m = (float)reference->getReferenceInfo().mat.m[c][r];
-					fwrite(&m, sizeof(float), 1, file);
+					for (size_t r = 0; r < 4; r++)
+					{
+						m = (float)reference->getReferenceInfo().mat.m[c][r];
+						fwrite(&m, sizeof(float), 1, file);
+					}
 				}
+			}break;
 			}
 
 			vertexCount = (unsigned int)reference->getVertices().size();
@@ -429,33 +546,43 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			// texture file info if exists
 			if (bTextureCoordinate)
 			{
-				textureCount = 1;
-				fwrite(&textureCount, sizeof(unsigned int), 1, file);
-
-				std::string textureType("diffuse");
-				unsigned int typeLength = (unsigned int)textureType.length();
-				fwrite(&typeLength, sizeof(unsigned int), 1, file);
-				fwrite(textureType.c_str(), sizeof(char), typeLength, file);
-
-				//std::string textureName(gaia3d::ws2s(reference->getStringAttribute(TextureName).c_str()));
-				std::string textureName(reference->getStringAttribute(TextureName).c_str());
-
-				unsigned int nameLength = (unsigned int)textureName.length();
-				fwrite(&nameLength, sizeof(unsigned int), 1, file);
-				fwrite(textureName.c_str(), sizeof(char), nameLength, file);
+				textureIndex = (unsigned int)textureIndices[reference->getStringAttribute(TextureName)];
+				fwrite(&textureIndex, sizeof(unsigned int), 1, file);
 			}
 			else
 			{
-				textureCount = 0;
-				fwrite(&textureCount, sizeof(unsigned int), 1, file);
+				int tmpTextureIndex = -1;
+				fwrite(&tmpTextureIndex, sizeof(int), 1, file);
+			}
+
+			size_t surfaceCount = reference->getSurfaces().size();
+			for (size_t k = 0; k < surfaceCount; k++)
+			{
+				gaia3d::Surface* surface = reference->getSurfaces()[k];
+				size_t triangleCount = surface->getTriangles().size();
+				totalTriangleCount += (unsigned int)triangleCount;
 			}
 		}
 
+		// total triangle count
+		fwrite(&totalTriangleCount, sizeof(unsigned int), 1, file);
+
+		// visibility indices
 		writeVisibilityIndices(file, (static_cast<gaia3d::SpatialOctreeBox*>(leafBox))->exteriorOcclusionInfo);
 		writeVisibilityIndices(file, (static_cast<gaia3d::SpatialOctreeBox*>(leafBox))->interiorOcclusionInfo);
 		fclose(file);
 
-		modelFilePath = modelPath + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) +  "_Model";
+		//--------- save lod 2 geometry of each spatial octree -----------
+		if (((gaia3d::SpatialOctreeBox*)leafBox)->netSurfaceMesh != NULL)
+		{
+			lod2FilePath = lod2Path + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + "_Brick";
+			file = fopen(lod2FilePath.c_str(), "wb");
+			writeNetSurfaceMesh(((gaia3d::SpatialOctreeBox*)leafBox)->netSurfaceMesh, file);
+			fclose(file);
+		}
+
+		//--------- save model of each spatial octree ----------
+		modelFilePath = modelPath + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + "_Model";
 		file = fopen(modelFilePath.c_str(), "wb");
 		this->writeModels(file, models);
 		fclose(file);
@@ -778,6 +905,9 @@ bool F4DWriter::writeIndexFile()
 		FILE* header;
 		header = fopen(eachDataHeader.c_str(), "rb");
 
+		if (header == NULL)
+			continue;
+
 		// version
 		memset(version, 0x00, 6);
 		fread(version, sizeof(char), 5, header);
@@ -932,5 +1062,159 @@ void F4DWriter::writeTextures(std::string imagePath)
 				continue;
 			}
 		}
+	}
+}
+
+void F4DWriter::writeNetSurfaceMesh(gaia3d::TrianglePolyhedron* mesh, FILE* f)
+{
+	// bounding box
+	float min_x = float(mesh->getBoundingBox().minX);
+	float min_y = float(mesh->getBoundingBox().minY);
+	float min_z = float(mesh->getBoundingBox().minZ);
+
+	float max_x = float(mesh->getBoundingBox().maxX);
+	float max_y = float(mesh->getBoundingBox().maxY);
+	float max_z = float(mesh->getBoundingBox().maxZ);
+
+	fwrite(&min_x, sizeof(float), 1, f);
+	fwrite(&min_y, sizeof(float), 1, f);
+	fwrite(&min_z, sizeof(float), 1, f);
+
+	fwrite(&max_x, sizeof(float), 1, f);
+	fwrite(&max_y, sizeof(float), 1, f);
+	fwrite(&max_z, sizeof(float), 1, f);
+
+	// vertex count
+	unsigned int vertexCount = 0;
+	size_t surfaceCount = mesh->getSurfaces().size();
+	for (size_t i = 0; i < surfaceCount; i++)
+	{
+		gaia3d::Surface* surface = mesh->getSurfaces()[i];
+		size_t triangleCount = surface->getTriangles().size();
+		vertexCount += (unsigned int)(triangleCount * 3);
+	}
+	fwrite(&vertexCount, sizeof(unsigned int), 1, f);
+
+	// vertex position
+	float x, y, z;
+	for (size_t i = 0; i < surfaceCount; i++)
+	{
+		gaia3d::Surface* surface = mesh->getSurfaces()[i];
+		size_t triangleCount = surface->getTriangles().size();
+		for (size_t j = 0; j < triangleCount; j++)
+		{
+			gaia3d::Triangle* triangle = surface->getTriangles()[j];
+			for (int k = 0; k < 3; k++)
+			{
+				x = (float)triangle->getVertices()[k]->position.x;
+				y = (float)triangle->getVertices()[k]->position.y;
+				z = (float)triangle->getVertices()[k]->position.z;
+				fwrite(&x, sizeof(float), 1, f);
+				fwrite(&y, sizeof(float), 1, f);
+				fwrite(&z, sizeof(float), 1, f);
+			}
+		}
+	}
+
+	// vertex normal
+	bool bNormal = mesh->doesThisHaveNormals();
+	fwrite(&bNormal, sizeof(bool), 1, f);
+	if (bNormal)
+	{
+		fwrite(&vertexCount, sizeof(unsigned int), 1, f);
+		char nx, ny, nz;
+		int tnx, tny, tnz;
+		for (size_t i = 0; i < surfaceCount; i++)
+		{
+			gaia3d::Surface* surface = mesh->getSurfaces()[i];
+			size_t triangleCount = surface->getTriangles().size();
+			for (size_t j = 0; j < triangleCount; j++)
+			{
+				gaia3d::Triangle* triangle = surface->getTriangles()[j];
+				for (int k = 0; k < 3; k++)
+				{
+					tnx = (int)(triangle->getVertices()[k]->normal.x * 127); if (tnx > 127) tnx = 127; if (tnx < -128) tnx = -128;
+					tny = (int)(triangle->getVertices()[k]->normal.y * 127); if (tny > 127) tny = 127; if (tny < -128) tny = -128;
+					tnz = (int)(triangle->getVertices()[k]->normal.z * 127); if (tnz > 127) tnz = 127; if (tnz < -128) tnz = -128;
+					nx = (char)tnx; ny = (char)tny; nz = (char)tnz;
+					fwrite(&nx, sizeof(char), 1, f);
+					fwrite(&ny, sizeof(char), 1, f);
+					fwrite(&nz, sizeof(char), 1, f);
+				}
+			}
+		}
+	}
+
+	// vertex color
+	bool bColor = mesh->getColorMode() == gaia3d::ColorsOnVertices ? true : false;
+	fwrite(&bColor, sizeof(bool), 1, f);
+	if (bColor)
+	{
+		fwrite(&vertexCount, sizeof(unsigned int), 1, f);
+		unsigned char r, g, b, a = 255;
+		for (size_t i = 0; i < surfaceCount; i++)
+		{
+			gaia3d::Surface* surface = mesh->getSurfaces()[i];
+			size_t triangleCount = surface->getTriangles().size();
+			for (size_t j = 0; j < triangleCount; j++)
+			{
+				gaia3d::Triangle* triangle = surface->getTriangles()[j];
+				for (int k = 0; k < 3; k++)
+				{
+					r = GetRedValue(triangle->getVertices()[k]->color);
+					g = GetGreenValue(triangle->getVertices()[k]->color);
+					b = GetBlueValue(triangle->getVertices()[k]->color);
+					fwrite(&r, sizeof(unsigned char), 1, f);
+					fwrite(&g, sizeof(unsigned char), 1, f);
+					fwrite(&b, sizeof(unsigned char), 1, f);
+					fwrite(&a, sizeof(unsigned char), 1, f);
+				}
+			}
+		}
+	}
+
+	// vertex texture coordinates
+	bool bTextureCoordinate = mesh->doesThisHaveTextureCoordinates();
+	fwrite(&bTextureCoordinate, sizeof(bool), 1, f);
+	if (bTextureCoordinate)
+	{
+		unsigned short type = 5126; // float.***
+		fwrite(&type, sizeof(unsigned short), 1, f);
+
+		fwrite(&vertexCount, sizeof(unsigned int), 1, f);
+		float u, v;
+		for (size_t i = 0; i < surfaceCount; i++)
+		{
+			gaia3d::Surface* surface = mesh->getSurfaces()[i];
+			size_t triangleCount = surface->getTriangles().size();
+			for (size_t j = 0; j < triangleCount; j++)
+			{
+				gaia3d::Triangle* triangle = surface->getTriangles()[j];
+				for (int k = 0; k < 3; k++)
+				{
+					u = (float)triangle->getVertices()[k]->textureCoordinate[0];
+					v = (float)triangle->getVertices()[k]->textureCoordinate[1];
+					fwrite(&u, sizeof(float), 1, f);
+					fwrite(&v, sizeof(float), 1, f);
+				}
+			}
+		}
+	}
+}
+
+void F4DWriter::writeNetSurfaceTextures(std::string resultPath)
+{
+	std::map<unsigned char, unsigned char*>::iterator iterTexture = processor->getNetSurfaceTextures().begin();
+	std::string filePath;
+	int bpp = 4;
+	for (; iterTexture != processor->getNetSurfaceTextures().end(); iterTexture++)
+	{
+		unsigned char lod = iterTexture->first;
+		unsigned char* texture = iterTexture->second;
+		unsigned int width = processor->getNetSurfaceTextureWidth()[lod];
+		unsigned int height = processor->getNetSurfaceTextureHeight()[lod];
+		filePath = resultPath + "/mosaicTextureLod" + std::to_string(lod) + ".jpg";
+
+		stbi_write_jpg(filePath.c_str(), width, height, bpp, texture, 0);
 	}
 }

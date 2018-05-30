@@ -7,6 +7,10 @@
 
 #include <map>
 
+#include "NetSurfaceMeshSetting.h"
+
+//class NetSurfaceMeshSetting;
+
 class ProcessSetting
 {
 public:
@@ -14,6 +18,8 @@ public:
 	~ProcessSetting();
 
 public:
+	unsigned char netSurfaceMeshSettingIndex; // index to template NSM setting
+
 	bool bExtractExterior; // if extract exteriors or not
 	bool bOcclusionCulling; // if do visibility indexing or not
 	float leafSpatialOctreeSize; // deepest spatial octree edge length(meter)
@@ -22,6 +28,11 @@ public:
 	float exteriorVisibilityIndexingCameraStep; // camera position step for exterior visibility indexing(meter)
 	unsigned char interiorVisibilityIndexingOctreeDepth; // visibility octree depth for interior
 	unsigned char exteriorVisibilityIndexingOctreeDepth; // visibility octree depth for exterior
+
+	std::map<unsigned char, NetSurfaceMeshSetting*> nsmSettings; // net surface mesh setting for each lod
+
+	void fillNsmSettings(unsigned char settingIndex);
+	void clearNsmSettings();
 };
 
 #endif // _PROCESSSETTING_H_

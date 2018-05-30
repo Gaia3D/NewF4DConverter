@@ -15,6 +15,7 @@
 // arguments for processing parameters
 #define PerformOCW			L"-oc"
 #define UnitScaleFactorW	L"-usf"
+#define SkinLevelNsmW		L"-skinLevel"
 
 // arguments for conversion configuration
 #define InputFolder		"-inputFolder"
@@ -26,5 +27,6 @@
 // arguments for processing parameters
 #define PerformOC		"-oc"
 #define UnitScaleFactor	"-usf"
+#define SkinLevelNsm	"-skinLevel"
 
 #endif // _ARGDEFINITION_H_

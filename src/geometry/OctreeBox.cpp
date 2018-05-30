@@ -157,7 +157,9 @@ namespace gaia3d
 	:OctreeBox(owner)
 	{
 		interiorOcclusionInfo = new VisionOctreeBox(NULL);
-		exteriorOcclusionInfo = new VisionOctreeBox(NULL);;
+		exteriorOcclusionInfo = new VisionOctreeBox(NULL);
+
+		netSurfaceMesh = NULL;
 	}
 
 	SpatialOctreeBox::~SpatialOctreeBox()
@@ -167,6 +169,9 @@ namespace gaia3d
 
 		if(exteriorOcclusionInfo != NULL)
 			delete exteriorOcclusionInfo;
+
+		if(netSurfaceMesh != NULL)
+			delete netSurfaceMesh;
 	}
 
 	void SpatialOctreeBox::makeTreeOfUnfixedDepth(double minSize, bool isObjectInOnlyOneLeaf)

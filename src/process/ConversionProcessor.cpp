@@ -21,6 +21,7 @@
 
 #include "ConversionProcessor.h"
 #include "SceneControlVariables.h"
+#include "NetSurfaceMeshMaker.h"
 
 #include "../converter/LogWriter.h"
 #include "../util/GeometryUtility.h"
@@ -266,6 +267,21 @@ void ConversionProcessor::clear()
 		allTextureWidths.clear();
 		allTextureHeights.clear();
 	}
+
+	settings.clearNsmSettings();
+
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMeshes =  netSurfaceMeshes.begin();
+	for (; iterNetSurfaceMeshes != netSurfaceMeshes.end(); iterNetSurfaceMeshes++)
+		delete iterNetSurfaceMeshes->second;
+	netSurfaceMeshes.clear();
+
+	std::map<unsigned char, unsigned char*>::iterator iterNetSurfaceTextures =  netSurfaceTextures.begin();
+	for (; iterNetSurfaceTextures != netSurfaceTextures.end(); iterNetSurfaceTextures++)
+		delete iterNetSurfaceTextures->second;
+	netSurfaceTextures.clear();
+
+	netSurfaceTextureWidth.clear();
+	netSurfaceTextureHeight.clear();
 }
 
 void ConversionProcessor::changeSceneControlVariables()
@@ -283,6 +299,10 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 											bool bExtractExterior,
 											bool bOcclusionCulling)
 {
+	if (settings.nsmSettings.empty())
+		settings.fillNsmSettings(settings.netSurfaceMeshSettingIndex);
+		//settings.fillNsmSettings(255);
+
 	// copy data from original to this container
 	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
 
@@ -319,8 +339,7 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, LeafSpatialOctreeSize);
 
 	// make upper LOD(rougher LOD)
-	
-	makeLegoStructure(thisSpatialOctree, MinLegoSize, legos, fullBbox, true);
+	//makeLegoStructure(thisSpatialOctree, MinLegoSize, legos, fullBbox, true);
 
 	// make visibility indices
 	if(bOcclusionCulling)
@@ -346,7 +365,10 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 	}
 
 	// make lego texture
-	makeLegoTexture(allMeshes, allTextureInfo);
+	//makeLegoTexture(allMeshes, allTextureInfo);
+
+	// make NSM
+	makeNetSurfaceMeshes(thisSpatialOctree, allTextureInfo);
 
 	bool bMakeTextureCoordinate = allTextureInfo.empty() ? false : true;
 	if (bMakeTextureCoordinate)
@@ -354,6 +376,8 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 		// rebuild original texture
 		normalizeTextures(allTextureInfo);
 	}
+
+	//makeNetSurfaceMeshes(thisSpatialOctree, resizedTextures, allTextureWidths, allTextureHeights);
 
 	return true;
 }
@@ -2484,8 +2508,315 @@ unsigned int ConversionProcessor::makeShaders()
 	return program;
 }
 
+unsigned int ConversionProcessor::makeShadersForNSM()
+{
+	// vertex shader source
+	GLchar vs_source[] =
+	{
+		"attribute vec3 position;\n"
+		"attribute vec4 aVertexColor;\n"
+		"attribute vec2 aTextureCoord;\n"
+		"uniform mat4 ModelViewProjectionMatrix;\n"
+		"varying vec4 vColor;\n"
+		"varying vec2 vTextureCoord;\n"
+		"attribute vec3 aVertexNormal;\n"
+		"varying vec3 uAmbientColor;\n"
+		"varying vec3 vLightWeighting;\n"
+		"uniform vec3 uLightingDirection;\n"
+		"uniform mat3 uNMatrix;\n"
+		"void main(void) {\n"
+		"vec4 pos = vec4(position.xyz, 1.0);\n"
+		"gl_Position = ModelViewProjectionMatrix * pos;\n"
+		"vColor = aVertexColor;\n"
+		"vTextureCoord = aTextureCoord;\n"
+		"\n"
+		"vLightWeighting = vec3(1.0, 1.0, 1.0);\n"
+		"uAmbientColor = vec3(0.6, 0.6, 0.6);\n"
+		"vec3 uLightingDirection = vec3(0.2, 0.2, -0.9);\n"
+		"vec3 directionalLightColor = vec3(0.6, 0.6, 0.6);\n"
+		"vec3 transformedNormal = uNMatrix * aVertexNormal;\n"
+		"float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);\n"
+		"vLightWeighting = uAmbientColor + directionalLightColor * directionalLightWeighting;\n"
+		"}\n"
+	};
+
+	const GLchar* vertexShaderSource = vs_source;
+
+	// create vertex shader object
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	// attatch & compile vertex shader source
+	glShaderSource(vertexShader, 1, &vertexShaderSource, 0);
+	glCompileShader(vertexShader);
+	GLint isCompiled = 0;
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
+	if (isCompiled == GL_FALSE)
+	{
+		GLint maxLength = 0;
+        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::vector<char> errorLog(maxLength);
+        glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &errorLog[0]);
+
+        std::cout << "vertexShader failed to compile" << std::endl;
+
+		for (std::vector<char>::const_iterator i = errorLog.begin(); i != errorLog.end(); ++i)
+		{
+			std::cout << *i;
+		}
+    	std::cout << std::endl;
+
+		glDeleteShader(vertexShader);
+		return 0;
+	}
+
+	// fragment shader source
+	GLchar fs_source[] =
+	{
+		"varying vec4 vColor;\n"
+		"varying vec2 vTextureCoord;\n"
+		"uniform sampler2D uSampler;\n"
+		"uniform bool hasTexture;\n"
+		"uniform bool useLighting;\n"
+		"uniform vec3 vColorAux;\n"
+		"varying vec3 vLightWeighting;\n"
+		"void main(void) {\n"
+		"if(hasTexture)\n"
+		"{\n"
+		"vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
+		"if(useLighting)\n"
+		"{\n"
+		"if(textureColor.r > 0.97 && textureColor.g > 0.97 && textureColor.b > 0.97)\n"
+		"{\n"
+		"textureColor.r = 0.95;\n"
+		"textureColor.g = 0.95;\n"
+		"textureColor.b = 0.95;\n"
+		"}\n"
+		"textureColor.a = 1.0;\n"
+		"gl_FragColor = vec4(textureColor.rgb * vLightWeighting, textureColor.a);\n"
+		"}\n"
+		"else\n"
+		"{\n"
+		"if(textureColor.r > 0.97 && textureColor.g > 0.97 && textureColor.b > 0.97)\n"
+		"{\n"
+		"textureColor.r = 0.95;\n"
+		"textureColor.g = 0.95;\n"
+		"textureColor.b = 0.95;\n"
+		"}\n"
+		"textureColor.a = 1.0;\n"
+		"gl_FragColor = textureColor;\n"
+		"}\n"
+		"}\n"
+		"else \n"
+		"{\n"
+		"vec4 textureColor = vec4(vColorAux.xyz, 1.0);\n"
+		"if(useLighting)\n"
+		"{\n"
+		"if(textureColor.r > 0.97 && textureColor.g > 0.97 && textureColor.b > 0.97)\n"
+		"{\n"
+		"textureColor.r = 0.95;\n"
+		"textureColor.g = 0.95;\n"
+		"textureColor.b = 0.95;\n"
+		"}\n"
+		"textureColor.a = 1.0;\n"
+		"gl_FragColor = vec4(textureColor.rgb * vLightWeighting, textureColor.a);\n"
+		"}\n"
+		"else\n"
+		"{\n"
+		"if(textureColor.r > 0.97 && textureColor.g > 0.97 && textureColor.b > 0.97)\n"
+		"{\n"
+		"textureColor.r = 0.95;\n"
+		"textureColor.g = 0.95;\n"
+		"textureColor.b = 0.95;\n"
+		"}\n"
+		"textureColor.a = 1.0;\n"
+		"gl_FragColor = textureColor;\n"
+		"}\n"
+		"}\n"
+		"}\n"
+	};
+
+	const GLchar* fragmentShaderSource = fs_source;
+
+	// create fragment shader object
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	// attatch & compile fragment shader source
+	glShaderSource(fragmentShader, 1, &fragmentShaderSource, 0);
+	glCompileShader(fragmentShader);
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
+	if (isCompiled == GL_FALSE)
+	{
+		GLint maxLength = 0;
+        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::vector<char> errorLog(maxLength);
+        glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &errorLog[0]);
+
+        std::cout << "fragmentShader failed to compile" << std::endl;
+
+		for (std::vector<char>::const_iterator i = errorLog.begin(); i != errorLog.end(); ++i)
+		{
+			std::cout << *i;
+		}
+    	std::cout << std::endl;
+
+		glDeleteShader(vertexShader);
+		glDeleteShader(fragmentShader);
+		return 0;
+	}
+
+	//Vertex and fragment shaders are successfully compiled.
+	//Now time to link them together into a program.
+	//Get a program object.
+	GLuint program = glCreateProgram();
+
+	//Attach our shaders to our program
+	glAttachShader(program, vertexShader);
+	glAttachShader(program, fragmentShader);
+
+	//Link our program
+	glLinkProgram(program);
+	GLint isLinked = 0;
+	glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
+	if (isLinked == GL_FALSE)
+	{
+		glDeleteProgram(program);
+		glDeleteShader(vertexShader);
+		glDeleteShader(fragmentShader);
+		return 0;
+	}
+
+	//Always detach shaders after a successful link.
+	glDetachShader(program, vertexShader);
+	glDetachShader(program, fragmentShader);
+
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+
+	return program;
+}
+
 void ConversionProcessor::deleteShaders(unsigned int programId)
 {
 	glUseProgram(0);
 	glDeleteProgram(programId);
+}
+
+/*
+void ConversionProcessor::makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees,
+	std::map<std::string, unsigned char*>& textures,
+	std::map<std::string, unsigned int>& textureWidths,
+	std::map<std::string, unsigned int>& textureHeights)
+*/
+void ConversionProcessor::makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees, std::map<std::string, std::string>& textureInfo)
+{
+	// prepare shaders for depth detection and texture drawing
+	unsigned int shaderProgramDepthDetection = makeShadersForNSM();
+	if (shaderProgramDepthDetection == 0)
+		return;
+
+	unsigned int shaderProgramTexture = makeShaders();
+	if (shaderProgramTexture == 0)
+	{
+		deleteShaders(shaderProgramDepthDetection);
+		return;
+	}
+
+	// load and bind textures
+	std::map<std::string, unsigned int> bindingResult;
+	//loadAndBindTextures(textures, textureWidths, textureHeights, bindingResult);
+	loadAndBindTextures(textureInfo, bindingResult);
+
+	// fill each leaf octree with NSM of lod 2~N
+	std::vector<gaia3d::OctreeBox*> container;
+	octrees.getAllLeafBoxes(container, true);
+	for (unsigned char i = 2; i <= MaxLodSize; i++)
+	{
+		NetSurfaceMeshMaker maker;
+		maker.makeNetSurfaceMesh(container,
+			settings.nsmSettings[i],
+			this->scv,
+			shaderProgramDepthDetection,
+			shaderProgramTexture,
+			bindingResult,
+			netSurfaceMeshes,
+			netSurfaceTextures,
+			netSurfaceTextureWidth,
+			netSurfaceTextureHeight);
+	}
+
+
+	// delete shaders
+	deleteShaders(shaderProgramDepthDetection);
+	deleteShaders(shaderProgramTexture);
+
+	// unbind textures
+	unbindTextures(bindingResult);
+
+	// restore rendering environment
+	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
+
+	// make bounding box of result polyhedrons
+	size_t octreeCount = container.size();
+	for (size_t i = 0; i < octreeCount; i++)
+		if (((gaia3d::SpatialOctreeBox*)container[i])->netSurfaceMesh != NULL)
+			calculateBoundingBox(((gaia3d::SpatialOctreeBox*)container[i])->netSurfaceMesh);
+
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iter = netSurfaceMeshes.begin();
+	for (; iter != netSurfaceMeshes.end(); iter++)
+		calculateBoundingBox(iter->second);
+
+	// normalize mosaic textures
+	normalizeMosiacTextures(netSurfaceTextures, netSurfaceTextureWidth, netSurfaceTextureHeight);
+}
+
+void ConversionProcessor::normalizeMosiacTextures(std::map<unsigned char, unsigned char*>& mosaicTextures,
+	std::map<unsigned char, unsigned int>& mosaicTextureWidth,
+	std::map<unsigned char, unsigned int>& mosaicTextureHeight)
+{
+	std::map<unsigned char, unsigned char*>::iterator iterTexture = mosaicTextures.begin();
+	int bpp = 4;
+	for (; iterTexture != mosaicTextures.end(); iterTexture++)
+	{
+		unsigned char* sourceImage = iterTexture->second;
+		int sourceWidth = mosaicTextureWidth[iterTexture->first];
+		int sourceHeight = mosaicTextureHeight[iterTexture->first];
+
+		// resize width to type of 2^n
+		int resizedWidth, resizedHeight;
+		if ((sourceWidth & (sourceWidth - 1)) == 0)
+			resizedWidth = sourceWidth;
+		else
+		{
+			unsigned int prevPower = 1;
+			while (sourceWidth >> prevPower != 1)
+				prevPower++;
+
+			unsigned int nextPower = prevPower + 1;
+			resizedWidth = ((sourceWidth - (1 << prevPower)) > ((1 << nextPower) - sourceWidth)) ? 1 << nextPower : 1 << prevPower;
+		}
+		// resize height to type of 2^n
+		if ((sourceHeight & (sourceHeight - 1)) == 0)
+			resizedHeight = sourceHeight;
+		else
+		{
+			unsigned int prevPower = 1;
+			while (sourceHeight >> prevPower != 1)
+				prevPower++;
+
+			unsigned int nextPower = prevPower + 1;
+			resizedHeight = ((sourceHeight - (1 << prevPower)) > ((1 << nextPower) - sourceHeight)) ? 1 << nextPower : 1 << prevPower;
+		}
+
+		int resizedImageSize = resizedWidth * resizedHeight*bpp;
+		unsigned char* resizedImage = new unsigned char[resizedImageSize];
+		memset(resizedImage, 0x00, resizedImageSize);
+		stbir_resize_uint8(sourceImage, sourceWidth, sourceHeight, 0, resizedImage, resizedWidth, resizedHeight, 0, bpp);
+
+		delete iterTexture->second;
+		mosaicTextures[iterTexture->first] = resizedImage;
+		mosaicTextureWidth[iterTexture->first] = resizedWidth;
+		mosaicTextureHeight[iterTexture->first] = resizedHeight;
+	}
 }

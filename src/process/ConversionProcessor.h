@@ -42,6 +42,7 @@ public:
 
 	virtual ~ConversionProcessor();
 
+	void setNsmSettingIndex(unsigned char index) { settings.netSurfaceMeshSettingIndex = index; }
 	void setExteriorExtraction(bool bDo) { settings.bExtractExterior = bDo; }
 	void setVisibilityIndexing(bool bDo) { settings.bOcclusionCulling = bDo; }
 	void setSpatialOctreeSize(float fSize) { settings.leafSpatialOctreeSize = fSize; }
@@ -50,6 +51,8 @@ public:
 	void setExteriorVisibilityIndexingCameraStep(float step) { settings.exteriorVisibilityIndexingCameraStep = step; }
 	void setInteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.interiorVisibilityIndexingOctreeDepth = depth; }
 	void setExteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.exteriorVisibilityIndexingOctreeDepth = depth; }
+	void clearNsmSettings() { settings.clearNsmSettings(); }
+	void setSkinLevel(unsigned char level) { settings.netSurfaceMeshSettingIndex = level; }
 
 protected:
 	ProcessSetting settings;
@@ -68,6 +71,11 @@ protected:
 	gaia3d::SpatialOctreeBox thisSpatialOctree;
 
 	std::map<size_t, gaia3d::TrianglePolyhedron*> legos;
+
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*> netSurfaceMeshes;
+	std::map<unsigned char, unsigned char*> netSurfaceTextures;
+	std::map<unsigned char, unsigned int> netSurfaceTextureWidth;
+	std::map<unsigned char, unsigned int> netSurfaceTextureHeight;
 
 	unsigned char* legoTextureBitmap;
 	unsigned int legoTextureDimension[2];
@@ -130,6 +138,10 @@ public:
 	std::map<std::string, unsigned char*>& getResizedTextures() { return resizedTextures; }
 	std::map<std::string, unsigned int>& getAllTextureWidths() { return allTextureWidths; }
 	std::map<std::string, unsigned int>& getAllTextureHeights() { return allTextureHeights; }
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>& getNetSurfaceMeshes() { return netSurfaceMeshes; }
+	std::map<unsigned char, unsigned char*>&  getNetSurfaceTextures() { return netSurfaceTextures; }
+	std::map<unsigned char, unsigned int>& getNetSurfaceTextureWidth() { return netSurfaceTextureWidth; }
+	std::map<unsigned char, unsigned int>& getNetSurfaceTextureHeight() { return netSurfaceTextureHeight; }
 
 	bool isTextureFlipX() { return textureFlip[0]; }
 	bool isTextureFlipY() { return textureFlip[1]; }
@@ -213,7 +225,20 @@ protected:
 
 	unsigned int makeShaders();
 
+	unsigned int makeShadersForNSM();
+
 	void deleteShaders(unsigned int programId);
+	/*
+	void makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees,
+							std::map<std::string, unsigned char*>& textures,
+							std::map<std::string, unsigned int>& textureWidths,
+							std::map<std::string, unsigned int>& textureHeights);
+	*/
+	void makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees, std::map<std::string, std::string>& textureInfo);
+
+	void normalizeMosiacTextures(std::map<unsigned char, unsigned char*>& mosaicTextures,
+								std::map<unsigned char, unsigned int>& mosaicTextureWidth,
+								std::map<unsigned char, unsigned int>& mosaicTextureHeight);
 };
 
 #endif // _CONVERSIONPROCESSOR_H_

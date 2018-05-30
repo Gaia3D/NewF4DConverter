@@ -71,6 +71,8 @@ namespace gaia3d
 		gaia3d::VisionOctreeBox* interiorOcclusionInfo;
 		gaia3d::VisionOctreeBox* exteriorOcclusionInfo;
 
+		gaia3d::TrianglePolyhedron* netSurfaceMesh;
+
 		virtual OctreeBox* makeChild() {return new SpatialOctreeBox(this);}
 
 		virtual void makeTreeOfUnfixedDepth(double minSize, bool isObjectInOnlyOneLeaf);

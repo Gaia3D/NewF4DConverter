@@ -30,6 +30,7 @@ private:
 
 	bool bOcclusionCulling;
 	double unitScaleFactor;
+	unsigned char skinLevel;
 
 	std::string inputFolderPath, outputFolderPath;
 

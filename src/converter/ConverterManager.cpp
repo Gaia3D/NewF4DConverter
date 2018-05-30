@@ -39,6 +39,8 @@ ConverterManager::ConverterManager()
 	bOcclusionCulling = false;
 
 	unitScaleFactor = 1.0;
+
+	skinLevel = 3;
 }
 
 ConverterManager::~ConverterManager()
@@ -272,7 +274,12 @@ void ConverterManager::processDataFolder(std::string inputFolder)
 	if (dataFileCount == 0)
 		return;
 
+	// TODO(khj 20180417) : NYI setup conversion configuration here
+	// now, only set wheter do occlusion culling or not
 	processor->setVisibilityIndexing(bOcclusionCulling);
+	processor->setSkinLevel(skinLevel);
+	// TODO(khj 20180417) end
+
 	std::string outputFolder = outputFolderPath;
 
 	std::string fullId;
@@ -329,7 +336,7 @@ void ConverterManager::processDataFolder(std::string inputFolder)
 
 bool ConverterManager::writeIndexFile()
 {
-	F4DWriter writer(processor);
+	F4DWriter writer(NULL);
 	writer.setWriteFolder(outputFolderPath);
 	writer.writeIndexFile();
 
@@ -398,6 +405,11 @@ void ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 		if (arguments.find(UnitScaleFactor) != arguments.end())
 		{
 			unitScaleFactor = std::stod(arguments[UnitScaleFactor]);
+		}
+
+		if (arguments.find(SkinLevelNsm) != arguments.end())
+		{
+			skinLevel = (unsigned char)(unsigned int)std::stoi(arguments[SkinLevelNsm]);
 		}
 	}
 	else
