@@ -1,28 +1,67 @@
-{
+﻿{
   "version": "0.2.1",
   "defaults": {},
   "configurations": [
     {
+      "name": "F4DConverter.exe (Window)",
       "type": "default",
       "project": "CMakeLists.txt",
       "projectTarget": "F4DConverter.exe (F4DConverter\\Debug\\F4DConverter.exe)",
-      "name": "F4DConverter.exe (F4DConverter\\Debug\\F4DConverter.exe)",
       "args": [
         "-inputFolder",
-        "C:/data/sampleData",
+        "C:/DATA/conversionData",
         "-outputFolder",
-        "C:/data/conversionResult",
+        "C:/DATA/conversionResult",
         "-log",
-        "C:/data/logTest.txt",
-        "-idPrefix",
-        "design_",
-        "-idSuffix",
-        "_2018",
-        "-usf",
-        "0.01",
+        "C:/DATA/conversionResult/logTest.txt",
         "-indexing",
         "y"
       ]
+    },
+    {
+      "name": "F4DConverter (Linux)",
+      "type": "cppdbg",
+      "project": "CMakeLists.txt",
+      "projectTarget": "F4DConverter (F4DConverter\\F4DConverter)",
+      "cwd": "${debugInfo.remoteWorkspaceRoot}",
+      "program": "${debugInfo.fullTargetPath}",
+      "args": [
+        "-inputFolder",
+        "/DATA/conversionData",
+        "-outputFolder",
+        "/DATA/conversionResult",
+        "-log",
+        "/DATA/conversionResult/logTest.txt",
+        "-indexing",
+        "y"
+      ],
+      "MIMode": "gdb",
+      "externalConsole": true,
+      "remoteMachineName": "${debugInfo.remoteMachineName}",
+      "pipeTransport": {
+        "pipeProgram": "${debugInfo.shellexecPath}",
+        "pipeArgs": [
+          "/s",
+          "${debugInfo.remoteMachineId}",
+          "/p",
+          "${debugInfo.parentProcessId}",
+          "/c",
+          "${debuggerCommand}",
+          "--tty=${debugInfo.tty}"
+        ]
+      },
+      "setupCommands": [
+        {
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "visualizerFile": "${debugInfo.linuxNatvisPath}",
+      "showDisplayString": true,
+      "logging": {
+        "engineLogging": true,
+        "trace": false
+      }
     }
   ]
 }
