@@ -3,6 +3,8 @@
 CALL config.bat
 
 SET ERROR=0
+SET RUN_DOCKER=
+SET RUNNING=
 
 :findDocker
     FOR /f %%i IN ('where docker') do SET RUN_DOCKER=%%i
@@ -30,6 +32,7 @@ GOTO run
 :run
     docker run ^
         -d ^
+        --privileged ^
         --name "%CONTAINER%" ^
         -p %PORT_SSH%:22 ^
         "%IMAGE%"
