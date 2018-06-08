@@ -26,3 +26,7 @@
 	path = lib/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
 	branch = master
+[submodule "lib/libcitygml"]
+	path = lib/libcitygml
+	url = https://github.com/jklimke/libcitygml.git
+	branch = master
