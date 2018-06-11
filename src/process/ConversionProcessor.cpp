@@ -60,10 +60,9 @@ ConversionProcessor::ConversionProcessor()
 
 ConversionProcessor::~ConversionProcessor()
 {
-	delete scv;
-
 	clear();
 	uninitialize();
+	delete scv;
 }
 
 bool ConversionProcessor::initialize()
