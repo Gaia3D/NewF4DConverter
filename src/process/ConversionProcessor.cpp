@@ -60,10 +60,9 @@ ConversionProcessor::ConversionProcessor()
 
 ConversionProcessor::~ConversionProcessor()
 {
-	delete scv;
-
 	clear();
 	uninitialize();
+	delete scv;
 }
 
 bool ConversionProcessor::initialize()
@@ -82,7 +81,7 @@ bool ConversionProcessor::initialize()
 		//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-		//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 	#if __APPLE__
 		// uncomment this statement to fix compilation on OS X
