@@ -3,7 +3,7 @@
   "defaults": {},
   "configurations": [
     {
-      "name": "F4DConverter.exe (Window)",
+      "name": "F4DConverter.exe (Window for Debug)",
       "type": "default",
       "project": "CMakeLists.txt",
       "projectTarget": "F4DConverter.exe (F4DConverter\\Debug\\F4DConverter.exe)",
@@ -19,7 +19,23 @@
       ]
     },
     {
-      "name": "F4DConverter (Linux)",
+      "name": "F4DConverter.exe (Window for Release)",
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "F4DConverter.exe (F4DConverter\\RelWithDebInfo\\F4DConverter.exe)",
+      "args": [
+        "-inputFolder",
+        "C:/DATA/conversionData",
+        "-outputFolder",
+        "C:/DATA/conversionResult",
+        "-log",
+        "C:/DATA/conversionResult/logTest.txt",
+        "-indexing",
+        "y"
+      ]
+    },
+    {
+      "name": "F4DConverter (Linux for Debug)",
       "type": "cppdbg",
       "project": "CMakeLists.txt",
       "projectTarget": "F4DConverter (F4DConverter\\F4DConverter)",
