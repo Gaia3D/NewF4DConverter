@@ -225,4 +225,89 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} IfcPlusPlus carve)
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME}	PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}) 
+
+#INSTALL(
+#	TARGETS IfcPlusPlus
+#	ARCHIVE DESTINATION lib
+#	COMPONENT libraries
+#)
+
+INSTALL(
+	TARGETS ${PROJECT_NAME}
+	RUNTIME DESTINATION bin
+	COMPONENT applications
+)
+
+SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+INCLUDE(InstallRequiredSystemLibraries)
+INSTALL(
+	PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
+	DESTINATION bin
+	COMPONENT applications
+)
+
+#INSTALL(
+#	FILES
+#	DESTINATION include
+#	COMPONENT headers
+#)	
 	
+#--------------------------------------------------------------------
+# CPack for Windows
+#--------------------------------------------------------------------
+SET(WIN_RESOURCE_FILE f4d.rc)
+
+SET(CPACK_PACKAGE_NAME "F4DConverter")
+SET(CPACK_PACKAGE_VENDOR "Gaia3D Inc. <mago3d@gaia3d.com>")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "F4DConverter")
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+SET(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+SET(CPACK_PACKAGE_INSTALL_DIRECTORY "F4DConverter")
+
+# Define components and display names & descriptions
+SET(CPACK_COMPONENTS_ALL applications)
+SET(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "F4DConverter Application")
+SET(CPACK_COMPONENT_APPLICATIONS_DESCRIPTION
+	"An extremely useful application that makes use of F4DConverter")
+#SET(CPACK_COMPONENT_LIBRARIES_DISPLAY_NAME "Libraries")
+#SET(CPACK_COMPONENT_LIBRARIES_DESCRIPTION
+#	"Static libraries used to build programs with F4DConverter")
+#SET(CPACK_COMPONENT_HEADERS_DISPLAY_NAME "C++ Headers")
+#SET(CPACK_COMPONENT_HEADERS_DESCRIPTION
+#	"C/C++ header files for use with F4DConverter")
+
+# Define dependencies between components
+#SET(CPACK_COMPONENT_HEADERS_DEPENDS libraries)
+
+# Define groups
+#SET(CPACK_COMPONENT_APPLICATIONS_GROUP "Runtime")
+#SET(CPACK_COMPONENT_LIBRARIES_GROUP "Development")
+#SET(CPACK_COMPONENT_HEADERS_GROUP "Development")
+
+#SET(CPACK_COMPONENT_GROUP_DEVELOPMENT_DESCRIPTION
+#	"All of the tools you'll ever need to develop software")
+
+# Licensing information which is displayed in the installer wizard
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
+
+# Icon which will be displayed inside the installation wizard
+#SET(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}\\\\f4d.bmp")
+SET(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/f4d.ico")
+SET(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/f4d.ico")
+
+# Define NSIS installation types
+SET(CPACK_ALL_INSTALL_TYPES Full)
+#SET(CPACK_COMPONENT_LIBRARIES_INSTALL_TYPES Developer Full)
+#SET(CPACK_COMPONENT_HEADERS_INSTALL_TYPES Developer Full)
+SET(CPACK_COMPONENT_APPLICATIONS_INSTALL_TYPES Full)
+
+# Displayed under the Start menu shortcut.
+SET(CPACK_NSIS_MENU_LINKS "programs\\F4DConverter" "F4DConverter")
+
+# Must be after the last CPACK macros
+INCLUDE(CPack)
+#--------------------------------------------------------------------
+# End
+#--------------------------------------------------------------------
