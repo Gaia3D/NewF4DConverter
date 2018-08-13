@@ -75,11 +75,21 @@ namespace gaia3d
 
 		virtual OctreeBox* makeChild() {return new SpatialOctreeBox(this);}
 
-		virtual void makeTreeOfUnfixedDepth(double minSize, bool isObjectInOnlyOneLeaf);
+		virtual void makeTreeOfUnfixedDepth(double minSize, bool isObjectInOnlyOneLeaf, bool bSplitMesh = false);
 
 		void setOctreeId(size_t parentId = 0, size_t orderOfChild = 0);
 
 		void distributeMeshesIntoEachChildren(bool isObjectInOnlyOneLeaf, bool propagateToDescendents = true);
+
+		void splitMeshIntoEachChildren();
+
+		void clipIntersectedPartWithBox(gaia3d::TrianglePolyhedron* mesh,
+										double minx, double miny, double minz, double maxx, double maxy, double maxz,
+										gaia3d::TrianglePolyhedron** intersected,
+										gaia3d::TrianglePolyhedron** nonIntersected);
+
+		void calculateBoundingBox(gaia3d::TrianglePolyhedron* mesh);
+
 	};
 }
 

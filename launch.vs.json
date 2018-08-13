@@ -14,6 +14,8 @@
         "C:/DATA/conversionResult",
         "-log",
         "C:/DATA/conversionResult/logTest.txt",
+        "-meshType",
+        "0",
         "-indexing",
         "y"
       ]
@@ -30,6 +32,8 @@
         "C:/DATA/conversionResult",
         "-log",
         "C:/DATA/conversionResult/logTest.txt",
+        "-meshType",
+        "0",
         "-indexing",
         "y"
       ]
@@ -48,6 +52,8 @@
         "/DATA/conversionResult",
         "-log",
         "/DATA/conversionResult/logTest.txt",
+        "-meshType",
+        "0",
         "-indexing",
         "y"
       ],

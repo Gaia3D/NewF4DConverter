@@ -125,6 +125,41 @@ bool extractArguments(int argc, char** argv)
 				i++;
 				continue;
 			}
+
+			if (tokens[i] == std::string(IsYAxisUp))
+			{
+				arguments[IsYAxisUp] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(ReferenceFile))
+			{
+				arguments[ReferenceFile] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(MatchedLon))
+			{
+				arguments[MatchedLon] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(MatchedLat))
+			{
+				arguments[MatchedLat] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(MeshType))
+			{
+				arguments[MeshType] = tokens[i + 1];
+				i++;
+				continue;
+			}
 		}
 		else
 		{
@@ -140,7 +175,7 @@ bool extractArguments(int argc, char** argv)
 
 	if (arguments.find(InputFolder) != arguments.end())
 	{
-		if (arguments.find(LogFilePath) == arguments.end())
+		if (arguments.find(LogFilePath) == arguments.end() || arguments.find(MeshType) == arguments.end())
 			return false;
 	}
 
@@ -205,6 +240,64 @@ bool extractArguments(int argc, char** argv)
 		}
 	}
 
+	if (arguments.find(IsYAxisUp) != arguments.end())
+	{
+		if (arguments[IsYAxisUp] != std::string("Y") &&
+			arguments[IsYAxisUp] != std::string("y") &&
+			arguments[IsYAxisUp] != std::string("N") &&
+			arguments[IsYAxisUp] != std::string("n"))
+			return false;
+	}
+
+	if (arguments.find(ReferenceFile) != arguments.end())
+	{
+		if (arguments.find(MatchedLon) == arguments.end() || arguments.find(MatchedLat) == arguments.end())
+			return false;
+
+		try
+		{
+			double refLon = std::stod(arguments[MatchedLon]);
+			double refLat = std::stod(arguments[MatchedLat]);
+		}
+		catch (const std::invalid_argument& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+		catch (const std::out_of_range& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+	}
+	else
+	{
+		if (arguments.find(MatchedLon) != arguments.end() || arguments.find(MatchedLat) != arguments.end())
+			return false;
+	}
+
+	if (arguments.find(MeshType) != arguments.end())
+	{
+		try
+		{
+			int meshType = std::stoi(arguments[MeshType]);
+
+			if (meshType != 0 && meshType != 1 && meshType != 2) // AIT version
+			//if (meshType != 0) // release version
+				return false;
+		}
+		catch (const std::invalid_argument& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+		catch (const std::out_of_range& error)
+		{
+			std::string errorMessage = error.what();
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -222,7 +315,7 @@ int main(int argc, char** argv)
 	}
 
 	// arguments log
-	printf("[STEP]Arguments are following.\n");
+	printf("[info]Arguments are following.\n");
 	std::map<std::string, std::string>::iterator iter = arguments.begin();
 	for (; iter != arguments.end(); iter++)
 	{

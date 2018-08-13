@@ -5,16 +5,21 @@
 
 ProcessSetting::ProcessSetting()
 {
-	netSurfaceMeshSettingIndex = 2; // default index to template process setting
+	netSurfaceMeshSettingIndex = 4; // default index to template process setting
 
+	bUseNsm = true;
 	bExtractExterior = true; // if extract exteriors or not
 	bOcclusionCulling = false; // if do visibility indexing or not
-	leafSpatialOctreeSize = 12.0f; // deepest spatial octree edge length
+	leafSpatialOctreeSize = 24.0f; // deepest spatial octree edge length
 	bFlipTextureCoordinateU = false; // if flip texture coordinate u or not
+	bFlipTextureCoordinateV = true; // if flip texture coordinate v or not
 	interiorVisibilityIndexingCameraStep = 1.8f; // camera position step for interior visibility indexing
 	exteriorVisibilityIndexingCameraStep = 20.0f; // camera position step for exterior visibility indexing
 	interiorVisibilityIndexingOctreeDepth = 2; // visibility octree depth for interior
 	exteriorVisibilityIndexingOctreeDepth = 1; // visibility octree depth for exterior
+	bYAxisUp = false;
+	bAlignPositionToCenter = false;
+	meshType = 0;
 }
 
 ProcessSetting::~ProcessSetting()

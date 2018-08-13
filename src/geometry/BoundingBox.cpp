@@ -20,9 +20,6 @@ namespace gaia3d
 
 	void BoundingBox::addBox(BoundingBox& bbox)
 	{
-		if(!bbox.isInitialized)
-			return;
-
 		addPoint(bbox.maxX, bbox.maxY, bbox.maxZ);
 		addPoint(bbox.minX, bbox.minY, bbox.minZ);
 	}

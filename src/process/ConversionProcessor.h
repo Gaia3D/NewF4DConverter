@@ -30,6 +30,7 @@
 #include "../geometry/BoundingBox.h"
 #include "../geometry/ColorU4.h"
 #include "../geometry/OctreeBox.h"
+#include "../geometry/PointDistributionOctree.h"
 #include "ProcessSetting.h"
 
 
@@ -43,16 +44,20 @@ public:
 	virtual ~ConversionProcessor();
 
 	void setNsmSettingIndex(unsigned char index) { settings.netSurfaceMeshSettingIndex = index; }
+	void setUseNsm(bool bUse) { settings.bUseNsm = bUse; }
 	void setExteriorExtraction(bool bDo) { settings.bExtractExterior = bDo; }
 	void setVisibilityIndexing(bool bDo) { settings.bOcclusionCulling = bDo; }
-	void setSpatialOctreeSize(float fSize) { settings.leafSpatialOctreeSize = fSize; }
-	void setTextureCoordinateUFlip(bool bDo) { settings.bFlipTextureCoordinateU = bDo; }
+	void setLeafSpatialOctreeSize(float fSize) { settings.leafSpatialOctreeSize = fSize; }
+	void setTextureCoordinateVFlip(bool bDo) { settings.bFlipTextureCoordinateV = bDo; }
 	void setInteriorVisibilityIndexingCameraStep(float step) { settings.interiorVisibilityIndexingCameraStep = step; }
 	void setExteriorVisibilityIndexingCameraStep(float step) { settings.exteriorVisibilityIndexingCameraStep = step; }
 	void setInteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.interiorVisibilityIndexingOctreeDepth = depth; }
 	void setExteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.exteriorVisibilityIndexingOctreeDepth = depth; }
 	void clearNsmSettings() { settings.clearNsmSettings(); }
 	void setSkinLevel(unsigned char level) { settings.netSurfaceMeshSettingIndex = level; }
+	void setYAxisUp(bool bUp) { settings.bYAxisUp = bUp; }
+	void setAlignPostionToCenter(bool bAlign) { settings.bAlignPositionToCenter = bAlign; }
+	void setMeshType(int type) { settings.meshType = type; }
 
 protected:
 	ProcessSetting settings;
@@ -67,6 +72,7 @@ protected:
 	std::map<std::string, unsigned int> allTextureHeights;
 
 	gaia3d::BoundingBox fullBbox;
+	gaia3d::BoundingBox originalFullBbox;
 
 	gaia3d::SpatialOctreeBox thisSpatialOctree;
 
@@ -87,7 +93,7 @@ protected:
 
 	double longitude, latitude;
 	float altitude;
-	
+
 public:
 	bool initialize();
 
@@ -98,9 +104,7 @@ public:
 	void defaultSpaceSetupForVisualization(int width, int height);
 
 	bool proceedConversion(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
-							std::map<std::string, std::string>& originalTextureInfo,
-							bool bExtractExterior = false,
-							bool bOcclusionCulling = false);
+							std::map<std::string, std::string>& originalTextureInfo);
 
 	gaia3d::SpatialOctreeBox* getSpatialOctree() {return &thisSpatialOctree;}
 
@@ -123,7 +127,7 @@ public:
 	std::string getAttribute(std::string key) {return attributes[key];}
 
 	bool doesAttributeExist(std::string key) { return attributes.find(key) != attributes.end(); }
-	
+
 	double getLongitude() {return longitude;}
 	void setLongitude(double lon) {longitude = lon;}
 	double getLatitude() {return latitude;}
@@ -143,10 +147,21 @@ public:
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureWidth() { return netSurfaceTextureWidth; }
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureHeight() { return netSurfaceTextureHeight; }
 
+	gaia3d::BoundingBox& getOriginalBoundingBox() { return originalFullBbox; }
+
 	bool isTextureFlipX() { return textureFlip[0]; }
 	bool isTextureFlipY() { return textureFlip[1]; }
 protected:
 	// main processing steps - start
+	void convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+							std::map<std::string, std::string>& originalTextureInfo);
+
+	void convertSingleRealisticMesh(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+									std::map<std::string, std::string>& originalTextureInfo);
+
+	void convertSplittedRealisticMesh(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+									std::map<std::string, std::string>& originalTextureInfo);
+
 	void trimVertexNormals(std::vector<gaia3d::TrianglePolyhedron*>& meshes);
 
 	void calculateBoundingBox(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox);
@@ -167,6 +182,13 @@ protected:
 												bool bFixedDepth = true,
 												double leafBoxSize = 0.0,
 												bool bRefOnOnlyOneLeaf = false);
+
+	void splitOriginalMeshIntoEachSpatialOctrees(gaia3d::SpatialOctreeBox& spatialOctree,
+												std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+												gaia3d::BoundingBox& bbox,
+												bool bFixedDepth,
+												double leafBoxSize,
+												bool bAllowDuplication);
 
 	void makeOcclusionInformation(std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 									gaia3d::VisionOctreeBox& interiorOcclusionOctree,
@@ -215,7 +237,10 @@ protected:
 							std::vector<gaia3d::Triangle*>& outputTriangles,
 							unsigned int* sizeIndexMarkers);
 
-	void loadAndBindTextures(std::map<std::string, std::string>& textureInfo, std::map<std::string, unsigned int>& bindingResult);
+	void loadAndBindTextures(std::map<std::string, unsigned char*>& textures,
+							std::map<std::string, unsigned int>& textureWidths,
+							std::map<std::string, unsigned int>& textureHeights,
+							std::map<std::string, unsigned int>& bindingResult);
 
 	void extractLegoTextures(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::map<std::string, unsigned int>& bindingResult, unsigned int shaderProgram);
 
@@ -228,17 +253,39 @@ protected:
 	unsigned int makeShadersForNSM();
 
 	void deleteShaders(unsigned int programId);
-	/*
+
 	void makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees,
 							std::map<std::string, unsigned char*>& textures,
 							std::map<std::string, unsigned int>& textureWidths,
-							std::map<std::string, unsigned int>& textureHeights);
-	*/
-	void makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees, std::map<std::string, std::string>& textureInfo);
+							std::map<std::string, unsigned int>& textureHeights,
+							std::map<unsigned char, unsigned char>& lodUsingOriginalMesh);
 
 	void normalizeMosiacTextures(std::map<unsigned char, unsigned char*>& mosaicTextures,
 								std::map<unsigned char, unsigned int>& mosaicTextureWidth,
 								std::map<unsigned char, unsigned int>& mosaicTextureHeight);
+
+	void rotateAllMeshesAroundXAxisByQuater(std::vector<gaia3d::TrianglePolyhedron*>& meshes);
+
+	void changeXYPlaneCoordinateToRelativeCoordinateToBoundingBoxFootprintCenter(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox);
+
+	void dropTrianglesOfSmallSizedEdge(std::vector<gaia3d::TrianglePolyhedron*>& meshes, double edgeMinSize);
+
+	void removeDuplicatedVerticesAndOverlappingTriangles(std::vector<gaia3d::TrianglePolyhedron*>& meshes, bool bCompareTexCoord, bool bCompareNormal);
+
+	void makeLodTextureUsingOriginalTextureDirectly(unsigned char* originalTexture, int originalWidth, int originalHeight,
+													std::map<unsigned char, unsigned char>& lodMadeOfOriginalMesh,
+													std::map<unsigned char, unsigned char*>& netSurfaceTextures,
+													std::map<unsigned char, unsigned int>& netSurfaceTextureWidth,
+													std::map<unsigned char, unsigned int>& netSurfaceTextureHeight);
+
+	void divideOriginalTextureIntoSmallerSize(unsigned char* originalTexture, int originalWidth, int originalHeight,
+											gaia3d::SpatialOctreeBox& octree,
+											std::map<std::string, unsigned char*>& results,
+											std::map<std::string, unsigned int>& resultWidths,
+											std::map<std::string, unsigned int>& resultHeights,
+											std::map<std::string, std::string>& resultTextureInfo);
+
+	void reuseOriginalMeshForRougherLods(gaia3d::SpatialOctreeBox& octree);
 };
 
 #endif // _CONVERSIONPROCESSOR_H_

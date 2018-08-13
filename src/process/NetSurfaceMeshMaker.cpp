@@ -59,7 +59,7 @@ void makeModelProjectedOnTargetSurface(std::vector<NetSurface*>& netSurfaces,
 										std::map<std::string, unsigned int>& bindingResult);
 void makeNetSurfaceMeshes(NetSurface* netSurface, float maxLengthForInnerEdgeSkirting, float maxLengthForFrontierEdgeSkirting);
 void triangleReduction(NetSurface* netSurface, float cosNormalAngleChangeLimit, float cosEdgeAngleChangeLimit, float cosAngleBtwFrontierEdges);
-void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface);
+void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface, std::map<HedgeVertex*, gaia3d::Vertex*>& vertexMapper);
 void clearHalfEdgeSystem(NetSurface* netSurface);
 void makeNetSurfaceTextures(std::vector<NetSurface*>& netSurfaces,
 							NetSurfaceMeshSetting* setting,
@@ -67,7 +67,97 @@ void makeNetSurfaceTextures(std::vector<NetSurface*>& netSurfaces,
 							int& textureWidth,
 							int& textureHeight);
 gaia3d::TrianglePolyhedron* mergePolyhedrons(std::vector<gaia3d::TrianglePolyhedron*> meshes);
+NetSurface* makeNetSurfaceMeshFromOriginalDirectly(gaia3d::TrianglePolyhedron* mesh, std::map<HedgeVertex*, gaia3d::Vertex*>& vertexMapper);
 
+// TESTCODE-start
+bool checkOutwardHedgesOnAllVertices(std::vector<std::vector<HedgeVertex*>*>& vertices)
+{
+	size_t vertexLineCount = vertices.size();
+	HedgeVertex* target;
+	int frontierEdgeCount = 0;
+	for (size_t i = 0; i < vertexLineCount; i++)
+	{
+		std::vector<HedgeVertex*>* vertexLine = vertices[i];
+		size_t vertexCount = vertexLine->size();
+		for (size_t j = 0; j < vertexCount; j++)
+		{
+			target = (*vertexLine)[j];
+
+			if (target == NULL)
+				continue;
+
+			size_t outwardHedgeCount = target->hedgesFromThisVertex.size();
+			if (outwardHedgeCount == 0)
+			{
+				return true;
+			}
+
+			/*frontierEdgeCount = 0;
+			for (size_t k = 0; k < outwardHedgeCount; k++)
+			{
+				if (target->hedgesFromThisVertex[k]->twin == NULL)
+					frontierEdgeCount++;
+			}
+
+			if (frontierEdgeCount != 0)
+			{
+				if (frontierEdgeCount != 1)
+				{
+					printf("[ERROR]Wrong outward hedge count ON FRONTIER VERTEX!!!! frontier edge count : %d\n", frontierEdgeCount);
+				}
+			}*/
+		}
+	}
+
+	return false;
+}
+
+void checkOutwardHedgesOnAllVertices(NetSurface* nsm)
+{
+	size_t vertexLineCount = nsm->netVertices.size();
+	HedgeVertex* target;
+	int frontierEdgeCount = 0;
+	for (size_t i = 0; i < vertexLineCount; i++)
+	{
+		std::vector<HedgeVertex*>* vertexLine = nsm->netVertices[i];
+		size_t vertexCount = vertexLine->size();
+		for (size_t j = 0; j < vertexCount; j++)
+		{
+			target = (*vertexLine)[j];
+
+			if (target == NULL)
+				continue;
+
+			size_t outwardHedgeCount = target->hedgesFromThisVertex.size();
+			if (outwardHedgeCount == 0)
+			{
+				printf("[ERROR]Wrong outward hedge count!!!!\n");
+			}
+			frontierEdgeCount = 0;
+			for (size_t k = 0; k < outwardHedgeCount; k++)
+			{
+				if (target->hedgesFromThisVertex[k]->twin == NULL)
+					frontierEdgeCount++;
+			}
+
+			if (frontierEdgeCount == 0)
+			{
+				if (outwardHedgeCount < 3)
+				{
+					printf("[ERROR]Wrong outward hedge count ON INNER VERTEX!!!! outward hedge count : %zd\n", outwardHedgeCount);
+				}
+			}
+			else
+			{
+				if (frontierEdgeCount != 1)
+				{
+					printf("[ERROR]Wrong outward hedge count ON FRONTIER VERTEX!!!! frontier edge count : %d\n", frontierEdgeCount);
+				}
+			}
+		}
+	}
+}
+// TESTCODE-end
 NetSurfaceMeshMaker::NetSurfaceMeshMaker()
 {
 }
@@ -155,8 +245,9 @@ void NetSurfaceMeshMaker::makeNetSurfaceMesh(std::vector<gaia3d::OctreeBox*>& oc
 			
 
 		// change net surface mesh into triangle polyhedron
+		std::map<HedgeVertex*, gaia3d::Vertex*> dummy;
 		for (size_t i = 0; i < netSurfaceCount; i++)
-			changeNetSurfacesIntoTrianglePolyhedron((*netSurfacesInThisOctree)[i]);
+			changeNetSurfacesIntoTrianglePolyhedron((*netSurfacesInThisOctree)[i], dummy);
 
 		// delete allocated memory for half edge system in all net surfaces
 		for (size_t i = 0; i < netSurfaceCount; i++)
@@ -223,6 +314,95 @@ void NetSurfaceMeshMaker::makeNetSurfaceMesh(std::vector<gaia3d::OctreeBox*>& oc
 	}
 }
 
+void NetSurfaceMeshMaker::makeNetSurfaceMesh(std::vector<gaia3d::OctreeBox*>& octrees,
+											NetSurfaceMeshSetting* setting,
+											std::map<unsigned char, gaia3d::TrianglePolyhedron*>& netSurfaceMeshes)
+{
+	// process configuration
+	float cosNormalAngleChangeLimit = cosf(setting->maxAngleChangeOfNormalVectorForAllowingEdgeCollapse * ((float)M_PI) / 180.0f);
+	float cosEdgeAngleChangeLimit = cosf(setting->maxAngleChangeOfFrontierEdgeForAllowingEdgeCollapse * ((float)M_PI) / 180.0f);
+	float cosAngleBtwFrontierEdges = cosf(setting->maxAngleDifferenceBetweenNeighborFrontierEdgesForCollapse * ((float)M_PI) / 180.0f);
+
+	// process
+	size_t octreeCount = octrees.size();
+	std::map<size_t, std::vector<NetSurface*>*> octreeNetSurfaceRelations;
+	for (size_t h = 0; h < octreeCount; h++)
+	{
+		gaia3d::SpatialOctreeBox* octree = (gaia3d::SpatialOctreeBox*)octrees[h];
+		if (octree->meshes.empty())
+			continue;
+
+		std::vector<NetSurface*>* netSurfacesInThisOctree = new std::vector<NetSurface*>;
+		octreeNetSurfaceRelations[h] = netSurfacesInThisOctree;
+
+		size_t meshCount = octree->meshes.size();
+		for (size_t i = 0; i < meshCount; i++)
+		{
+			gaia3d::TrianglePolyhedron* mesh = octree->meshes[i];
+
+			// make half edge system from original mesh
+			std::map<HedgeVertex*, gaia3d::Vertex*> vertexMapper;
+			NetSurface* netSurface = makeNetSurfaceMeshFromOriginalDirectly(mesh, vertexMapper);
+
+			// triangle reduction
+			triangleReduction(netSurface, cosNormalAngleChangeLimit, cosEdgeAngleChangeLimit, cosAngleBtwFrontierEdges);
+
+			// convert result to polyhedron mesh
+			changeNetSurfacesIntoTrianglePolyhedron(netSurface, vertexMapper);
+
+			// clear half edge system
+			clearHalfEdgeSystem(netSurface);
+
+			// collect result along each octree
+			netSurfacesInThisOctree->push_back(netSurface);
+		}
+	}
+
+	// make result polyhedron on each spatial octree
+	std::map<size_t, gaia3d::TrianglePolyhedron*> resultMeshes;
+	std::map<size_t, std::vector<NetSurface*>*>::iterator iterOctreeNSM = octreeNetSurfaceRelations.begin();
+	for (; iterOctreeNSM != octreeNetSurfaceRelations.end(); iterOctreeNSM++)
+	{
+		std::vector<NetSurface*>* netSurfaces = iterOctreeNSM->second;
+		std::vector<gaia3d::TrianglePolyhedron*> meshes;
+		size_t netSurfaceCount = netSurfaces->size();
+		for (size_t i = 0; i < netSurfaceCount; i++)
+			meshes.push_back((*netSurfaces)[i]->nsm);
+
+		resultMeshes[iterOctreeNSM->first] = mergePolyhedrons(meshes);
+
+		for (size_t i = 0; i < netSurfaceCount; i++)
+		{
+			delete(*netSurfaces)[i]->nsm;
+			delete (*netSurfaces)[i];
+		}
+
+		delete netSurfaces;
+	}
+
+	// push result meshes into container
+	if (setting->lod == 2)
+	{
+		std::map<size_t, gaia3d::TrianglePolyhedron*>::iterator iterResultMeshes = resultMeshes.begin();
+		for (; iterResultMeshes != resultMeshes.end(); iterResultMeshes++)
+			((gaia3d::SpatialOctreeBox*)(octrees[iterResultMeshes->first]))->netSurfaceMesh = iterResultMeshes->second;
+	}
+	else
+	{
+		// in lod 3 or higher, merge all polyhedrons into one polyhedron
+		std::vector<gaia3d::TrianglePolyhedron*> meshes;
+		std::map<size_t, gaia3d::TrianglePolyhedron*>::iterator iterResultMeshes = resultMeshes.begin();
+		for (; iterResultMeshes != resultMeshes.end(); iterResultMeshes++)
+			meshes.push_back(iterResultMeshes->second);
+
+		netSurfaceMeshes[setting->lod] = mergePolyhedrons(meshes);
+
+		iterResultMeshes = resultMeshes.begin();
+		for (; iterResultMeshes != resultMeshes.end(); iterResultMeshes++)
+			delete iterResultMeshes->second;
+	}
+}
+
 void makeNet(NetSurface* netSurface,
 			gaia3d::Point3D& leftBottom,
 			gaia3d::Point3D& rightBottom,
@@ -236,6 +416,8 @@ void makeNet(NetSurface* netSurface,
 
 	int nCols = (int)(bottomEdgeLength / netSurface->gridSize);
 	int nRows = (int)(leftEdgeLength / netSurface->gridSize);
+	if (nCols == 0) nCols = 1;
+	if (nRows == 0) nRows = 1;
 
 	for (int i = 0; i <= nRows; i++)
 	{
@@ -1107,10 +1289,10 @@ void makeProjectedModel(NetSurface* netSurface,
 			if (pixelY < 0)
 				pixelY = 0;
 
-			if (pixelX == wa)
+			if (pixelX >= wa)
 				pixelX = wa - 1;
 
-			if (pixelY == ha)
+			if (pixelY >= ha)
 				pixelY = ha - 1;
 
 			// check if this pixel represents geometry or background and calculate depth onto geometry surface
@@ -1530,6 +1712,7 @@ bool collapseHedge(Hedge* hedge,
 	}
 
 	// step 1. remove outward hedges from vertices on triangles to be deleted
+	// and collect vertices which has no more outward hedges to delete them
 	std::vector<Hedge*> updatedOutward;
 	outwardHedgeCount = triangleToBeDeleted->vertex0->hedgesFromThisVertex.size();
 	for (size_t i = 0; i < outwardHedgeCount; i++)
@@ -1632,22 +1815,9 @@ bool collapseHedge(Hedge* hedge,
 		targetHedge->next->next->direction.normalize();
 	}
 
-	// step 3 : delete startVertex and mark it on indicesOfDeletedVertices using vertexMap
-	std::map<std::map<HedgeVertex*, size_t>*, size_t>::iterator iterVertexList = vertexMap.begin();
-	for (; iterVertexList != vertexMap.end(); iterVertexList++)
-	{
-		std::map<HedgeVertex*, size_t>* vertexListMap = iterVertexList->first;
-		if (vertexListMap->find(startVertex) == vertexListMap->end())
-			continue;
-
-		indicesOfDeletedVertices.push_back(iterVertexList->second);
-		indicesOfDeletedVertices.push_back((*vertexListMap)[startVertex]);
-		delete startVertex;
-		break;
-	}
-
-	// step 4 : delete triangles and 3 hedges on it, and mark it on indicesOfDeletedTriangles and indicesOfDeletedTriangles using hedgeMap and triangleMap
+	// step 3 : delete triangles and 3 hedges on it, and mark it on indicesOfDeletedTriangles and indicesOfDeletedTriangles using hedgeMap and triangleMap
 	// collect edges whose twin was removed to use them for twin rebuilding
+	std::map<std::map<HedgeVertex*, size_t>*, size_t>::iterator iterVertexList;
 	std::vector<Hedge*> edgesWithTwinRemoved;
 	indicesOfDeletedHedges.push_back(hedgeMap[hedge->next->next]);
 	if (hedge->next->next->twin != NULL)
@@ -1710,6 +1880,20 @@ bool collapseHedge(Hedge* hedge,
 			delete twinTriangleToBeDeleted;
 			break;
 		}
+	}
+
+	// step 4 : delete startVertex and mark it on indicesOfDeletedVertices using vertexMap
+	iterVertexList = vertexMap.begin();
+	for (; iterVertexList != vertexMap.end(); iterVertexList++)
+	{
+		std::map<HedgeVertex*, size_t>* vertexListMap = iterVertexList->first;
+		if (vertexListMap->find(startVertex) == vertexListMap->end())
+			continue;
+
+		indicesOfDeletedVertices.push_back(iterVertexList->second);
+		indicesOfDeletedVertices.push_back((*vertexListMap)[startVertex]);
+		delete startVertex;
+		break;
 	}
 
 	//	step 5 : rebuild twin relationship of twin-removed hedges
@@ -1829,6 +2013,28 @@ bool isHedgeCollapsable(Hedge* hedge, bool toBeReversed, float cosNormalAngleCha
 
 EdgeCollpaseType getCollapseType(Hedge* hedge, float cosNormalAngleChangeLimit, float cosEdgeAngleChangeLimit, float cosAngleBtwFrontierEdges)
 {
+	// before running a main algorithm which check if this hedge is collasable,
+	// have to find out if this collapse case is 'triangle applause case'
+	HedgeVertex* targetVertex = hedge->next->next->startVertex;
+	if (targetVertex->hedgesFromThisVertex.size() == 3)
+	{
+		if (targetVertex->hedgesFromThisVertex[0]->twin != NULL &&
+			targetVertex->hedgesFromThisVertex[1]->twin != NULL &&
+			targetVertex->hedgesFromThisVertex[2]->twin != NULL)
+			return NoCollapse;
+	}
+	if (hedge->twin != NULL)
+	{
+		targetVertex = hedge->twin->next->next->startVertex;
+		if (targetVertex->hedgesFromThisVertex.size() == 3)
+		{
+			if (targetVertex->hedgesFromThisVertex[0]->twin != NULL &&
+				targetVertex->hedgesFromThisVertex[1]->twin != NULL &&
+				targetVertex->hedgesFromThisVertex[2]->twin != NULL)
+				return NoCollapse;
+		}
+	}
+
 	// there are 2 collpase options
 	// first, move startVertex to endVertex
 	// second, move endVertex to startVertex
@@ -1879,7 +2085,7 @@ bool triangleReduction(std::vector<Hedge*>& hedges,
 	size_t originalHedgeCount = hedges.size();
 	std::map<Hedge*, size_t> hedgeMap;
 	for (size_t i = 0; i < originalHedgeCount; i++)
-		hedgeMap.insert(std::map<Hedge*, size_t>::value_type(hedges[i], i));
+		hedgeMap[hedges[i]] = i;
 
 	std::map<std::map<HedgeVertex*, size_t>*, size_t> vertexMap;
 	size_t vertexListCount = vertices.size();
@@ -1889,9 +2095,9 @@ bool triangleReduction(std::vector<Hedge*>& hedges,
 		size_t vertexCount = vertexList->size();
 		std::map<HedgeVertex*, size_t>* vertexListMap = new std::map<HedgeVertex*, size_t>;
 		for (size_t j = 0; j < vertexCount; j++)
-			vertexListMap->insert(std::map<HedgeVertex*, size_t>::value_type((*vertexList)[j], j));
+			(*vertexListMap)[(*vertexList)[j]] = j;
 
-		vertexMap.insert(std::map<std::map<HedgeVertex*, size_t>*, size_t>::value_type(vertexListMap, i));
+		vertexMap[vertexListMap] = i;
 	}
 
 	std::map<std::map<HedgeTriangle*, size_t>*, size_t> triangleMap;
@@ -1902,9 +2108,9 @@ bool triangleReduction(std::vector<Hedge*>& hedges,
 		size_t triangleCount = triangleList->size();
 		std::map<HedgeTriangle*, size_t>* triangleListMap = new std::map<HedgeTriangle*, size_t>;
 		for (size_t j = 0; j < triangleCount; j++)
-			triangleListMap->insert(std::map<HedgeTriangle*, size_t>::value_type((*triangleList)[j], j));
+			(*triangleListMap)[(*triangleList)[j]] = j;
 
-		triangleMap.insert(std::map<std::map<HedgeTriangle*, size_t>*, size_t>::value_type(triangleListMap, i));
+		triangleMap[triangleListMap] = i;
 	}
 
 	std::vector<size_t> indicesOfDeletedHedges;
@@ -2252,7 +2458,7 @@ void triangleReduction(NetSurface* netSurface, float cosNormalAngleChangeLimit, 
 	}
 }
 
-void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface)
+void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface, std::map<HedgeVertex*, gaia3d::Vertex*>& vertexMapper)
 {
 	netSurface->nsm = new gaia3d::TrianglePolyhedron;
 	gaia3d::Surface* surface = new gaia3d::Surface;
@@ -2277,6 +2483,12 @@ void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface)
 				vertex0 = new gaia3d::Vertex;
 				vertex0->position = hTriangle->vertex0->position;
 				vertexIndex0 = netSurface->nsm->getVertices().size();
+
+				if (!vertexMapper.empty())
+				{
+					vertex0->textureCoordinate[0] = vertexMapper[hTriangle->vertex0]->textureCoordinate[0];
+					vertex0->textureCoordinate[1] = 1.0 - vertexMapper[hTriangle->vertex0]->textureCoordinate[1];
+				}
 
 				// calculate vertex normal
 				// TODO(khj 20180412) : NYI A vertex normal should be calcualted by average on 'weighted' plane normals of triangles sharing this vertex
@@ -2305,6 +2517,12 @@ void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface)
 				vertex1->position = hTriangle->vertex1->position;
 				vertexIndex1 = netSurface->nsm->getVertices().size();
 
+				if (!vertexMapper.empty())
+				{
+					vertex1->textureCoordinate[0] = vertexMapper[hTriangle->vertex1]->textureCoordinate[0];
+					vertex1->textureCoordinate[1] = 1.0 - vertexMapper[hTriangle->vertex1]->textureCoordinate[1];
+				}
+
 				// calculate vertex normal
 				// TODO(khj 20180412) : NYI A vertex normal should be calcualted by average on 'weighted' plane normals of triangles sharing this vertex
 				//						Now, the vertex normal is calculated by only average of plane normals
@@ -2331,6 +2549,12 @@ void changeNetSurfacesIntoTrianglePolyhedron(NetSurface* netSurface)
 				vertex2 = new gaia3d::Vertex;
 				vertex2->position = hTriangle->vertex2->position;
 				vertexIndex2 = netSurface->nsm->getVertices().size();
+
+				if (!vertexMapper.empty())
+				{
+					vertex2->textureCoordinate[0] = vertexMapper[hTriangle->vertex2]->textureCoordinate[0];
+					vertex2->textureCoordinate[1] = 1.0 - vertexMapper[hTriangle->vertex2]->textureCoordinate[1];
+				}
 
 				// calculate vertex normal
 				// TODO(khj 20180412) : NYI A vertex normal should be calcualted by average on 'weighted' plane normals of triangles sharing this vertex
@@ -2614,7 +2838,7 @@ void insertEachNetSurfaceTextureIntoMosaicTexture(unsigned char** mosaicTexture,
 	}
 
 	// calculate texture coordinates of net surface meshes for mosaic texture
-	int textoreCoord_offSet = 5;
+	int textoreCoord_offSet = 1;
 
 	float minS = (float)(dataRGBA_leftDownPixelCol + textoreCoord_offSet) / (float)mosaicTexturePixelWidth;
 	float maxS = (float)(dataRGBA_leftDownPixelCol + dataRGBA_width - textoreCoord_offSet) / (float)mosaicTexturePixelWidth;
@@ -2722,4 +2946,156 @@ gaia3d::TrianglePolyhedron* mergePolyhedrons(std::vector<gaia3d::TrianglePolyhed
 	result->setId(0);
 	
 	return result;
+}
+
+NetSurface* makeNetSurfaceMeshFromOriginalDirectly(gaia3d::TrianglePolyhedron* mesh, std::map<HedgeVertex*, gaia3d::Vertex*>& vertexMapper)
+{
+	NetSurface* netSurface = new NetSurface;
+
+	// make half edge vertices
+	std::vector<HedgeVertex*>* hVertices = new std::vector<HedgeVertex*>;
+	netSurface->netVertices.push_back(hVertices);
+	size_t vertexCount = mesh->getVertices().size();
+	for (size_t i = 0; i < vertexCount; i++)
+	{
+		HedgeVertex* hVertex = new HedgeVertex;
+		hVertex->bOnGeometrySurface = true;
+		hVertex->position = mesh->getVertices()[i]->position;
+		hVertices->push_back(hVertex);
+		vertexMapper[hVertex] = mesh->getVertices()[i];
+	}
+
+	// make half edges and half edge triangles
+	// and build vertex use cases
+	std::map<HedgeVertex*, std::vector<HedgeTriangle*>*> hVertexUseCase;
+	std::vector<HedgeTriangle*>* hTriangles = new std::vector<HedgeTriangle*>;
+	netSurface->netTriangles.push_back(hTriangles);
+	size_t surfaceCount = mesh->getSurfaces().size();
+	for (size_t i = 0; i < surfaceCount; i++)
+	{
+		gaia3d::Surface* surface = mesh->getSurfaces()[i];
+		size_t triangleCount = surface->getTriangles().size();
+		for (size_t j = 0; j < triangleCount; j++)
+		{
+			gaia3d::Triangle* rawTriangle = surface->getTriangles()[j];
+
+			HedgeVertex* vertex0 = (*hVertices)[rawTriangle->getVertexIndices()[0]];
+			HedgeVertex* vertex1 = (*hVertices)[rawTriangle->getVertexIndices()[1]];
+			HedgeVertex* vertex2 = (*hVertices)[rawTriangle->getVertexIndices()[2]];
+
+			HedgeTriangle* triangle = new HedgeTriangle;
+			triangle->vertex0 = vertex0; triangle->vertex1 = vertex1; triangle->vertex2 = vertex2;
+
+			Hedge* hedge0 = new Hedge;
+			Hedge* hedge1 = new Hedge;
+			Hedge* hedge2 = new Hedge;
+
+			hedge0->face = triangle;
+			hedge0->next = hedge1;
+			hedge0->startVertex = vertex0;
+			hedge0->twin = NULL;
+			vertex0->hedgesFromThisVertex.push_back(hedge0);
+
+			hedge1->face = triangle;
+			hedge1->next = hedge2;
+			hedge1->startVertex = vertex1;
+			hedge1->twin = NULL;
+			vertex1->hedgesFromThisVertex.push_back(hedge1);
+
+			hedge2->face = triangle;
+			hedge2->next = hedge0;
+			hedge2->startVertex = vertex2;
+			hedge2->twin = NULL;
+			vertex2->hedgesFromThisVertex.push_back(hedge2);
+
+			hedge0->direction = vertex1->position - vertex0->position;
+			hedge1->direction = vertex2->position - vertex1->position;
+			hedge2->direction = vertex0->position - vertex2->position;
+			hedge0->direction.normalize();
+			hedge1->direction.normalize();
+			hedge2->direction.normalize();
+
+			triangle->hedge = hedge0;
+			gaia3d::Point3D normal;
+			gaia3d::GeometryUtility::calculatePlaneNormal(vertex0->position.x, vertex0->position.y, vertex0->position.z,
+														vertex1->position.x, vertex1->position.y, vertex1->position.z,
+														vertex2->position.x, vertex2->position.y, vertex2->position.z,
+														normal.x, normal.y, normal.z, true);
+			triangle->normal = normal;
+
+			hTriangles->push_back(triangle);
+			netSurface->hedges.push_back(hedge0);
+			netSurface->hedges.push_back(hedge1);
+			netSurface->hedges.push_back(hedge2);
+
+			if (hVertexUseCase.find(vertex0) == hVertexUseCase.end())
+			{
+				hVertexUseCase[vertex0] = new std::vector<HedgeTriangle*>;
+			}
+			hVertexUseCase[vertex0]->push_back(triangle);
+
+			if (hVertexUseCase.find(vertex1) == hVertexUseCase.end())
+			{
+				hVertexUseCase[vertex1] = new std::vector<HedgeTriangle*>;
+			}
+			hVertexUseCase[vertex1]->push_back(triangle);
+
+			if (hVertexUseCase.find(vertex2) == hVertexUseCase.end())
+			{
+				hVertexUseCase[vertex2] = new std::vector<HedgeTriangle*>;
+			}
+			hVertexUseCase[vertex2]->push_back(triangle);
+		}
+	}
+
+	// build twin half edge relationships
+	size_t twinRelationshipCount = 0;
+	std::map<HedgeVertex*, std::vector<HedgeTriangle*>*>::iterator iter = hVertexUseCase.begin();
+	for (; iter != hVertexUseCase.end(); iter++)
+	{
+		size_t triangleCount = (iter->second)->size();
+		for (size_t i = 0; i < triangleCount; i++)
+		{
+			HedgeTriangle* hTriangleA = (*(iter->second))[i];
+			for (size_t j = i + 1; j < triangleCount; j++)
+			{
+				HedgeTriangle* hTriangleB = (*(iter->second))[j];
+
+				Hedge* curHedgeA = hTriangleA->hedge;
+				for (char m = 0; m < 3; m++)
+				{
+					curHedgeA = curHedgeA->next;
+
+					if (curHedgeA->twin != NULL)
+						continue;
+
+					Hedge* curHedgeB = hTriangleB->hedge;
+					for (char n = 0; n < 3; n++)
+					{
+						curHedgeB = curHedgeB->next;
+
+						if (curHedgeB->twin != NULL)
+							continue;
+
+						if (curHedgeA->startVertex == curHedgeB->next->startVertex &&
+							curHedgeA->next->startVertex == curHedgeB->startVertex)
+						{
+							curHedgeA->twin = curHedgeB;
+							curHedgeB->twin = curHedgeA;
+
+							twinRelationshipCount++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	iter = hVertexUseCase.begin();
+	for (; iter != hVertexUseCase.end(); iter++)
+	{
+		delete iter->second;
+	}
+
+	return netSurface;
 }
