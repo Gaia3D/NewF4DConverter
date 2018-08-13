@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GeometryUtility Header
  */
 #ifndef _GEOMETRYUTILITY_H_
@@ -9,6 +9,9 @@
 #include <cmath>
 
 #define M_PI 3.14159265358979323846
+#define EarthHRadius 6378137.0
+#define EarthVRadius 6356751.9566//10375702081371855231
+
 
 namespace gaia3d
 {

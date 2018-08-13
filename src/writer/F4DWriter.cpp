@@ -973,10 +973,12 @@ void F4DWriter::writeLegoTexture(std::string resultPath)
 
 void F4DWriter::writeTextures(std::string imagePath)
 {
-	std::map<std::string, std::string>::iterator itr = processor->getTextureInfo().begin();
-	for (; itr != processor->getTextureInfo().end(); itr++)
+	std::map<std::string, unsigned char*>::iterator itr = processor->getResizedTextures().begin();
+	std::string fileName, fileExt, targetFullPath;
+	int bpp = 4, width, height;
+	for (; itr != processor->getResizedTextures().end(); itr++)
 	{
-		std::string fileName = itr->first;
+		fileName = itr->first;
 
 		std::string::size_type dotPosition = fileName.rfind(".");
 		if (dotPosition == std::string::npos)
@@ -988,7 +990,7 @@ void F4DWriter::writeTextures(std::string imagePath)
 		int nrChannels = 4;
 		unsigned int width = processor->getAllTextureWidths()[fileName];
 		unsigned int height = processor->getAllTextureHeights()[fileName];
-		unsigned char* bmpArray = processor->getResizedTextures()[fileName];
+		unsigned char* bmpArray = itr->second;
 
 		std::string fullPath = imagePath + "/" + fileName;
 
@@ -999,9 +1001,8 @@ void F4DWriter::writeTextures(std::string imagePath)
 
 		if (fileExt.compare("dds") == 0)
 		{
-			std::string orginalImagePath = itr->second;
 			FILE* file = NULL;
-			file = fopen(orginalImagePath.c_str(), "rb");
+			file = fopen(singleFullPath.c_str(), "rb");
 			if (file == NULL)
 				continue;
 

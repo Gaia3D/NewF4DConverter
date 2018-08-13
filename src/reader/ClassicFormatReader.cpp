@@ -191,11 +191,21 @@ bool proceedNode(aiNode* node,
 	// TMatrix * SMatrix
 	thisMatrix = thisMatrix * parentMatrix;
 
+	std::string nodeName = std::string(node->mName.C_Str());
+
 	aiMesh *mesh = NULL;
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		mesh = scene->mMeshes[node->mMeshes[i]];
-		proceedMesh(mesh, scene, thisMatrix, container, textureContainer);
+		if (proceedMesh(mesh, scene, thisMatrix, container, textureContainer))
+		{
+			if (!nodeName.empty())
+			{
+				gaia3d::TrianglePolyhedron* newCreated = container.back();
+
+				newCreated->addStringAttribute(std::string(ObjectGuid), nodeName);
+			}
+		}
 	}
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++)

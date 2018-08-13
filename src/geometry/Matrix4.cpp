@@ -283,7 +283,6 @@ namespace gaia3d
 		rotation[8] = (m[2][2]); // col 2, row 2
 	}
 
-
 	unsigned char Matrix4::getMatrixType(double error)
 	{
 		// matrixType = 0 -> identity matrix.

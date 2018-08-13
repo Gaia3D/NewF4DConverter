@@ -31,6 +31,12 @@ private:
 	bool bOcclusionCulling;
 	double unitScaleFactor;
 	unsigned char skinLevel;
+	bool bYAxisUp;
+	bool bAlignPostionToCenter;
+	std::string referenceFileName;
+	double referenceLon, referenceLat;
+	double referencePosX, referencePosY;
+	int meshType;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -39,8 +45,6 @@ private:
 public:
 	static ConverterManager* getConverterManager() { return &m_ConverterManager; }
 
-
-
 public:
 	bool isInitialized();
 	bool initialize();
@@ -48,7 +52,7 @@ public:
 
 	void changeGLDimension(int width, int height);
 
-	bool processSingleFile(std::string& filePath);
+	//bool processSingleFile(std::string& filePath);
 
 	void setProcessConfiguration(std::map<std::string, std::string>& arguments);
 
@@ -76,9 +80,15 @@ private:
 
 	bool processDataFolder();
 
-	void processDataFolder(std::string inputFolder);
+	//void processDataFolder(std::string inputFolder);
+
+	void collectTargetFiles(std::string inputFolder, std::map<std::string, std::string>& targetFiles);
+
+	void processDataFiles(std::map<std::string, std::string>& targetFiles);
 
 	bool processDataFile(std::string& filePath, Reader* reader);
+
+	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs);
 };
 
 #endif // _CONVERTERMANAGER_H_

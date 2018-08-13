@@ -23,10 +23,10 @@
 #include "../reader/ReaderFactory.h"
 #include "../process/ConversionProcessor.h"
 #include "../process/SceneControlVariables.h"
+#include "../util/GeometryUtility.h"
 #include "../writer/F4DWriter.h"
 
 #include "LogWriter.h"
-
 
 ConverterManager ConverterManager::m_ConverterManager;
 
@@ -41,6 +41,12 @@ ConverterManager::ConverterManager()
 	unitScaleFactor = 1.0;
 
 	skinLevel = 3;
+
+	bYAxisUp = false;
+
+	bAlignPostionToCenter = false;
+
+	meshType = 0;
 }
 
 ConverterManager::~ConverterManager()
@@ -109,11 +115,30 @@ bool ConverterManager::processDataFolder()
 		return false;
 	}
 
-	processDataFolder(inputFolder);
+	std::map<std::string, std::string> targetFiles;
+	collectTargetFiles(inputFolder, targetFiles);
+	if (targetFiles.empty())
+	{
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
+		LogWriter::getLogWriter()->addContents(inputFolder, true);
+		return false;
+	}
+
+	if (!referenceFileName.empty() && targetFiles.find(referenceFileName) == targetFiles.end())
+	{
+		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_REFERENCE_FILE), false);
+		LogWriter::getLogWriter()->addContents(referenceFileName, true);
+		return false;
+	}
+
+	processDataFiles(targetFiles);
 
 	return true;
 }
 
+/*
 bool ConverterManager::processSingleFile(std::string& filePath)
 {
 	std::string outputFolder = outputFolderPath;
@@ -195,118 +220,81 @@ bool ConverterManager::processSingleFile(std::string& filePath)
 	}
 
 	processor->clear();
-	
+
 	return true;
 }
-
-void ConverterManager::processDataFolder(std::string inputFolder)
-{
-	std::vector<std::string> dataFiles;
-	std::vector<std::string> subFolders;
-	
-	namespace bfs = boost::filesystem;
-
-	bfs::path folderPath(inputFolder);
-	if (bfs::is_directory(folderPath))
-	{
-		std::cout << "In directory: " << folderPath.string() << std::endl;
-		bfs::directory_iterator end;
-		for(bfs::directory_iterator it(folderPath); it != end; ++it)
-		{
-			try
-			{
-				if (bfs::is_directory(*it))
-				{
-					subFolders.push_back(it->path().string());
-					std::cout << "[directory]" << it->path() << std::endl;
-				}
-				else
-				{
-					dataFiles.push_back(it->path().filename().string());
-					std::cout << "[file]" << it->path().filename() << std::endl;
-				}
-			}
-			catch (const std::exception &ex)
-			{
-				std::cout << it->path().filename() << " " << ex.what() << std::endl;
-			}
-		}
-	}
-/*
-	_wfinddata64_t fd;
-	long long handle;
-	int result = 1;
-	std::string fileFilter = inputFolder + std::string("/*.*");
-	handle = _wfindfirsti64(fileFilter.c_str(), &fd);
-
-	if (handle == -1)
-		return;
-
-	std::vector<std::string> dataFiles;
-	std::vector<std::string> subFolders;
-	while (result != -1)
-	{
-		if ((fd.attrib & _A_SUBDIR) == _A_SUBDIR)
-		{
-			if (std::string(fd.name) != std::string(".") && std::string(fd.name) != std::string(".."))
-			{
-				std::string subFolderFullPath = inputFolder + "/" + std::string(fd.name);
-				subFolders.push_back(subFolderFullPath);
-			}
-		}
-		else
-		{
-			dataFiles.push_back(std::string(fd.name));
-		}
-
-		result = _wfindnexti64(handle, &fd);
-	}
-
-	_findclose(handle);
 */
-	size_t subFolderCount = subFolders.size();
-	for (size_t i = 0; i < subFolderCount; i++)
-	{
-		processDataFolder(subFolders[i]);
-	}
 
-	size_t dataFileCount = dataFiles.size();
-	if (dataFileCount == 0)
-		return;
+void ConverterManager::processDataFiles(std::map<std::string, std::string>& targetFiles)
+{
 
 	// TODO(khj 20180417) : NYI setup conversion configuration here
 	// now, only set wheter do occlusion culling or not
 	processor->setVisibilityIndexing(bOcclusionCulling);
 	processor->setSkinLevel(skinLevel);
+	processor->setYAxisUp(bYAxisUp);
+	processor->setAlignPostionToCenter(bAlignPostionToCenter);
+	processor->setMeshType(meshType);
 	// TODO(khj 20180417) end
+
+	if (meshType == 1 || meshType == 2)
+	{
+		//// hard-cord for japan(AIST) realistic mesh
+		processor->setVisibilityIndexing(false);
+		processor->setYAxisUp(false);
+		processor->setAlignPostionToCenter(false);
+		processor->setMeshType(meshType);
+		switch (meshType)
+		{
+		case 1:
+			processor->setSkinLevel(50);
+			break;
+		case 2:
+			processor->setSkinLevel(51);
+			break;
+		}
+		processor->setLeafSpatialOctreeSize(40.0f);
+	}
+
+	//// hard-cord for new york citygml
+	//processor->setVisibilityIndexing(false);
+	//processor->setUseNsm(false);
+	//processor->setYAxisUp(true);
+	//processor->setAlignPostionToCenter(true);
+	//processor->setLeafSpatialOctreeSize(422.0f);
 
 	std::string outputFolder = outputFolderPath;
 
 	std::string fullId;
-	for (size_t i = 0; i < dataFileCount; i++)
+	std::map<std::string, double> centerXs, centerYs;
+	std::map<std::string, std::string>::iterator iter = targetFiles.begin();
+	for (; iter != targetFiles.end(); iter++)
 	{
-		// 1. raw data file을 하나씩 변환
-		std::string dataFileFullPath = inputFolder + std::string("/") + dataFiles[i];
-		
+		// 1. convert raw data files repectively
+		std::string dataFile = iter->first;
+		std::string dataFileFullPath = iter->second;
+
 		Reader* reader = ReaderFactory::makeReader(dataFileFullPath);
 		if (reader == NULL)
 			continue;
+
+		printf("===== Start processing this file : %s\n", dataFile.c_str());
 
 		LogWriter::getLogWriter()->numberOfFilesToBeConverted += 1;
 		reader->setUnitScaleFactor(unitScaleFactor);
 
 		if (!processDataFile(dataFileFullPath, reader))
 		{
-			LogWriter::getLogWriter()->addContents(dataFiles[i], true);
+			LogWriter::getLogWriter()->addContents(dataFileFullPath, true);
 			delete reader;
 			processor->clear();
 			continue;
 		}
 
 		delete reader;
-		
-		std::string::size_type dotPosition = dataFiles[i].rfind(".");
-		fullId = dataFiles[i].substr(0, dotPosition);
+
+		std::string::size_type dotPosition = dataFile.rfind(".");
+		fullId = dataFile.substr(0, dotPosition);
 		if (!idPrefix.empty())
 			fullId = idPrefix + fullId;
 
@@ -315,23 +303,41 @@ void ConverterManager::processDataFolder(std::string inputFolder)
 
 		processor->addAttribute(std::string(F4dId), fullId);
 
-
-		// 2. 변환 결과에서 bbox centerpoint를 로컬 원점으로 이동시키는 변환행렬 추출
-
-		// 3. 변환 결과를 저장
+		// 2. save the result
 		F4DWriter writer(processor);
 		writer.setWriteFolder(outputFolder);
 		if (!writer.write())
 		{
-			LogWriter::getLogWriter()->addContents(dataFiles[i], true);
+			LogWriter::getLogWriter()->addContents(dataFileFullPath, true);
 			processor->clear();
 			continue;
 		}
 
-		// 4. processor clear
+		// 2.1 extract representative lon/lat of F4D if a reference file exists
+		if (!referenceFileName.empty())
+		{
+			if (dataFile == referenceFileName)
+			{
+				double dummy;
+				processor->getOriginalBoundingBox().getCenterPoint(referencePosX, referencePosY, dummy);
+			}
+			else
+			{
+				double centerX, centerY, centerZ;
+				processor->getOriginalBoundingBox().getCenterPoint(centerX, centerY, centerZ);
+				centerXs[dataFile] = centerX;
+				centerYs[dataFile] = centerY;
+			}
+		}
+
+		// 3. processor clear
 		processor->clear();
 		LogWriter::getLogWriter()->numberOfFilesConverted += 1;
 	}
+
+	// save representative lon / lat of F4D if a reference file exists
+	if (!referenceFileName.empty())
+		writeRepresentativeLonLatOfEachData(centerXs, centerYs);
 }
 
 bool ConverterManager::writeIndexFile()
@@ -345,7 +351,6 @@ bool ConverterManager::writeIndexFile()
 
 bool ConverterManager::processDataFile(std::string& filePath, Reader* reader)
 {
-	
 	if (!reader->readRawDataFile(filePath))
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
@@ -362,7 +367,7 @@ bool ConverterManager::processDataFile(std::string& filePath, Reader* reader)
 
 	//reader->TexCoord_Flip_Y();
 
-	if(!processor->proceedConversion(reader->getDataContainer(), reader->getTextureInfoContainer(), true, bOcclusionCulling))
+	if(!processor->proceedConversion(reader->getDataContainer(), reader->getTextureInfoContainer()))
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 		LogWriter::getLogWriter()->addContents(std::string(CONVERSION_FAILURE), false);
@@ -381,13 +386,18 @@ bool ConverterManager::isInitialized()
 
 	return true;
 }
+
 void ConverterManager::setProcessConfiguration(std::map<std::string, std::string>& arguments)
 {
 	if (arguments.find(InputFolder) != arguments.end())
 	{
 		bConversion = true;
 		inputFolderPath = arguments[InputFolder];
-		outputFolderPath = arguments[OutputFolder];
+
+		if (arguments.find(MeshType) != arguments.end())
+		{
+			meshType = std::stoi(arguments[MeshType]);
+		}
 
 		if (arguments.find(PerformOC) != arguments.end())
 		{
@@ -417,6 +427,11 @@ void ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 		bConversion = false;
 	}
 
+	if (arguments.find(OutputFolder) != arguments.end())
+	{
+		outputFolderPath = arguments[OutputFolder];
+	}
+
 	if (arguments.find(CreateIndex) != arguments.end())
 	{
 		if (arguments[CreateIndex] == std::string("Y") ||
@@ -443,6 +458,22 @@ void ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 	{
 		idSuffix = arguments[IdSuffix];
 	}
+
+	if (arguments.find(IsYAxisUp) != arguments.end())
+	{
+		if (arguments[IsYAxisUp] == std::string("Y") ||
+			arguments[IsYAxisUp] == std::string("y"))
+			bYAxisUp = true;
+		else
+			bYAxisUp = false;
+	}
+
+	if (arguments.find(ReferenceFile) != arguments.end())
+	{
+		referenceFileName = arguments[ReferenceFile];
+		referenceLon = std::stod(arguments[MatchedLon]);
+		referenceLat = std::stod(arguments[MatchedLat]);
+	}
 }
 
 void ConverterManager::process()
@@ -458,4 +489,87 @@ void ConverterManager::process()
 	{
 		writeIndexFile();
 	}
+}
+
+void ConverterManager::collectTargetFiles(std::string inputFolder, std::map<std::string, std::string>& targetFiles)
+{
+	std::vector<std::string> dataFiles;
+	std::vector<std::string> subFolders;
+
+	namespace bfs = boost::filesystem;
+
+	bfs::path folderPath(inputFolder);
+	if (bfs::is_directory(folderPath))
+	{
+		std::cout << "In directory: " << folderPath.string() << std::endl;
+		bfs::directory_iterator end;
+		for (bfs::directory_iterator it(folderPath); it != end; ++it)
+		{
+			try
+			{
+				if (bfs::is_directory(*it))
+				{
+					subFolders.push_back(it->path().string());
+					std::cout << "[directory]" << it->path() << std::endl;
+				}
+				else
+				{
+					std::string dataFile = it->path().filename().string();
+					std::string dataFileFullPath = inputFolder + std::string("/") + dataFile;
+					targetFiles[dataFile] = dataFileFullPath;
+
+					std::cout << "[file]" << dataFile << std::endl;
+				}
+			}
+			catch (const std::exception &ex)
+			{
+				std::cout << it->path().filename() << " " << ex.what() << std::endl;
+			}
+		}
+	}
+
+	size_t subFolderCount = subFolders.size();
+	for (size_t i = 0; i < subFolderCount; i++)
+	{
+		collectTargetFiles(subFolders[i], targetFiles);
+	}
+}
+
+void ConverterManager::writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs)
+{
+	std::string lonLatFileFullPath = outputFolderPath + std::string("/lonsLats.txt");
+	FILE* file = NULL;
+	file = fopen(lonLatFileFullPath.c_str(), "wt");
+	while (referenceLon < 0.0)
+	{
+		referenceLon += 360.0;
+	}
+	while (referenceLon > 360.0)
+	{
+		referenceLon -= 360.0;
+	}
+	fprintf(file, "%s %.9lf %.9lf\n", referenceFileName.c_str(), referenceLon, referenceLat);
+
+	double deg2rad = M_PI / 180.0, rad2deg = 180.0 / M_PI;
+	double refLatRad = referenceLat * deg2rad;
+	double cosLat = cos(refLatRad);
+	double sinLat = sin(refLatRad);
+	double radiusReciprocal = sqrt(EarthVRadius*EarthVRadius*cosLat*cosLat + EarthHRadius*EarthHRadius*sinLat*sinLat) / (EarthHRadius*EarthVRadius);
+
+	std::map<std::string, double>::iterator iter = posXs.begin();
+	for (; iter != posXs.end(); iter++)
+	{
+		double posX = iter->second;
+		double posY = posYs[iter->first];
+
+		double xDiff = posX - referencePosX;
+		double yDiff = posY - referencePosY;
+
+		double lat = referenceLat + radiusReciprocal * xDiff * rad2deg;
+		double lon = referenceLon + (radiusReciprocal / cosLat)* yDiff * rad2deg;
+
+		fprintf(file, "%s %.9lf %.9lf\n", iter->first.c_str(), lon, lat);
+	}
+
+	fclose(file);
 }
