@@ -30,3 +30,7 @@
 	path = lib/libcitygml
 	url = https://github.com/jklimke/libcitygml.git
 	branch = master
+[submodule "lib/xerces"]
+	path = lib/xerces
+	url = https://github.com/apache/xerces-c.git
+	branch = trunk
