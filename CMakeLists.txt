@@ -104,6 +104,120 @@ INCLUDE_DIRECTORIES(${GLAD_INCLUDE_DIRS})
 LINK_LIBRARIES(${GLAD_LIBRARIES})
 
 #--------------------------------------------------------------------
+# Find XercesC
+#--------------------------------------------------------------------
+SET(ENV{XERCESC_INCLUDE_DIR} ${XERCESC_INCLUDE_DIR})
+SET(ENV{XERCESC_LIBRARY_DIR} ${XERCESC_LIBRARY_DIR})
+#FIND_PACKAGE(XercesC)
+#IF(NOT XercesC_FOUND)
+#	MESSAGE(STATUS "Xerces not found! Using local source...")
+
+#	SET(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+
+#	ADD_SUBDIRECTORY(lib/xerces)
+
+#	GET_TARGET_PROPERTY(OUTPUT_NAME xerces-c OUTPUT_NAME)
+#	GET_TARGET_PROPERTY(DEBUG_POSTFIX xerces-c DEBUG_POSTFIX)
+	
+#	SET(XERCESC_INCLUDE "${CMAKE_INSTALL_INCLUDEDIR}")
+#	SET(XERCESC_LIBRARY "${OUTPUT_NAME}${DEBUG_POSTFIX}")
+
+#	SET(XERCES_INCLUDE_DIRS "${XERCESC_INCLUDE_DIR}" "${XERCESC_INCLUDE}" ${CMAKE_BINARY_DIR}/lib/xerces/src lib/xerces/src)
+#    SET(XERCES_LIBRARIES xerces-c "${XERCESC_LIBRARY}")
+#ENDIF()
+
+#MESSAGE(STATUS "${XERCES_INCLUDE_DIRS}")
+#MESSAGE(STATUS "${XERCES_LIBRARIES}")
+
+#INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIRS})
+#LINK_LIBRARIES(${XERCES_LIBRARIES})
+
+#--------------------------------------------------------------------
+# Build XercesC as an external project.
+#--------------------------------------------------------------------
+#SET(XERCES_INSTALL_DIR ${CMAKE_BINARY_DIR}/lib/xerces)
+#SET(XERCES_INCLUDE_DIR ${XERCES_INSTALL_DIR}/include)
+#SET(XERCES_LIBRARY_DIR ${XERCES_INSTALL_DIR}/lib)
+#include(ExternalProject)
+#ExternalProject_Add(xerces_external_project
+#                    SOURCE_DIR  ${CMAKE_SOURCE_DIR}/lib/xerces
+#                    PREFIX      ${XERCES_INSTALL_DIR}
+#                    INSTALL_DIR ${XERCES_INSTALL_DIR}
+#                    CMAKE_ARGS  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+#                                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+#                                -DCMAKE_CXX_FLAGS=${EXTERNAL_PROJECT_CMAKE_CXX_FLAGS}
+#								-DCMAKE_INSTALL_PREFIX:PATH=${XERCES_INSTALL_DIR}
+#								-DCMAKE_INSTALL_LIBDIR=${XERCES_LIBRARY_DIR}
+#								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+#                   )
+
+##GET_TARGET_PROPERTY(OUTPUT_NAME xerces-c OUTPUT_NAME)
+##GET_TARGET_PROPERTY(DEBUG_POSTFIX xerces-c DEBUG_POSTFIX)
+#SET(XERCESC_INCLUDE "${XERCES_INCLUDE_DIR}")
+#SET(XERCESC_LIBRARY "${XERCES_LIBRARY_DIR}")
+#SET(XERCES_INCLUDE_DIRS "${XERCES_INCLUDE_DIR}")
+#SET(XERCES_LIBRARIES xerces "${OUTPUT_NAME}${DEBUG_POSTFIX}")
+
+#MESSAGE(STATUS "${XERCES_INCLUDE_DIRS}")
+#MESSAGE(STATUS "${XERCES_LIBRARIES}")
+
+#--------------------------------------------------------------------
+# Build Libcitygml as an external project.
+#--------------------------------------------------------------------
+#SET(CITYGML_INSTALL_DIR ${CMAKE_BINARY_DIR}/lib/libcitygml)
+#SET(CITYGML_INCLUDE_DIR ${XERCES_INSTALL_DIR}/include)
+#SET(CITYGML_LIBRARY_DIR ${XERCES_INSTALL_DIR}/lib)
+#include(ExternalProject)
+#ExternalProject_Add(citygml_external_project
+#					DEPENDS		xerces-c
+#                    SOURCE_DIR  ${CMAKE_SOURCE_DIR}/lib/libcitygml
+#                    PREFIX      ${CITYGML_INSTALL_DIR}
+#                    INSTALL_DIR ${CITYGML_INSTALL_DIR}
+#                    CMAKE_ARGS  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+#                                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+#                                -DCMAKE_CXX_FLAGS=${EXTERNAL_PROJECT_CMAKE_CXX_FLAGS}
+#								-DCMAKE_INSTALL_PREFIX:PATH=${CITYGML_INSTALL_DIR}
+#								-DCMAKE_INSTALL_LIBDIR=${CITYGML_LIBRARY_DIR}
+#                   )
+
+#SET(CITYGML_INCLUDE_DIRS "${CITYGML_INCLUDE_DIR}")
+#SET(CITYGML_LIBRARIES citygml)
+
+#MESSAGE(STATUS "${CITYGML_INCLUDE_DIRS}")
+#MESSAGE(STATUS "${CITYGML_LIBRARIES}")
+
+#LINK_DIRECTORIES(${CITYGML_LIBRARY_DIR})
+#INCLUDE_DIRECTORIES(BEFORE SYSTEM ${CITYGML_INCLUDE_DIRS})
+#LINK_LIBRARIES(${CITYGML_LIBRARIES})
+
+#--------------------------------------------------------------------
+# Find Libcitygml
+#--------------------------------------------------------------------
+FIND_PACKAGE(CityGML)
+IF(NOT CITYGML_FOUND)
+	MESSAGE(STATUS "Libcitygml not found! Using local source...")
+
+	SET(BUILD_DEBIAN_PACKAGE OFF CACHE INTERNAL "" FORCE)
+	SET(LIBCITYGML_USE_GDAL OFF CACHE INTERNAL "" FORCE)
+	SET(LIBCITYGML_DYNAMIC OFF CACHE INTERNAL "" FORCE)
+	SET(LIBCITYGML_STATIC_CRT OFF CACHE INTERNAL "" FORCE)
+	
+	ADD_SUBDIRECTORY(lib/libcitygml)
+	#ADD_LIBRARY(citygml xerces-c)
+	#ADD_DEPENDENCIES(citygml xerces_external_project)
+	#TARGET_LINK_LIBRARIES(libcitygml xerces-c)
+
+	SET(CITYGML_INCLUDE_DIRS "${INCLUDE_INSTALL_DIR}" lib/libcitygml/sources/include)
+    SET(CITYGML_LIBRARIES citygml)
+ENDIF()
+
+MESSAGE(STATUS "${CITYGML_INCLUDE_DIRS}")
+MESSAGE(STATUS "${CITYGML_LIBRARIES}")
+
+INCLUDE_DIRECTORIES(${CITYGML_INCLUDE_DIRS})
+LINK_LIBRARIES(${CITYGML_LIBRARIES})
+
+#--------------------------------------------------------------------
 # Find Assimp
 #--------------------------------------------------------------------
 FIND_PACKAGE(Assimp)
@@ -207,6 +321,7 @@ ADD_CUSTOM_TARGET(build_external_projects
 #ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_SHIJT)
 ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_IFC)
 ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_CLASSIC)
+ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_CITYGML)
 
 INCLUDE_DIRECTORIES(include)
 
@@ -221,7 +336,7 @@ ENDFOREACH()
 ADD_EXECUTABLE(${PROJECT_NAME} ${PROJECT_SOURCES})
 ADD_DEPENDENCIES(${PROJECT_NAME} build_external_projects)
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} IfcPlusPlus carve)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} IfcPlusPlus carve citygml)
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME}	PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}) 

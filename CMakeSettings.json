@@ -1,4 +1,10 @@
 ﻿{
+  "environments": [
+    {
+      "XERCESC_INCLUDE_DIR": "C:\\libs\\XercesC-Debug\\include",
+      "XERCESC_LIBRARY_DIR": "C:\\libs\\XercesC-Debug\\lib"
+    }
+  ],
   // 이 파일에 대한 자세한 내용은 https://go.microsoft.com//fwlink//?linkid=834763 을 참조하세요.
   "configurations": [
     {
@@ -32,7 +38,17 @@
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "XERCESC_INCLUDE_DIR",
+          "value": "C:\\libs\\XercesC-Debug\\include"
+        },
+        {
+          "name": "XERCESC_LIBRARY_DIR",
+          "value": "C:\\libs\\XercesC-Debug\\lib"
+        }
+      ]
     },
     {
       "name": "x64-Release",
