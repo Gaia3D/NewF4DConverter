@@ -34,3 +34,7 @@
 	path = lib/xerces
 	url = https://github.com/apache/xerces-c.git
 	branch = trunk
+[submodule "lib/proj"]
+	path = lib/proj
+	url = https://github.com/OSGeo/proj.4.git
+	branch = master
