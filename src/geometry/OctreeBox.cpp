@@ -349,16 +349,6 @@ namespace gaia3d
 					continue;
 				}
 
-				/*
-				// TESTCODE-start
-				if (j != 0)
-				{
-					delete mesh;
-					break;
-				}
-				// TESTCODE-end
-				*/
-
 				// 2nd test : intersection test for all triangles in a mesh
 				anyTriangleIntersectsWithOctree = false;
 				surfaceCount = mesh->getSurfaces().size();

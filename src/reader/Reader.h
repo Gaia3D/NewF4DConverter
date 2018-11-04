@@ -29,6 +29,10 @@ public:
 
 	virtual void setUnitScaleFactor(double factor);
 
+	virtual bool doesHasGeoReferencingInfo() { return bHasGeoReferencingInfo; }
+
+	virtual void getGeoReferencingInfo(double& lon, double& lat) { lon = refLon; lat = refLat; }
+
 	void TexCoord_Flip_Y() ;
 
 protected:
@@ -37,6 +41,10 @@ protected:
 	std::map<std::string, std::string> textureContainer;
 
 	double unitScaleFactor;
+
+	bool bHasGeoReferencingInfo;
+
+	double refLon, refLat;
 };
 
 #endif // _READER_H_

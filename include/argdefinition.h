@@ -17,28 +17,28 @@
 #define UnitScaleFactorW	L"-usf"
 #define SkinLevelNsmW		L"-skinLevel"
 #define IsYAxisUpW			L"-isYAxisUp"
-#define ReferenceFileW		L"-referenceFile"
-#define MatchedLonW			L"-matchedLon"
-#define MatchedLatW			L"-matchedLat"
+#define ReferenceLonLatW	L"-referenceLonLat"
 #define MeshTypeW			L"-meshType"
 #define AlignToCenterW		L"-alignToCenter"
+#define EpsgW				L"-epsg"
 
 // arguments for conversion configuration
+#define ProgramPath		"programPath"
 #define InputFolder		"-inputFolder"
 #define OutputFolder	"-outputFolder"
 #define LogFilePath		"-log"
 #define CreateIndex		"-indexing"
 #define IdPrefix		"-idPrefix"
 #define IdSuffix		"-idSuffix"
+
 // arguments for processing parameters
 #define PerformOC		"-oc"
 #define UnitScaleFactor	"-usf"
 #define SkinLevelNsm	"-skinLevel"
 #define IsYAxisUp		"-isYAxisUp"
-#define ReferenceFile	"-referenceFile"
-#define MatchedLon		"-matchedLon"
-#define MatchedLat		"-matchedLat"
+#define ReferenceLonLat	"-referenceLonLat"
 #define MeshType		"-meshType"
 #define AlignToCenter	"-alignToCenter"
+#define Epsg			"-epsg"
 
 #endif // _ARGDEFINITION_H_

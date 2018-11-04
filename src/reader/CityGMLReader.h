@@ -1,5 +1,5 @@
 ﻿/**
-* CityGMLReader Header
+* CitygmlReader Header
 */
 #ifndef _CITYGMLREADER_H_
 #define _CITYGMLREADER_H_
@@ -7,11 +7,11 @@
 
 #include "Reader.h"
 
-class CityGMLReader : public Reader
+class CitygmlReader : public Reader
 {
 public:
-	CityGMLReader();
-	virtual ~CityGMLReader();
+	CitygmlReader();
+	virtual ~CitygmlReader();
 
 public:
 	virtual bool readRawDataFile(std::string& filePath);

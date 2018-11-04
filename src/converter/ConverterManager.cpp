@@ -18,6 +18,8 @@
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>
+#include <proj_api.h>
+#include <json/json.h>
 
 #include "argdefinition.h"
 #include "../reader/ReaderFactory.h"
@@ -47,6 +49,10 @@ ConverterManager::ConverterManager()
 	bAlignPostionToCenter = false;
 
 	meshType = 0;
+
+	bUseReferenceLonLat = false;
+
+	bUseEpsg = false;
 }
 
 ConverterManager::~ConverterManager()
@@ -57,9 +63,38 @@ ConverterManager::~ConverterManager()
 
 
 // ConverterManager 멤버 함수
-bool ConverterManager::initialize()
+bool ConverterManager::initialize(std::map<std::string, std::string>& arguments)
 {
+	std::string programPath = arguments[ProgramPath];
+	std::string programFolder;
 
+	namespace bfs = boost::filesystem;
+
+	bfs::path folderPath(programPath);
+	bfs::path projPath = folderPath.parent_path();
+	projPath /= "proj";
+
+	if (bfs::is_directory(projPath))
+	{
+		std::cout << "Proj4 : " << projPath.string() << std::endl;
+		std::string projString = projPath.string();
+		const char* epsgPath = projString.c_str();
+		pj_set_searchpath(1, &epsgPath);
+	}
+	else
+	{
+		std::cout << "Can not find Proj4 serchpath location : " << projPath.string() << std::endl;
+	}
+	//size_t lastSlashPos = programPath.rfind('/');
+	//programFolder = programPath.substr(0, lastSlashPos + 1);
+	//std::string projLibPath = programFolder + std::string("proj");
+
+
+	if (!setProcessConfiguration(arguments))
+	{
+		pj_set_searchpath(0, NULL);
+		return false;
+	}
 
 	if(processor == NULL)
 		processor = new ConversionProcessor();
@@ -69,6 +104,8 @@ bool ConverterManager::initialize()
 
 void ConverterManager::uninitialize()
 {
+	pj_set_searchpath(0, NULL);
+
 	if (processor != NULL)
 		processor->uninitialize();
 }
@@ -122,14 +159,6 @@ bool ConverterManager::processDataFolder()
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
 		LogWriter::getLogWriter()->addContents(inputFolder, true);
-		return false;
-	}
-
-	if (!referenceFileName.empty() && targetFiles.find(referenceFileName) == targetFiles.end())
-	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(NO_REFERENCE_FILE), false);
-		LogWriter::getLogWriter()->addContents(referenceFileName, true);
 		return false;
 	}
 
@@ -235,26 +264,34 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 	processor->setYAxisUp(bYAxisUp);
 	processor->setAlignPostionToCenter(bAlignPostionToCenter);
 	processor->setMeshType(meshType);
+	switch (meshType)
+	{
+	case 1:
+		processor->setSkinLevel(50);
+		processor->setLeafSpatialOctreeSize(40.0f);
+		break;
+	case 2:
+		processor->setSkinLevel(51);
+		processor->setLeafSpatialOctreeSize(40.0f);
+		break;
+	}
 	// TODO(khj 20180417) end
 
-	if (meshType == 1 || meshType == 2)
+	//// hard-cord for japan(AIST) realistic mesh and romania data
+	//processor->setVisibilityIndexing(false);
+	/*processor->setYAxisUp(false);
+	processor->setAlignPostionToCenter(bAlignPostionToCenter);
+	processor->setMeshType(meshType);
+	switch(meshType)
 	{
-		//// hard-cord for japan(AIST) realistic mesh
-		processor->setVisibilityIndexing(false);
-		processor->setYAxisUp(false);
-		processor->setAlignPostionToCenter(false);
-		processor->setMeshType(meshType);
-		switch (meshType)
-		{
-		case 1:
-			processor->setSkinLevel(50);
-			break;
-		case 2:
-			processor->setSkinLevel(51);
-			break;
-		}
-		processor->setLeafSpatialOctreeSize(40.0f);
+	case 1:
+		processor->setSkinLevel(50);
+		break;
+	case 2:
+		processor->setSkinLevel(51);
+		break;
 	}
+	processor->setLeafSpatialOctreeSize(40.0f);*/
 
 	//// hard-cord for new york citygml
 	//processor->setVisibilityIndexing(false);
@@ -291,6 +328,15 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 			continue;
 		}
 
+		// 1.1 get embedded representative lon/lat of original dataset
+		if (reader->doesHasGeoReferencingInfo())
+		{
+			double lon, lat;
+			reader->getGeoReferencingInfo(lon, lat);
+			centerXs[dataFile] = lon;
+			centerYs[dataFile] = lat;
+		}
+
 		delete reader;
 
 		std::string::size_type dotPosition = dataFile.rfind(".");
@@ -313,21 +359,13 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 			continue;
 		}
 
-		// 2.1 extract representative lon/lat of F4D if a reference file exists
-		if (!referenceFileName.empty())
+		// 2.1 extract representative lon/lat of F4D
+		if (bUseEpsg || bUseReferenceLonLat)
 		{
-			if (dataFile == referenceFileName)
-			{
-				double dummy;
-				processor->getOriginalBoundingBox().getCenterPoint(referencePosX, referencePosY, dummy);
-			}
-			else
-			{
-				double centerX, centerY, centerZ;
-				processor->getOriginalBoundingBox().getCenterPoint(centerX, centerY, centerZ);
-				centerXs[dataFile] = centerX;
-				centerYs[dataFile] = centerY;
-			}
+			double centerX, centerY, centerZ;
+			processor->getOriginalBoundingBox().getCenterPoint(centerX, centerY, centerZ);
+			centerXs[dataFile] = centerX;
+			centerYs[dataFile] = centerY;
 		}
 
 		// 3. processor clear
@@ -336,8 +374,13 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 	}
 
 	// save representative lon / lat of F4D if a reference file exists
-	if (!referenceFileName.empty())
-		writeRepresentativeLonLatOfEachData(centerXs, centerYs);
+	if (!centerXs.empty())
+	{
+		std::string proj4String;
+		if (bUseEpsg || bUseReferenceLonLat)
+			proj4String = makeProj4String();
+		writeRepresentativeLonLatOfEachData(centerXs, centerYs, proj4String);
+	}
 }
 
 bool ConverterManager::writeIndexFile()
@@ -387,7 +430,7 @@ bool ConverterManager::isInitialized()
 	return true;
 }
 
-void ConverterManager::setProcessConfiguration(std::map<std::string, std::string>& arguments)
+bool ConverterManager::setProcessConfiguration(std::map<std::string, std::string>& arguments)
 {
 	if (arguments.find(InputFolder) != arguments.end())
 	{
@@ -468,12 +511,52 @@ void ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 			bYAxisUp = false;
 	}
 
-	if (arguments.find(ReferenceFile) != arguments.end())
+	if (arguments.find(ReferenceLonLat) != arguments.end())
 	{
-		referenceFileName = arguments[ReferenceFile];
-		referenceLon = std::stod(arguments[MatchedLon]);
-		referenceLat = std::stod(arguments[MatchedLat]);
+		size_t lonLatLength = arguments[ReferenceLonLat].length();
+		char* original = new char[lonLatLength + 1];
+		memset(original, 0x00, sizeof(char)*(lonLatLength + 1));
+		memcpy(original, arguments[ReferenceLonLat].c_str(), lonLatLength);
+		char* lon = std::strtok(original, ",");
+		char* lat = std::strtok(NULL, ",");
+		referenceLon = std::stod(lon);
+		referenceLat = std::stod(lat);
+		delete[] original;
+		bUseReferenceLonLat = true;
+		bAlignPostionToCenter = true;
 	}
+
+	if (arguments.find(AlignToCenter) != arguments.end())
+	{
+		if (arguments[AlignToCenter] == std::string("Y") ||
+			arguments[AlignToCenter] == std::string("y"))
+			bAlignPostionToCenter = true;
+		else
+			bAlignPostionToCenter = false;
+	}
+
+	if (arguments.find(Epsg) != arguments.end())
+	{
+		epsgCode = arguments[Epsg];
+
+		std::string proj4String = std::string("+init=epsg:") + epsgCode;
+
+		projPJ pjEpsg;
+		pjEpsg = pj_init_plus(proj4String.c_str());
+		if (pjEpsg == NULL)
+		{
+			char* errorMsg = pj_strerrno(pj_errno);
+			LogWriter::getLogWriter()->addContents(std::string(UNSUPPERTED_EPSG_CODE), false);
+			LogWriter::getLogWriter()->addContents(epsgCode, true);
+
+			return false;
+		}
+
+		bUseEpsg = true;
+		bAlignPostionToCenter = true;
+	}
+
+	return true;
 }
 
 void ConverterManager::process()
@@ -535,41 +618,110 @@ void ConverterManager::collectTargetFiles(std::string inputFolder, std::map<std:
 	}
 }
 
-void ConverterManager::writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs)
+std::string ConverterManager::makeProj4String()
 {
-	std::string lonLatFileFullPath = outputFolderPath + std::string("/lonsLats.txt");
+	std::string proj4String;
+
+	if (bUseEpsg)
+	{
+		proj4String = std::string("+init=epsg:") + epsgCode;
+
+		return proj4String;
+	}
+
+	if (bUseReferenceLonLat)
+	{
+		proj4String = std::string("+proj=tmerc +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
+		proj4String += std::string(" +lon_0=") + std::to_string(referenceLon);
+		proj4String += std::string(" +lat_0=") + std::to_string(referenceLat);
+
+		return proj4String;
+	}
+
+	return proj4String;
+}
+
+void ConverterManager::writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs, std::string proj4String)
+{
+	Json::Value arrayNode(Json::arrayValue);
+
+	if (proj4String.empty())
+	{
+		std::map<std::string, double>::iterator iter = posXs.begin();
+		for (; iter != posXs.end(); iter++)
+		{
+			Json::Value f4d(Json::objectValue);
+
+			// data_key
+			std::string fileName = iter->first;
+			std::string::size_type dotPosition = fileName.rfind(".");
+			std::string dataKey = fileName.substr(0, dotPosition);
+			f4d["data_key"] = dataKey;
+
+			// longitude and latitude
+			f4d["longitude"] = iter->second;
+			f4d["latitude"] = posYs[iter->first];
+
+			arrayNode.append(f4d);
+		}
+	}
+	else
+	{
+		std::string localCRS = proj4String;
+		const char* wgs84 = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
+
+		projPJ pjLocal, pjWgs84;
+		pjLocal = pj_init_plus(localCRS.c_str());
+		if (pjLocal == NULL)
+		{
+			return;
+		}
+
+		pjWgs84 = pj_init_plus(wgs84);
+		if (pjWgs84 == NULL)
+		{
+			return;
+		}
+
+		std::map<std::string, double>::iterator iter = posXs.begin();
+		int transformResult;
+
+		for (; iter != posXs.end(); iter++)
+		{
+			Json::Value f4d(Json::objectValue);
+
+			// data_key
+			std::string fileName = iter->first;
+			std::string::size_type dotPosition = fileName.rfind(".");
+			std::string dataKey = fileName.substr(0, dotPosition);
+			f4d["data_key"] = dataKey;
+
+			// longitude and latitude
+			double posX = iter->second;
+			double posY = posYs[iter->first];
+
+			transformResult = pj_transform(pjLocal, pjWgs84, 1, 1, &posX, &posY, NULL);
+			char* errorMsg = pj_strerrno(transformResult);
+			if (errorMsg != NULL)
+			{
+				continue;
+			}
+
+			posX *= RAD_TO_DEG;
+			posY *= RAD_TO_DEG;
+
+			f4d["longitude"] = posX;
+			f4d["latitude"] = posY;
+
+			arrayNode.append(f4d);
+		}
+	}
+
+	Json::StyledWriter writer;
+	std::string documentContent = writer.write(arrayNode);
+	std::string lonLatFileFullPath = outputFolderPath + std::string("/lonsLats.json");
 	FILE* file = NULL;
 	file = fopen(lonLatFileFullPath.c_str(), "wt");
-	while (referenceLon < 0.0)
-	{
-		referenceLon += 360.0;
-	}
-	while (referenceLon > 360.0)
-	{
-		referenceLon -= 360.0;
-	}
-	fprintf(file, "%s %.9lf %.9lf\n", referenceFileName.c_str(), referenceLon, referenceLat);
-
-	double deg2rad = M_PI / 180.0, rad2deg = 180.0 / M_PI;
-	double refLatRad = referenceLat * deg2rad;
-	double cosLat = cos(refLatRad);
-	double sinLat = sin(refLatRad);
-	double radiusReciprocal = sqrt(EarthVRadius*EarthVRadius*cosLat*cosLat + EarthHRadius*EarthHRadius*sinLat*sinLat) / (EarthHRadius*EarthVRadius);
-
-	std::map<std::string, double>::iterator iter = posXs.begin();
-	for (; iter != posXs.end(); iter++)
-	{
-		double posX = iter->second;
-		double posY = posYs[iter->first];
-
-		double xDiff = posX - referencePosX;
-		double yDiff = posY - referencePosY;
-
-		double lat = referenceLat + radiusReciprocal * xDiff * rad2deg;
-		double lon = referenceLon + (radiusReciprocal / cosLat)* yDiff * rad2deg;
-
-		fprintf(file, "%s %.9lf %.9lf\n", iter->first.c_str(), lon, lat);
-	}
-
+	fprintf(file, "%s", documentContent.c_str());
 	fclose(file);
 }

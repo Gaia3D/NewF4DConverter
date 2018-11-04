@@ -28,15 +28,17 @@ private:
 
 	bool bCliMode, bCreateIndices, bConversion;
 
+	std::string programPath;
 	bool bOcclusionCulling;
 	double unitScaleFactor;
 	unsigned char skinLevel;
 	bool bYAxisUp;
 	bool bAlignPostionToCenter;
-	std::string referenceFileName;
+	bool bUseReferenceLonLat;
 	double referenceLon, referenceLat;
-	double referencePosX, referencePosY;
 	int meshType;
+	bool bUseEpsg;
+	std::string epsgCode;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -47,14 +49,12 @@ public:
 
 public:
 	bool isInitialized();
-	bool initialize();
+	bool initialize(std::map<std::string, std::string>& arguments);
 	void uninitialize();
 
 	void changeGLDimension(int width, int height);
 
 	//bool processSingleFile(std::string& filePath);
-
-	void setProcessConfiguration(std::map<std::string, std::string>& arguments);
 
 	void process();
 
@@ -76,6 +76,9 @@ public:
 	void setUnitScaleFactor(double factor) { unitScaleFactor = factor; }
 
 private:
+
+	bool setProcessConfiguration(std::map<std::string, std::string>& arguments);
+
 	bool writeIndexFile();
 
 	bool processDataFolder();
@@ -88,7 +91,9 @@ private:
 
 	bool processDataFile(std::string& filePath, Reader* reader);
 
-	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs);
+	std::string makeProj4String();
+
+	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs, std::string proj4String);
 };
 
 #endif // _CONVERTERMANAGER_H_

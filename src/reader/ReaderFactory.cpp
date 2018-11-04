@@ -18,7 +18,7 @@
 #include "ClassicFormatReader.h"
 #endif
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
-#include "CityGMLReader.h"
+#include "CitygmlReader.h"
 #endif
 
 ReaderFactory::ReaderFactory()
@@ -71,7 +71,7 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
 	if (fileExt.compare(std::string("citygml")) == 0)
 	{
-		return new CityGMLReader;
+		return new CitygmlReader;
 	}
 #endif
 	return NULL;

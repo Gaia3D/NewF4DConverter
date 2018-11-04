@@ -12,6 +12,8 @@
 IfcReader::IfcReader()
 {
 	unitScaleFactor = 1.0;
+
+	bHasGeoReferencingInfo = false;
 }
 
 IfcReader::~IfcReader()
