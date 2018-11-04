@@ -483,6 +483,33 @@ void ConversionProcessor::convertSplittedRealisticMesh(std::vector<gaia3d::Trian
 		reuseOriginalMeshForRougherLods(thisSpatialOctree);
 		printf("[Info]Rougher LOD created.\n");
 	}
+
+
+	{
+		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
+		int bpp = 4;
+		for (; iter != resizedTextures.end(); iter++)
+		{
+			unsigned char* resizedImage = iter->second;
+			int widthResized = allTextureWidths[iter->first];
+			int heightResized = allTextureHeights[iter->first];
+
+			int lineSize = widthResized * bpp;
+			unsigned char* lineData = new unsigned char[lineSize];
+			memset(lineData, 0x00, sizeof(unsigned char)*lineSize);
+			for (int i = 0; i < heightResized / 2; i++)
+			{
+				unsigned char* upperLine = resizedImage + lineSize * i;
+				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
+
+				memcpy(lineData, upperLine, sizeof(unsigned char)*lineSize);
+				memcpy(upperLine, lowerLine, sizeof(unsigned char)*lineSize);
+				memcpy(lowerLine, lineData, sizeof(unsigned char)*lineSize);
+			}
+
+			delete[] lineData;
+		}
+	}
 }
 
 void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
@@ -601,6 +628,32 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 		printf("[Info]Rougher LOD created.\n");
 	}
 
+	//if (!settings.bFlipTextureCoordinateV)
+	{
+		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
+		int bpp = 4;
+		for (; iter != resizedTextures.end(); iter++)
+		{
+			unsigned char* resizedImage = iter->second;
+			int widthResized = allTextureWidths[iter->first];
+			int heightResized = allTextureHeights[iter->first];
+
+			int lineSize = widthResized * bpp;
+			unsigned char* lineData = new unsigned char[lineSize];
+			memset(lineData, 0x00, sizeof(unsigned char)*lineSize);
+			for (int i = 0; i < heightResized / 2; i++)
+			{
+				unsigned char* upperLine = resizedImage + lineSize * i;
+				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
+
+				memcpy(lineData, upperLine, sizeof(unsigned char)*lineSize);
+				memcpy(upperLine, lowerLine, sizeof(unsigned char)*lineSize);
+				memcpy(lowerLine, lineData, sizeof(unsigned char)*lineSize);
+			}
+
+			delete[] lineData;
+		}
+	}
 	//system("pause");
 }
 
@@ -952,33 +1005,40 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 	unsigned char sizeLevels = TriangleSizeLevels;
 	double sizeThresholds[TriangleSizeLevels] = TriangleSizeThresholds;
 	unsigned int eachSizeStartingIndices[TriangleSizeLevels];
-	for(size_t i = 0; i < meshCount; i++)
+	for (size_t i = 0; i < meshCount; i++)
 	{
+		gaia3d::TrianglePolyhedron* mesh = meshes[i];
+
 		vbo = new gaia3d::Vbo;
-		meshes[i]->getVbos().push_back(vbo);
+		mesh->getVbos().push_back(vbo);
 
 		std::map<gaia3d::Vertex*, size_t> addedVertices;
 
-		surfaceCount = meshes[i]->getSurfaces().size();
-		for(size_t j = 0;j < surfaceCount; j++)
+		surfaceCount = mesh->getSurfaces().size();
+		std::vector<gaia3d::Triangle*> totalTriangles;
+		for (size_t j = 0; j < surfaceCount; j++)
+		{
+			totalTriangles.insert(totalTriangles.end(), mesh->getSurfaces()[j]->getTriangles().begin(), mesh->getSurfaces()[j]->getTriangles().end());
+		}
+
+		//for(size_t j = 0;j < surfaceCount; j++)
 		{
 			sortedTriangles.clear();
-			sortTrianglesBySize(meshes[i]->getSurfaces()[j]->getTriangles(), sizeLevels, sizeThresholds, sortedTriangles, eachSizeStartingIndices);
+			//sortTrianglesBySize(mesh->getSurfaces()[j]->getTriangles(), sizeLevels, sizeThresholds, sortedTriangles, eachSizeStartingIndices);
+			sortTrianglesBySize(totalTriangles, sizeLevels, sizeThresholds, sortedTriangles, eachSizeStartingIndices);
 
 			triangleCount = sortedTriangles.size();
-			for(size_t k = 0; k < triangleCount; k++)
+			for (size_t k = 0; k < triangleCount; k++)
 			{
-				if(vbo->vertices.size() >= VboVertexMaxCount)
+				if (vbo->vertices.size() >= VboVertexMaxCount)
 				{
-					// vbo의 maximum vertex개수가 다 차면
-					// 새로 만들어주어야 한다.
-					// 새로 만들기 전에 size별로 sorting 해둔 index marker를 이용해
-					// 기존의 vbo에 size별 index marker를 넣어야 한다.
-					for(size_t m = 0; m < TriangleSizeLevels; m++)
+					// have to make new vbo when vertex count of current vbo is over limitation of vertex count.
+					// before making newer vbo, have to insert index markers into current vbo with sorted index markers along triangle edge size.
+					for (size_t m = 0; m < TriangleSizeLevels; m++)
 					{
-						if(eachSizeStartingIndices[m]*3 > vbo->indices.size())
+						if (eachSizeStartingIndices[m] * 3 > vbo->indices.size())
 						{
-							for(size_t n=m; n < TriangleSizeLevels; n++)
+							for (size_t n = m; n < TriangleSizeLevels; n++)
 							{
 								vbo->indexMarker[n] = (unsigned int)vbo->indices.size();
 								eachSizeStartingIndices[n] -= (unsigned int)vbo->indices.size() / 3;
@@ -986,19 +1046,19 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 						}
 						else
 						{
-							vbo->indexMarker[m] = eachSizeStartingIndices[m]*3;
+							vbo->indexMarker[m] = eachSizeStartingIndices[m] * 3;
 							eachSizeStartingIndices[m] = 0;
 						}
 					}
 
 					vbo = new gaia3d::Vbo;
-					meshes[i]->getVbos().push_back(vbo);
+					mesh->getVbos().push_back(vbo);
 
 					addedVertices.clear();
 				}
 
 				vertices = sortedTriangles[k]->getVertices();
-				for(size_t m = 0; m < 3; m++)
+				for (size_t m = 0; m < 3; m++)
 				{
 					if (addedVertices.find(vertices[m]) == addedVertices.end())
 					{
@@ -1013,12 +1073,12 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 				}
 			}
 
-			// 마지막 vbo에 size별 index marker를 넣어줘야 한다.
-			for(size_t m = 0; m < TriangleSizeLevels; m++)
+			// have to insert index markers into the last created vbo
+			for (size_t m = 0; m < TriangleSizeLevels; m++)
 			{
-				if(eachSizeStartingIndices[m]*3 > vbo->indices.size())
+				if (eachSizeStartingIndices[m] * 3 > vbo->indices.size())
 				{
-					for(size_t n=m; n < TriangleSizeLevels; n++)
+					for (size_t n = m; n < TriangleSizeLevels; n++)
 					{
 						vbo->indexMarker[n] = (unsigned int)vbo->indices.size();
 						eachSizeStartingIndices[n] -= (unsigned int)vbo->indices.size() / 3;
@@ -1026,15 +1086,15 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 				}
 				else
 				{
-					vbo->indexMarker[m] = eachSizeStartingIndices[m]*3;
+					vbo->indexMarker[m] = eachSizeStartingIndices[m] * 3;
 					eachSizeStartingIndices[m] = 0;
 				}
 			}
 		}
 
-		if(bBind)
+		if (bBind)
 		{
-			// TODO(khj 20170323) : NYI 나중에 off-screen rendering 때문에 gpu를 사용해야 한다면 여기서 추가 구현 해야 한다.
+			// TODO(khj 20170323) : NYI if we have to use gpu for off-screen rendering later, have to implement it here
 		}
 	}
 }
@@ -3437,6 +3497,9 @@ void ConversionProcessor::removeDuplicatedVerticesAndOverlappingTriangles(std::v
 			// find coincident vertices
 			std::vector<gaia3d::Vertex*> coincidentVertices;
 			gaia3d::PointDistributionOctree* leafOctree = octree.getIntersectedLeafOctree(vertex);
+			if (leafOctree == NULL)
+				continue;
+
 			size_t octreeVertexCount = leafOctree->vertices.size();
 			for (size_t k = 0; k < octreeVertexCount; k++)
 			{

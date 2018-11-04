@@ -14,6 +14,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 #include "argdefinition.h"
 #include "converter/ConverterManager.h"
@@ -45,6 +46,7 @@ bool extractArguments(int argc, char** argv)
 	std::string token;
 	std::vector<std::string> tokens;
 
+	arguments[ProgramPath] = std::string(argv[0]);
 	for (int i = 1; i < argc; i++)
 	{
 		//token = gaia3d::s2ws(argv[i]);
@@ -133,23 +135,9 @@ bool extractArguments(int argc, char** argv)
 				continue;
 			}
 
-			if (tokens[i] == std::string(ReferenceFile))
+			if (tokens[i] == std::string(ReferenceLonLat))
 			{
-				arguments[ReferenceFile] = tokens[i + 1];
-				i++;
-				continue;
-			}
-
-			if (tokens[i] == std::string(MatchedLon))
-			{
-				arguments[MatchedLon] = tokens[i + 1];
-				i++;
-				continue;
-			}
-
-			if (tokens[i] == std::string(MatchedLat))
-			{
-				arguments[MatchedLat] = tokens[i + 1];
+				arguments[ReferenceLonLat] = tokens[i + 1];
 				i++;
 				continue;
 			}
@@ -157,6 +145,20 @@ bool extractArguments(int argc, char** argv)
 			if (tokens[i] == std::string(MeshType))
 			{
 				arguments[MeshType] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(AlignToCenter))
+			{
+				arguments[AlignToCenter] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(Epsg))
+			{
+				arguments[Epsg] = tokens[i + 1];
 				i++;
 				continue;
 			}
@@ -249,15 +251,55 @@ bool extractArguments(int argc, char** argv)
 			return false;
 	}
 
-	if (arguments.find(ReferenceFile) != arguments.end())
+	if (arguments.find(ReferenceLonLat) != arguments.end())
 	{
-		if (arguments.find(MatchedLon) == arguments.end() || arguments.find(MatchedLat) == arguments.end())
+		size_t lonLatLength = arguments[ReferenceLonLat].length();
+		char* original = new char[lonLatLength + 1];
+		memset(original, 0x00, sizeof(char)*(lonLatLength + 1));
+		memcpy(original, arguments[ReferenceLonLat].c_str(), lonLatLength);
+		char* lon = std::strtok(original, ",");
+		if (lon == NULL)
+		{
+			delete[] original;
 			return false;
+		}
+		char* lat = std::strtok(NULL, ",");
+		if (lat == NULL)
+		{
+			delete[] original;
+			return false;
+		}
 
 		try
 		{
-			double refLon = std::stod(arguments[MatchedLon]);
-			double refLat = std::stod(arguments[MatchedLat]);
+			double refLon = std::stod(lon);
+			double refLat = std::stod(lat);
+		}
+		catch (const std::invalid_argument& error)
+		{
+			std::string errorMessage = error.what();
+			delete[] original;
+			return false;
+		}
+		catch (const std::out_of_range& error)
+		{
+			std::string errorMessage = error.what();
+			delete[] original;
+			return false;
+		}
+		delete[] original;
+	}
+
+	if (arguments.find(MeshType) != arguments.end())
+	{
+		try
+		{
+			int meshType = std::stoi(arguments[MeshType]);
+
+			//if(meshType != 1 && meshType != 2) // AIT version
+			if (meshType != 0) // release version
+			//if (meshType != 2 && meshType != 0) // for romania
+				return false;
 		}
 		catch (const std::invalid_argument& error)
 		{
@@ -270,21 +312,21 @@ bool extractArguments(int argc, char** argv)
 			return false;
 		}
 	}
-	else
+
+	if (arguments.find(AlignToCenter) != arguments.end())
 	{
-		if (arguments.find(MatchedLon) != arguments.end() || arguments.find(MatchedLat) != arguments.end())
+		if (arguments[AlignToCenter] != std::string("Y") &&
+			arguments[AlignToCenter] != std::string("y") &&
+			arguments[AlignToCenter] != std::string("N") &&
+			arguments[AlignToCenter] != std::string("n"))
 			return false;
 	}
 
-	if (arguments.find(MeshType) != arguments.end())
+	if (arguments.find(Epsg) != arguments.end())
 	{
 		try
 		{
-			int meshType = std::stoi(arguments[MeshType]);
-
-			if (meshType != 0 && meshType != 1 && meshType != 2) // AIT version
-			//if (meshType != 0) // release version
-				return false;
+			int nEpsgCode = std::stoi(arguments[Epsg]);
 		}
 		catch (const std::invalid_argument& error)
 		{
@@ -333,10 +375,11 @@ int main(int argc, char** argv)
 	print_version();
 
 	// process
-	ConverterManager::getConverterManager()->initialize();
-	ConverterManager::getConverterManager()->setProcessConfiguration(arguments);
-	ConverterManager::getConverterManager()->process();
-	ConverterManager::getConverterManager()->uninitialize();
+	if (ConverterManager::getConverterManager()->initialize(arguments))
+	{
+		ConverterManager::getConverterManager()->process();
+		ConverterManager::getConverterManager()->uninitialize();
+	}
 
 	// TODO(khj 20180424) : NYI must make log file through logger system
 	// finish and save log if log writing started

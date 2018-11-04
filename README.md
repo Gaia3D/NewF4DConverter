@@ -33,10 +33,13 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 - .3ds
 - .obj
 - .dae
-
+- .gml / .xml / .citygml
+  
 > Beside above formats, other formats which are supported by Assimp may be supported.(NOT TESTED!!)
 >
 > In this version, .JT(Jupiter Tessellation, a kind of cad design format) is not included.
+>  
+> As you know, the file extension .gml and .xml are not only used in citygml. So we are considering if we have to limit the file extension for citygml.
 
 ## Dependencies
 
@@ -50,6 +53,9 @@ OpenGL Mathematics      | [glm](https://github.com/g-truc/glm)
 Texture Loading         | [stb](https://github.com/nothings/stb)
 IFC Loading             | [ifcplusplus](https://github.com/ifcquery/ifcplusplus)
 Json Loading            | [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
+Projections             | [proj.4](https://github.com/OSGeo/proj.4)
+XML Parserxerces-c      | [xerces-c](https://github.com/apache/xerces-c)
+CityGML Loading         | [libcitygml](https://github.com/jklimke/libcitygml)
 
 ## License
 Copyright (c) 2012-2018, http://www.gaia3d.com

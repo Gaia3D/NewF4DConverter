@@ -26,3 +26,15 @@
 	path = lib/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
 	branch = master
+[submodule "lib/libcitygml"]
+	path = lib/libcitygml
+	url = https://github.com/jklimke/libcitygml.git
+	branch = master
+[submodule "lib/xerces"]
+	path = lib/xerces
+	url = https://github.com/apache/xerces-c.git
+	branch = trunk
+[submodule "lib/proj"]
+	path = lib/proj
+	url = https://github.com/OSGeo/proj.4.git
+	branch = master
