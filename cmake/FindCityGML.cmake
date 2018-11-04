@@ -1,4 +1,4 @@
-# Locate libcitygml
+﻿# Locate libcitygml
 # This module defines
 # CITYGML_LIBRARY
 # CITYGML_LIBRARY_DEBUG 
