@@ -1,0 +1,47 @@
+image: centos:latest
+
+stages:
+  - prepare
+  - build
+  # - test
+  # - package
+
+# cache:
+#   untracked: true
+#     paths:
+#       - build
+#       - external
+
+before_script:
+  - apt-get -qq update
+
+prepare:
+  stage: prepare
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make update
+
+build:
+  stage: build
+  script:
+    - cd build
+    - make -j 4
+    # - make install
+
+# test:
+#   stage: test
+#   script:
+#     - cd build
+#     - make check
+
+# package:
+#   stage: package
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#       - build/out/
+#   script:
+#     - cd build
+#     - make package
