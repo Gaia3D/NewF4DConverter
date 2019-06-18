@@ -39,6 +39,7 @@ private:
 	int meshType;
 	bool bUseEpsg;
 	std::string epsgCode;
+	double offsetX, offsetY, offsetZ;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -93,7 +94,9 @@ private:
 
 	std::string makeProj4String();
 
-	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs, std::string proj4String);
+	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs);
+
+	void processSingleLoop(std::map<std::string, std::string>& targetFiles, std::map<std::string, double>& centerXs, std::map<std::string, double>& centerYs, unsigned char depth);
 };
 
 #endif // _CONVERTERMANAGER_H_

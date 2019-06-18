@@ -46,6 +46,10 @@ namespace gaia3d
 												double& minX, double& minY, double& minZ,
 												double& maxX, double& maxY, double& maxZ);
 
+		static void wgs84ToAbsolutePosition(double&lon, double& lat, double& alt, double* result);
+		static void normalAtAbsolutePosition(double& x, double& y, double& z, double* result);
+		static void transformMatrixAtAbsolutePosition(double& x, double& y, double& z, double* m);
+
 		static void mergeLegoBlocksAlongZAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
 
 		static void mergeLegoBlocksAlongYAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);

@@ -20,6 +20,9 @@
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
 #include "CitygmlReader.h"
 #endif
+#ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
+#include "PointCloudReader.h"
+#endif
 
 ReaderFactory::ReaderFactory()
 {
@@ -35,7 +38,7 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	if(dotPosition == std::string::npos)
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(INVALID_TRIANGLE_COUNT), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
 		return NULL;
 	}
 
@@ -74,5 +77,14 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 		return new CitygmlReader;
 	}
 #endif
+
+#ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
+	if (fileExt.compare(std::string("las")) == 0 ||
+		fileExt.compare(std::string("tpc")) == 0)
+	{
+		return new PointCloudReader;
+	}
+#endif
+
 	return NULL;
 }

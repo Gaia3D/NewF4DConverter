@@ -25,6 +25,7 @@ namespace gaia3d
 		double tolerance = minSize * 0.4;
 		if (maxEdgeLength > minSize + tolerance)
 		{
+			// 1) make 8 children
 			for (size_t i = 0; i < 8; i++)
 			{
 				PointDistributionOctree* child = new PointDistributionOctree(this);
