@@ -31,7 +31,6 @@ public:
 	unsigned char interiorVisibilityIndexingOctreeDepth; // visibility octree depth for interior
 	unsigned char exteriorVisibilityIndexingOctreeDepth; // visibility octree depth for exterior
 
-	bool bYAxisUp; // if y axis of original data is toward ceil
 	bool bAlignPositionToCenter; // if positions of result F4D is relative to it's center
 	int meshType; // type of original mesh
 				  // 0 : semantic mesh, 1 : single(merged) realistic mesh, 2 : splitted realistic mesh

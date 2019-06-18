@@ -4,7 +4,6 @@
 # JSONCPP_FOUND - true if Jsoncpp has been found and can be used
 #--------------------------------------------------------------------
 
-
 # Find include files
 FIND_PATH(JSONCPP_INCLUDE_DIR
 	NAMES

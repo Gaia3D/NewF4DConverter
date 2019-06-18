@@ -55,9 +55,9 @@ public:
 	void setExteriorVisibilityIndexingOctreeDepth(unsigned char depth) { settings.exteriorVisibilityIndexingOctreeDepth = depth; }
 	void clearNsmSettings() { settings.clearNsmSettings(); }
 	void setSkinLevel(unsigned char level) { settings.netSurfaceMeshSettingIndex = level; }
-	void setYAxisUp(bool bUp) { settings.bYAxisUp = bUp; }
 	void setAlignPostionToCenter(bool bAlign) { settings.bAlignPositionToCenter = bAlign; }
 	void setMeshType(int type) { settings.meshType = type; }
+	int getMeshType() { return settings.meshType; }
 
 protected:
 	ProcessSetting settings;
@@ -72,7 +72,7 @@ protected:
 	std::map<std::string, unsigned int> allTextureHeights;
 
 	gaia3d::BoundingBox fullBbox;
-	gaia3d::BoundingBox originalFullBbox;
+	//gaia3d::BoundingBox originalFullBbox;
 
 	gaia3d::SpatialOctreeBox thisSpatialOctree;
 
@@ -147,12 +147,14 @@ public:
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureWidth() { return netSurfaceTextureWidth; }
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureHeight() { return netSurfaceTextureHeight; }
 
-	gaia3d::BoundingBox& getOriginalBoundingBox() { return originalFullBbox; }
+	//gaia3d::BoundingBox& getOriginalBoundingBox() { return originalFullBbox; }
 
 	bool isTextureFlipX() { return textureFlip[0]; }
 	bool isTextureFlipY() { return textureFlip[1]; }
 protected:
 	// main processing steps - start
+	void convertPointCloud(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes);
+
 	void convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 							std::map<std::string, std::string>& originalTextureInfo);
 
@@ -189,6 +191,13 @@ protected:
 												bool bFixedDepth,
 												double leafBoxSize,
 												bool bAllowDuplication);
+
+	void assignObjectsIntoEachCubeInPyramid(gaia3d::SpatialOctreeBox& spatialOctree,
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		gaia3d::BoundingBox& bbox,
+		double leafBoxSize,
+		bool bAllowDuplication,
+		bool bBasedOnMesh);
 
 	void makeOcclusionInformation(std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 									gaia3d::VisionOctreeBox& interiorOcclusionOctree,
@@ -264,7 +273,7 @@ protected:
 								std::map<unsigned char, unsigned int>& mosaicTextureWidth,
 								std::map<unsigned char, unsigned int>& mosaicTextureHeight);
 
-	void rotateAllMeshesAroundXAxisByQuater(std::vector<gaia3d::TrianglePolyhedron*>& meshes);
+	//void rotateAllMeshesAroundXAxisByQuater(std::vector<gaia3d::TrianglePolyhedron*>& meshes);
 
 	void changeXYPlaneCoordinateToRelativeCoordinateToBoundingBoxFootprintCenter(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox);
 

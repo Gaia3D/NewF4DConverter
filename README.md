@@ -1,4 +1,4 @@
-# [F4DConverter] (https://github.com/Gaia3D/F4DConverter)
+﻿# [F4DConverter] (https://github.com/Gaia3D/F4DConverter)
 
 ## Summary
 This application, F4DConverter, is for converting popular 3D model formats into F4D format which is devised for Mago3D - 3D web geo-platform. (www.mago3d.com). This project is of Multiplatform(UNIX, MAC OSX, Windows) C++ project.
@@ -56,6 +56,10 @@ Json Loading            | [jsoncpp](https://github.com/open-source-parsers/jsonc
 Projections             | [proj.4](https://github.com/OSGeo/proj.4)
 XML Parserxerces-c      | [xerces-c](https://github.com/apache/xerces-c)
 CityGML Loading         | [libcitygml](https://github.com/jklimke/libcitygml)
+GDAL                    | [gdal](https://github.com/OSGeo/gdal)
+GeoTIFF Loading         | [libgeotiff](https://github.com/OSGeo/libgeotiff)
+LAS LiDAR Loading       | [liblas](https://github.com/libLAS/libLAS)
+
 
 ## License
 Copyright (c) 2012-2018, http://www.gaia3d.com
@@ -77,4 +81,4 @@ a commercial license agreement with Gaia3D.
 For Open Source Projects and Other Developers of Open Source Applications:
 For developers of Free Open Source Software ("FOSS") applications under the GPL or AGPL
 that want to combine and distribute those FOSS applications with mago3D F4DConverter software,
-Gaia3D’s open source software licensed under the AGPL is the best option.
+Gaia3D's open source software licensed under the AGPL is the best option.

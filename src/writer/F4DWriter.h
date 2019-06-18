@@ -46,6 +46,10 @@ public:
 	bool writeIndexFile();
 
 protected:
+	bool writeMeshes();
+
+	bool writePoints();
+
 	bool writeHeader(FILE* f, std::map<std::string, size_t>& textureIndices);
 
 	bool writeVisibilityIndices(FILE* f, gaia3d::OctreeBox* octree);
@@ -56,7 +60,7 @@ protected:
 
 	bool writeLegoBlocks(std::string& legoBlockPath);
 
-	bool writeOctreeInfo(gaia3d::OctreeBox* octree, FILE* f);
+	bool writeOctreeInfo(gaia3d::OctreeBox* octree, unsigned short dataType, FILE* f);
 
 	void writeColor(unsigned long color, unsigned short type, bool bAlpha, FILE* file);
 
@@ -67,6 +71,8 @@ protected:
 	void writeNetSurfaceMesh(gaia3d::TrianglePolyhedron* mesh, FILE* f);
 
 	void writeNetSurfaceTextures(std::string resultPath);
+
+	void writePointPartition(gaia3d::OctreeBox* octree, std::string& referencePath, bool bShouldCompress);
 };
 
 #endif // _F4DWRITER_H_
