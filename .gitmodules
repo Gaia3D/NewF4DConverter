@@ -38,3 +38,11 @@
 	path = lib/proj
 	url = https://github.com/OSGeo/proj.4.git
 	branch = master
+[submodule "lib/catch2"]
+	path = lib/catch2
+	url = https://github.com/catchorg/Catch2.git
+	branch = master
+[submodule "lib/spdlog"]
+	path = lib/spdlog
+	url = https://github.com/gabime/spdlog.git
+	branch = master

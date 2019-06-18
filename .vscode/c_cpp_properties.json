@@ -13,7 +13,12 @@
                 "${workspaceFolder}/src",
                 "${workspaceFolder}/lib/glad/include",
                 "${workspaceFolder}/lib/glfw/include",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/lib/assimp/include",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/lib/proj/src",
+                "${workspaceFolder}/build/lib/assimp/include",
+                "${workspaceFolder}/lib/jsoncpp/include",
+                "${workspaceFolder}/lib/stb"
             ],
             "defines": [
                 "_DEBUG",
