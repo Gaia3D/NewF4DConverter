@@ -1,10 +1,9 @@
-﻿# - Try to find Xerces-C
-# Once done this will define
-#
+﻿#--------------------------------------------------------------------
 #  XERCESC_FOUND - system has Xerces-C
 #  XERCESC_INCLUDE - the Xerces-C include directory
 #  XERCESC_LIBRARY - Link these to use Xerces-C
 #  XERCESC_VERSION - Xerces-C found version
+#--------------------------------------------------------------------
 
 IF (XERCESC_INCLUDE AND XERCESC_LIBRARY)
 # in cache already
@@ -20,10 +19,21 @@ ENDIF (NOT  ${XERCESC_WAS_STATIC} STREQUAL ${XERCESC_STATIC})
 
 SET(XERCESC_WAS_STATIC ${XERCESC_STATIC} CACHE INTERNAL "" )
 
+IF(WIN32)
+  IF(DEFINED ENV{OSGEO4W_ROOT})
+    SET(OSGEO4W_ROOT_DIR $ENV{OSGEO4W_ROOT})
+    MESSAGE(STATUS " FindXerces: trying OSGeo4W using environment variable OSGEO4W_ROOT=$ENV{OSGEO4W_ROOT}")
+  ELSE()
+    SET(OSGEO4W_ROOT_DIR c:/OSGeo4W)
+    MESSAGE(STATUS " FindXerces: trying OSGeo4W using default location OSGEO4W_ROOT=${OSGEO4W_ROOT_DIR}")
+  ENDIF()
+ENDIF()
+
 FIND_PATH(XERCESC_INCLUDE NAMES xercesc/util/XercesVersion.hpp
 PATHS
 $ENV{XERCESC_INCLUDE_DIR}
 ${XERCESC_INCLUDE_DIR}
+${OSGEO4W_ROOT_DIR}/include
  /usr/local/include
  /usr/include
 )
@@ -33,13 +43,15 @@ FIND_LIBRARY(XERCESC_LIBRARY NAMES xerces-c_static_3 xerces-c-3.2 xerces-c-3.1 x
  PATHS
  $ENV{XERCESC_LIBRARY_DIR}
  ${XERCESC_LIBRARY_DIR}
+ ${OSGEO4W_ROOT_DIR}/lib
  /usr/lib
  /usr/local/lib
 )
-FIND_LIBRARY(XERCESC_LIBRARY_DEBUG NAMES xerces-c_static_3D xerces-c-3.2D xerces-c-3.1D xerces-c_3D
+FIND_LIBRARY(XERCESC_LIBRARY_DEBUG NAMES xerces-c_static_3D xerces-c-3.2D xerces-c-3.1D xerces-c_3D xerces-c_3D
  PATHS
  $ENV{XERCESC_LIBRARY_DIR}
  ${XERCESC_LIBRARY_DIR}
+ ${OSGEO4W_ROOT_DIR}/lib
  /usr/lib
  /usr/local/lib
 )
@@ -49,11 +61,13 @@ FIND_LIBRARY(XERCESC_LIBRARY NAMES xerces-c_3
  PATHS
  $ENV{XERCESC_LIBRARY_DIR}
  ${XERCESC_LIBRARY_DIR}
+ ${OSGEO4W_ROOT_DIR}/lib
 )
 FIND_LIBRARY(XERCESC_LIBRARY_DEBUG NAMES xerces-c_3D
  PATHS
  $ENV{XERCESC_LIBRARY_DIR}
  ${XERCESC_LIBRARY_DIR}
+ ${OSGEO4W_ROOT_DIR}/lib
 )
 ENDIF (XERCESC_STATIC)
 

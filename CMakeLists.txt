@@ -26,7 +26,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 IF(WIN32)
 	SET(Boost_USE_STATIC_LIBS ON CACHE INTERNAL "" FORCE)
 ENDIF()
-FIND_PACKAGE(Boost COMPONENTS locale system filesystem)
+FIND_PACKAGE(Boost COMPONENTS thread locale system filesystem)
 IF(NOT Boost_FOUND)
 	#SET(Boost_USE_STATIC_LIBS OFF)
 	#SET(Boost_USE_MULTITHREADED ON)
@@ -67,6 +67,7 @@ FIND_PACKAGE(GLM)
 IF(NOT GLM_FOUND)
 	MESSAGE(STATUS "GLM not found! Using local source...")
 
+	SET(GLM_TEST_ENABLE OFF CACHE INTERNAL "" FORCE)
 	SET(GLM_STATIC_LIBRARY_ENABLE ON CACHE INTERNAL "" FORCE)
 
 	ADD_SUBDIRECTORY(lib/glm)
@@ -190,20 +191,20 @@ INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 #--------------------------------------------------------------------
 # Find PROJ4
 #--------------------------------------------------------------------
-#FIND_PACKAGE(PROJ4)
-#IF(NOT PROJ4_FOUND)
-#	MESSAGE(STATUS "Proj4 not found! Using local source...")
+FIND_PACKAGE(Proj)
+IF(NOT PROJ4_FOUND)
+	MESSAGE(STATUS "Proj4 not found! Using local source...")
 	#ADD_DEFINITIONS(-DACCEPT_USE_OF_DEPRECATED_PROJ_API_H)
 	SET(PROJ_TESTS OFF CACHE INTERNAL "" FORCE)
 	ADD_SUBDIRECTORY(lib/proj)
 	SET(PROJ4_INCLUDE_DIRS "${PROJ4_SOURCE_DIR}/src" "${PROJ4_BINARY_DIR}/src")
 	SET(PROJ4_LIBRARIES proj)
-#ENDIF()
+ENDIF()
 MESSAGE(STATUS "${PROJ4_INCLUDE_DIRS}")
 MESSAGE(STATUS "${PROJ4_LIBRARIES}")
 
 INCLUDE_DIRECTORIES(${PROJ4_INCLUDE_DIRS})
-#LINK_LIBRARIES(${PROJ4_LIBRARIES})
+LINK_LIBRARIES(${PROJ4_LIBRARIES})
 
 #--------------------------------------------------------------------
 # Find IfcPlusPlus
@@ -282,12 +283,56 @@ ADD_CUSTOM_TARGET(build_external_projects
                   DEPENDS jsoncpp_external_project)
 
 #--------------------------------------------------------------------
+# Find libGeoTiff
+#--------------------------------------------------------------------
+FIND_PACKAGE(GeoTIFF REQUIRED)
+IF(NOT GEOTIFF_FOUND)
+	MESSAGE(STATUS "libGeoTiff not found!")
+ENDIF()
+
+MESSAGE(STATUS "${GEOTIFF_INCLUDE_DIR}")
+MESSAGE(STATUS "${GEOTIFF_LIBRARY}")
+
+INCLUDE(CheckFunctionExists)
+INCLUDE_DIRECTORIES(${GEOTIFF_INCLUDE_DIR})
+LINK_LIBRARIES(${GEOTIFF_LIBRARY})
+
+#--------------------------------------------------------------------
+# Find GDAL
+#--------------------------------------------------------------------
+FIND_PACKAGE(GDAL REQUIRED)
+IF(NOT GDAL_FOUND)
+	MESSAGE(STATUS "GDAL not found!")
+ENDIF()
+
+MESSAGE(STATUS "${GDAL_INCLUDE_DIR}")
+MESSAGE(STATUS "${GDAL_LIBRARY}")
+
+INCLUDE_DIRECTORIES(${GDAL_INCLUDE_DIR})
+LINK_LIBRARIES(${GDAL_LIBRARY})
+
+#--------------------------------------------------------------------
+# Find LibLAS
+#--------------------------------------------------------------------
+FIND_PACKAGE(libLAS REQUIRED)
+IF(NOT LIBLAS_FOUND)
+	MESSAGE(STATUS "LibLAS not found! Using local source...")
+ENDIF()
+
+MESSAGE(STATUS "${LIBLAS_INCLUDE_DIR}")
+MESSAGE(STATUS "${LIBLAS_LIBRARY}")
+
+INCLUDE_DIRECTORIES(${LIBLAS_INCLUDE_DIR})
+LINK_LIBRARIES(${LIBLAS_LIBRARY})
+
+#--------------------------------------------------------------------
 #
 #--------------------------------------------------------------------
 #ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_SHIJT)
 ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_IFC)
 ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_CLASSIC)
 ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_CITYGML)
+ADD_DEFINITIONS(-DF4D_FORMAT_SUPPORT_POINTCLOUD)
 
 INCLUDE_DIRECTORIES(include)
 
