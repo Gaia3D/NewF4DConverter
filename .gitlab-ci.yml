@@ -16,6 +16,8 @@ stages:
 #       - external
 
 before_script:
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
   - yum -y install wget centos-release-scl
   - wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
   - rpm -Uvh epel-release-latest-7.noarch.rpm
