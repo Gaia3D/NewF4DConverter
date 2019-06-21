@@ -229,30 +229,30 @@ bool PointCloudReader::readLasFile(std::string& filePath)
 
 		// color
 		liblas::Color const &color = p.GetColor();
-		unsigned short or , og, ob;
+		unsigned short ocr , ocg, ocb;
 		if (color.GetRed() != 0 || color.GetGreen() != 0 || color.GetBlue() != 0)
 		{
-			or = color.GetRed(); og = color.GetGreen(); ob = color.GetBlue();
-			if (maxColorChannelValue < or )
-				maxColorChannelValue = or ;
-			if (maxColorChannelValue < og )
-				maxColorChannelValue = og ;
-			if (maxColorChannelValue < ob )
-				maxColorChannelValue = ob ;
+			ocr = color.GetRed(); ocg = color.GetGreen(); ocb = color.GetBlue();
+			if (maxColorChannelValue < ocr )
+				maxColorChannelValue = ocr ;
+			if (maxColorChannelValue < ocg )
+				maxColorChannelValue = ocg ;
+			if (maxColorChannelValue < ocb )
+				maxColorChannelValue = ocb ;
 
-			reds.push_back(or);
-			greens.push_back(og);
-			blues.push_back(ob);
+			reds.push_back(ocr);
+			greens.push_back(ocg);
+			blues.push_back(ocb);
 		}
 		else
 		{
-			or = p.GetIntensity();
-			if (maxColorChannelValue < or )
-				maxColorChannelValue = or ;
+			ocr = p.GetIntensity();
+			if (maxColorChannelValue < ocr )
+				maxColorChannelValue = ocr ;
 
-			reds.push_back(or );
-			greens.push_back(or );
-			blues.push_back(or );
+			reds.push_back(ocr );
+			greens.push_back(ocr );
+			blues.push_back(ocr );
 		}
 
 		polyhedron->getVertices().push_back(vertex);
@@ -322,7 +322,7 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 	}
 
 	double x, y, z;
-	unsigned short or, og, ob, maxColorComponent = 0;
+	unsigned short ocr, ocg, ocb, maxColorComponent = 0;
 	gaia3d::TrianglePolyhedron* polyhedron = new gaia3d::TrianglePolyhedron;
 	gaia3d::Vertex* vertex = NULL;
 	double minx, miny, minz, maxx, maxy, maxz;
@@ -340,16 +340,16 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 		fread(&y, sizeof(double), 1, file);
 		fread(&z, sizeof(double), 1, file);
 
-		fread(&or, sizeof(unsigned short), 1, file);
-		fread(&og, sizeof(unsigned short), 1, file);
-		fread(&ob, sizeof(unsigned short), 1, file);
+		fread(&ocr, sizeof(unsigned short), 1, file);
+		fread(&ocg, sizeof(unsigned short), 1, file);
+		fread(&ocb, sizeof(unsigned short), 1, file);
 		
-		if (maxColorComponent < or)
-			maxColorComponent = or;
-		if (maxColorComponent < og )
-			maxColorComponent = og ;
-		if (maxColorComponent < ob )
-			maxColorComponent = ob ;
+		if (maxColorComponent < ocr)
+			maxColorComponent = ocr;
+		if (maxColorComponent < ocg )
+			maxColorComponent = ocg ;
+		if (maxColorComponent < ocb )
+			maxColorComponent = ocb ;
 
 		if (!bboxInitialized)
 		{
@@ -378,9 +378,9 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 		vertex = new gaia3d::Vertex;
 		vertex->position.set(x, y, z);
 		polyhedron->getVertices().push_back(vertex);
-		reds[pointCount] = or;
-		greens[pointCount] = og;
-		blues[pointCount] = ob;
+		reds[pointCount] = ocr;
+		greens[pointCount] = ocg;
+		blues[pointCount] = ocb;
 
 		pointCount++;
 	}

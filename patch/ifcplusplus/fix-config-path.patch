@@ -1,0 +1,21 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3dc80913..7173f0f7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-CMAKE_MINIMUM_REQUIRED (VERSION 3.7.2)
++﻿CMAKE_MINIMUM_REQUIRED (VERSION 3.7.2)
+ 
+ # Set a default build type if none was specified https://blog.kitware.com/cmake-and-the-default-build-type/
+ set(default_build_type "Release")
+@@ -39,8 +39,8 @@ ADD_SUBDIRECTORY (IfcPlusPlus)
+ 
+ # Install configuration file
+ INCLUDE(CMakePackageConfigHelpers)
+-SET(config_file_input  "${CMAKE_SOURCE_DIR}/cmake/IFCPPConfig.cmake.in")
+-SET(config_file_output "${CMAKE_BINARY_DIR}/cmake/IFCPPConfig.cmake")
++SET(config_file_input  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/IFCPPConfig.cmake.in")
++SET(config_file_output "${CMAKE_CURRENT_BINARY_DIR}/cmake/IFCPPConfig.cmake")
+ 
+ CONFIGURE_PACKAGE_CONFIG_FILE(
+   ${config_file_input}

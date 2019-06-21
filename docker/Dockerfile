@@ -35,8 +35,9 @@ RUN yum -y install \
 		openssl-devel ncurses-devel \
 		boost-devel \
 		libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel \
-		mesa-dri-drivers mesa-libGL-devel \
+		mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel\
 		xorg-x11-server-Xvfb \
+		proj-devel xerces-c-devel libgeotiff-devel gdal-devel liblas-devel \
 		&& \
     rm -fr /var/cache/yum/*
 

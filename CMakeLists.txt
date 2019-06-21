@@ -18,7 +18,7 @@ IF(WIN32)
 ENDIF()
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_apply_patches.cmake")
 #--------------------------------------------------------------------
 # Find Boost
 #--------------------------------------------------------------------
@@ -216,6 +216,12 @@ LINK_LIBRARIES(${PROJ4_LIBRARIES})
 	SET(BUILD_VIEWER_APPLICATION OFF CACHE INTERNAL "" FORCE)
 	#SET(BUILD_STATIC_LIBRARY ON CACHE INTERNAL "" FORCE)
 
+	cmake_apply_patches(
+    SOURCE_PATH ${IFCPP_SOURCE_DIR}
+    PATCHES
+        patch/ifcplusplus/fix-config-path.patch
+	)
+
 	ADD_SUBDIRECTORY(lib/ifcplusplus)
 	SET(IFCPP_INCLUDE_DIRS "${IFCPP_SOURCE_DIR}/IfcPlusPlus/src/"
 							"${IFCPP_SOURCE_DIR}/external/Carve/src/include"
@@ -314,7 +320,7 @@ LINK_LIBRARIES(${GDAL_LIBRARY})
 #--------------------------------------------------------------------
 # Find LibLAS
 #--------------------------------------------------------------------
-FIND_PACKAGE(libLAS REQUIRED)
+FIND_PACKAGE(LibLAS REQUIRED)
 IF(NOT LIBLAS_FOUND)
 	MESSAGE(STATUS "LibLAS not found! Using local source...")
 ENDIF()
