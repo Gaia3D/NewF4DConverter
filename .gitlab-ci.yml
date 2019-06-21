@@ -27,7 +27,7 @@ before_script:
   - ./configure --prefix=/usr/local
   - make -j2
   - ./bin/cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_USE_OPENSSL:BOOL=ON .
-  - make install
+  - make install && cd -
 
 prepare:
   stage: prepare
@@ -35,13 +35,14 @@ prepare:
     - mkdir build
     - cd build
     - cmake ..
-    - make update
+    - cd -
 
 build:
   stage: build
   script:
     - cd build
     - make
+    - cd -
     # - make install
 
 # test:
