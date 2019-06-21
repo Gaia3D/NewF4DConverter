@@ -16,14 +16,14 @@ stages:
 #       - external
 
 before_script:
-  - git submodule sync --recursive
-  - git submodule update --init --recursive
   - yum -y install wget centos-release-scl
   - wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
   - rpm -Uvh epel-release-latest-7.noarch.rpm
   - yum -y update
-  - yum -y install cmake3 openssh-server make gcc-c++ gdb gdb-gdbserver zip rsync devtoolset-4-toolchain scl-utils curl-devel expat-devel zlib-devel gettext openssl-devel ncurses-devel boost-devel libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel xorg-x11-server-Xvfb proj-devel xerces-c-devel libgeotiff-devel gdal-devel liblas-devel
+  - yum -y install git openssh-server make gcc-c++ gdb gdb-gdbserver zip rsync devtoolset-4-toolchain scl-utils curl-devel expat-devel zlib-devel gettext openssl-devel ncurses-devel boost-devel libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel xorg-x11-server-Xvfb proj-devel xerces-c-devel libgeotiff-devel gdal-devel liblas-devel
   - rm -fr /var/cache/yum/*
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
   - wget --no-check-certificate https://cmake.org/files/v3.14/cmake-3.14.5.tar.gz
   - tar xvzf cmake-3.14.5.tar.gz && cd cmake-3.14.5
   - ./configure --prefix=/usr/local
