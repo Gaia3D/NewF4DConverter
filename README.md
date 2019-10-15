@@ -8,7 +8,7 @@ Start by cloning this repository, making sure to pass the `--recursive` flag to 
 If you forgot, then you can `git submodule update --init` instead.
 
 ```bash
-git clone --recursive https://github.com/Gaia3D/F4DConverter.git
+git clone --recursive https://seoul.gaia3d.com:53000/mago3d/NewF4DConverter.git
 cd F4DConverter
 cd build
 ```
