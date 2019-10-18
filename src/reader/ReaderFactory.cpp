@@ -24,6 +24,10 @@
 #include "PointCloudReader.h"
 #endif
 
+#ifdef F4D_FORMAT_SUPPORT_INDOORGML
+#include "IndoorGMLReader.h"
+#endif
+
 ReaderFactory::ReaderFactory()
 {
 }
@@ -78,11 +82,21 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	}
 #endif
 
+
 #ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
 	if (fileExt.compare(std::string("las")) == 0 ||
 		fileExt.compare(std::string("tpc")) == 0)
 	{
 		return new PointCloudReader;
+
+	}
+#endif
+#ifdef F4D_FORMAT_SUPPORT_INDOORGML
+	if (fileExt.compare(std::string("indoorgml")) == 0)
+		//checkIndoorGML(filePath))
+	{
+		return new IndoorGMLReader;
+
 	}
 #endif
 
