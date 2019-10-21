@@ -173,6 +173,7 @@ public:
 	unsigned int size() const;
 
 	const std::vector<Point3D>& getVertices() const;
+
 	std::vector<Point3D>& getVertices();
 	void setVertices(std::vector<Point3D> vertices);
 
@@ -448,6 +449,30 @@ shared_ptr<IndoorGMLLinearRing> GeometryParser::parseIndoorGMLLinearRing(DOMNode
 	}
 	else if (parseHelper->hasNamedChild(l, "gml:posList")) {
 		//TODO: 
+		double arr[3];
+		int count = 0;
+		vector<gaia3d::Point3D>pointList;
+		vector<double>singleAxisValues;
+		//get single line of the posList 
+		for (int i = 0; i < l->getChildNodes()->getLength(); i++) {
+			if (!parseHelper->isTextNode(l->getChildNodes()->item(i))) {
+				string posListValue = parseHelper->changeXMLCh2str(l->getChildNodes()->item(i)->getTextContent());
+				stringstream ss(posListValue);
+				for (double s; ss >> s;) {
+					singleAxisValues.push_back(s);
+				}
+				break;
+			}
+		}
+		for (int i = 0; i < singleAxisValues.size(); i += 3) {
+			arr[0] = singleAxisValues.at(i);
+			arr[1] = singleAxisValues.at(i + 1);
+			arr[2] = singleAxisValues.at(i + 2);
+			gaia3d::Point3D newPoint;
+			newPoint.set(arr[0], arr[1], arr[2]);
+			pointList.push_back(newPoint);
+		}
+		result->setVertices(pointList);
 	}
 	result->getVertices().pop_back();
 	return result;
@@ -489,6 +514,7 @@ shared_ptr<IndoorGMLSolid> GeometryParser::parseIndoorGMLSolid(DOMNode* s, gaia3
 }
 GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 	
+
 	ParserUtil* parseHelper = new ParserUtil();
 	GeometryParser* gmp = new GeometryParser();
 	GeometryManager geomManager;
@@ -506,47 +532,39 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 		BoundingBox* b = new BoundingBox();
 
 		//primalSpaceFeatures -> PrimalSpaceFeatures
-		
+
 		cout << "IndoorGML Parser : Get Document Root" << endl;
-		
-		bool isCoreTaged = true;
+
+		string frontTag = "core:";
 		string nextTag;
 		//primalSpaceFeatures -> PrimalSpaceFeatures
 		primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "core:primalSpaceFeatures");
 		if (primalSpaceFeatures == 0) {
-			isCoreTaged = false;
 			primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "primalSpaceFeatures");
+			frontTag = "";
+			if (primalSpaceFeatures == 0) {
+				primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "indoor:primalSpaceFeatures");
+				frontTag = "indoor:";
+			}
 		}
-		nextTag = "PrimalSpaceFeatures";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "PrimalSpaceFeatures";
 		primalSpaceFeatures = parseHelper->getNamedNode(primalSpaceFeatures->getChildNodes(), nextTag);
 
 		//multiLayeredGraph -> MultiLayeredGraph
-		nextTag = "multiLayeredGraph";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "multiLayeredGraph";
+
 		multiLayeredGraph = parseHelper->getNamedNode(rootChild, nextTag);
-		nextTag = "MultiLayeredGraph";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "MultiLayeredGraph";
+
 		multiLayeredGraph = parseHelper->getNamedNode(multiLayeredGraph->getChildNodes(), nextTag);
 
 		//cellSpaceMember -> cellSpace & cellSpaceBoundaryMember -> cellSpaceBoundary
 
-		nextTag = "cellSpaceMember";
+		nextTag = frontTag + "cellSpaceMember";
 
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
 		cellSpaceMember = parseHelper->getNamedNodes(primalSpaceFeatures->getChildNodes(), nextTag);
-		nextTag = "cellSpaceBoundaryMember";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "cellSpaceBoundaryMember";
+
 		cellSpaceBoundaryMember = parseHelper->getNamedNodes(primalSpaceFeatures->getChildNodes(), nextTag);
 
 		vector<DOMNode*>cellspacelist;
@@ -554,20 +572,16 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 		vector<DOMNode*>IndoorGMLSolidList;
 		vector<DOMNode*>surfaceList;
 
-		nextTag = "CellSpace";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "CellSpace";
+
 		for (int i = 0; i < cellSpaceMember.size(); i++) {
 			//cellspacelist.push_back();
 
 			DOMNode* cellSpace = parseHelper->getNamedNode(cellSpaceMember.at(i)->getChildNodes(), nextTag);
 			if (cellSpace != 0) {
 				for (int j = 0; j < cellSpace->getChildNodes()->getLength(); j++) {
-					string nextGeometryTag = "cellSpaceGeometry";
-					if (isCoreTaged) {
-						nextGeometryTag = "core:" + nextGeometryTag;
-					}
+					string nextGeometryTag = frontTag + "cellSpaceGeometry";
+
 					if (parseHelper->isMatchedNodeName(cellSpace->getChildNodes()->item(j), nextGeometryTag)) {
 						DOMNode* solid = cellSpace->getChildNodes()->item(j)->getChildNodes()->item(1)->getChildNodes()->item(1);
 						std::shared_ptr<IndoorGMLSolid> result = gmp->parseIndoorGMLSolid(solid, b);
@@ -575,20 +589,16 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 					}
 				}
 			}
-			
+
 		}
-		nextTag = "CellSpaceBoundary";
-		if (isCoreTaged) {
-			nextTag = "core:" + nextTag;
-		}
+		nextTag = frontTag + "CellSpaceBoundary";
+
 		for (int i = 0; i < cellSpaceBoundaryMember.size(); i++) {
 			DOMNode* cellSpaceboundary = parseHelper->getNamedNode(cellSpaceBoundaryMember.at(i)->getChildNodes(), nextTag);
 			if (cellSpaceboundary != 0) {
 				for (int j = 0; j < cellSpaceboundary->getChildNodes()->getLength(); j++) {
-					string nextGeometryTag = "cellSpaceBoundaryGeometry";
-					if (isCoreTaged) {
-						nextGeometryTag = "core:" + nextGeometryTag;
-					}
+					string nextGeometryTag = frontTag + "cellSpaceBoundaryGeometry";
+
 					if (parseHelper->isMatchedNodeName(cellSpaceboundary->getChildNodes()->item(j), nextGeometryTag)) {
 						DOMNode* surface = cellSpaceboundary->getChildNodes()->item(j)->getChildNodes()->item(1)->getChildNodes()->item(1);
 						if (parseHelper->changeXMLCh2str(surface->getNodeName()) == "gml:Polygon") {
@@ -622,9 +632,9 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 	catch (...) {
 		cout << "Unexpected Exception \n";
 	}
-	
 
-	
+
+
 	return geomManager;
 }
 bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::TrianglePolyhedron*>& container, double& lon, double& lat) {
