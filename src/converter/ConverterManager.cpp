@@ -20,7 +20,7 @@
 #include <boost/filesystem.hpp>
 #include <proj_api.h>
 #include <json/json.h>
-#include <cpl_serv.h>
+//#include <cpl_serv.h>
 
 #include "argdefinition.h"
 #include "../reader/ReaderFactory.h"
@@ -108,9 +108,11 @@ bool ConverterManager::initialize(std::map<std::string, std::string>& arguments)
 		return false;
 	}
 
+#ifdef POINTCLOUDFORMAT
 	csvFullPath = programFolder + std::string("csv");
 
 	SetCSVFilenameHook(CSVFileFullPathOverride);
+#endif
 
 	if(processor == NULL)
 		processor = new ConversionProcessor();

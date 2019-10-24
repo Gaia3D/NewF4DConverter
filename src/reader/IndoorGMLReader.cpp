@@ -533,8 +533,6 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 
 		//primalSpaceFeatures -> PrimalSpaceFeatures
 
-		cout << "IndoorGML Parser : Get Document Root" << endl;
-
 		string frontTag = "core:";
 		string nextTag;
 		//primalSpaceFeatures -> PrimalSpaceFeatures
@@ -613,7 +611,6 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 		}
 
 		geomManager.bb = *b;
-		cout << "IndoorGML Parser : The Document is parsed" << endl;
 	}
 	catch (const XMLException& toCatch) {
 		char* message = XMLString::transcode(toCatch.getMessage());
@@ -661,8 +658,8 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 	gaia3d::Point3D upperBound;
 	upperBound.set(geomManager.bb.maxX, geomManager.bb.maxY, geomManager.bb.maxZ);
 
-	cout << geomManager.bb.minX << "," << geomManager.bb.minY << "," << geomManager.bb.minZ << endl;
-	cout << geomManager.bb.maxX << "," << geomManager.bb.maxY << "," << geomManager.bb.maxZ << endl;
+	//cout << geomManager.bb.minX << "," << geomManager.bb.minY << "," << geomManager.bb.minZ << endl;
+	//cout << geomManager.bb.maxX << "," << geomManager.bb.maxY << "," << geomManager.bb.maxZ << endl;
 	
 	projPJ pjSrc = pj_init_plus("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
 
