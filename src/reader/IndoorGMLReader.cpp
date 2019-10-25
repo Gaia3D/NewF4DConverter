@@ -1,4 +1,4 @@
-﻿
+
 #include "IndoorGMLReader.h"
 #include <iostream>
 #include <memory>
@@ -362,7 +362,7 @@ public:
 	size_t getIndoorGMLPolygonsCount() const;
 	std::shared_ptr<IndoorGMLPolygon> getIndoorGMLPolygon(size_t i);
 	//std::shared_ptr<const gaia3d::IndoorGMLPolygon> getIndoorGMLPolygon(size_t i) const;
-;
+	;
 	void addIndoorGMLPolygon(std::shared_ptr<IndoorGMLPolygon>);
 	void addIndoorGMLSolid(std::shared_ptr<IndoorGMLSolid>);
 
@@ -513,7 +513,7 @@ shared_ptr<IndoorGMLSolid> GeometryParser::parseIndoorGMLSolid(DOMNode* s, gaia3
 	return result;
 }
 GeometryManager parseIndoorGeometry(DOMDocument* dom) {
-	
+
 
 	ParserUtil* parseHelper = new ParserUtil();
 	GeometryParser* gmp = new GeometryParser();
@@ -635,7 +635,7 @@ GeometryManager parseIndoorGeometry(DOMDocument* dom) {
 	return geomManager;
 }
 bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::TrianglePolyhedron*>& container, double& lon, double& lat) {
-	
+
 
 
 	GeometryManager geomManager = parseIndoorGeometry(dom);
@@ -660,7 +660,7 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 
 	//cout << geomManager.bb.minX << "," << geomManager.bb.minY << "," << geomManager.bb.minZ << endl;
 	//cout << geomManager.bb.maxX << "," << geomManager.bb.maxY << "," << geomManager.bb.maxZ << endl;
-	
+
 	projPJ pjSrc = pj_init_plus("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
 
 	if (pjSrc == NULL || pjWgs84 == NULL)
@@ -669,8 +669,8 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 		return false;
 	}
 
-	BBcenterPoint.set((lowerBound.x+upperBound.x)/2.0, (lowerBound.y + upperBound.y) / 2.0, (lowerBound.z + upperBound.z) / 2.0);
-	
+	BBcenterPoint.set((lowerBound.x + upperBound.x) / 2.0, (lowerBound.y + upperBound.y) / 2.0, (lowerBound.z + upperBound.z) / 2.0);
+
 	lon = BBcenterPoint.x;
 	lat = BBcenterPoint.y;
 
@@ -680,7 +680,7 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 	//lat *= RAD_TO_DEG;
 
 	vector<gaia3d::Triangle>tessellatedResult;
-	
+
 	for (size_t i = 0; i < geomManager.getIndoorGMLSolidsCount(); i++) {
 
 		gaia3d::TrianglePolyhedron* newMesh = new gaia3d::TrianglePolyhedron();
@@ -688,7 +688,7 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 		shared_ptr<IndoorGMLSolid> tempIndoorGMLSolid = geomManager.getIndoorGMLSolid(i);
 		for (size_t j = 0; j < tempIndoorGMLSolid->getExterior().size(); j++) {
 			size_t offset = newMesh->getVertices().size();
-			
+
 			Surface* tempSurface = new Surface();
 			shared_ptr<IndoorGMLPolygon>tempIndoorGMLPolygon = tempIndoorGMLSolid->getExterior().at(j);
 			size_t verticesCount = tempIndoorGMLPolygon->getExterior()->getVertices().size();
@@ -697,7 +697,7 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 			double* nx = new double[verticesCount];
 			double* ny = new double[verticesCount];
 			double* nz = new double[verticesCount];
-			
+
 			vector<size_t>verticesIndices;
 			vector<size_t>polygonIndices;
 
@@ -752,16 +752,16 @@ bool IndoorGMLReader::readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::Tria
 					v3->position.x, v3->position.y, v3->position.z,
 					r1, r2, r3, true
 				);
-				v1->normal.set(r1,r2,r3);
-				v2->normal.set(r1,r2,r3);
+				v1->normal.set(r1, r2, r3);
+				v2->normal.set(r1, r2, r3);
 				v3->normal.set(r1, r2, r3);
 
 				Triangle* resultTriangle = new Triangle();
 				resultTriangle->setNormal(r1, r2, r3);
 				resultTriangle->setVertexIndices(verticesIndices.at(z), verticesIndices.at(z + 1), verticesIndices.at(z + 2));
-				resultTriangle->setVertices(v1,v2,v3);
+				resultTriangle->setVertices(v1, v2, v3);
 				tempSurface->getTriangles().push_back(resultTriangle);
-	
+
 			}
 
 			newMesh->getSurfaces().push_back(tempSurface);
@@ -825,7 +825,7 @@ bool IndoorGMLReader::readRawDataFile(std::string& filePath) {
 		XercesDOMParser* parser = new XercesDOMParser();
 		ParserUtil* parseHelper = new ParserUtil();
 		GeometryParser* gmp = new GeometryParser();
-		
+
 		ErrorHandler* errHandler = (ErrorHandler*) new HandlerBase();
 		parser->setErrorHandler(errHandler);
 		parser->setIncludeIgnorableWhitespace(false);
@@ -834,7 +834,7 @@ bool IndoorGMLReader::readRawDataFile(std::string& filePath) {
 		parser->parse(xmlFile);
 
 		//cout << xmlFile << ": parse OK" << endl;
-		DOMDocument* dom = parser->getDocument();	
+		DOMDocument* dom = parser->getDocument();
 		//cout << "Now processing start" << endl;
 		readIndoorSpace(dom, container, refLon, refLat);
 
@@ -842,7 +842,7 @@ bool IndoorGMLReader::readRawDataFile(std::string& filePath) {
 		delete errHandler;
 		delete parseHelper;
 		XMLPlatformUtils::Terminate();
-	
+
 
 	}
 	catch (const XMLException& toCatch) {
