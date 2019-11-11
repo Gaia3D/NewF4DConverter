@@ -43,7 +43,7 @@ ConverterManager::ConverterManager()
 
 	unitScaleFactor = 1.0;
 
-	skinLevel = 3;
+	skinLevel = 4;
 
 	bYAxisUp = false;
 
