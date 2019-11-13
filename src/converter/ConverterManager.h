@@ -26,7 +26,7 @@ private:
 
 	ConversionProcessor* processor;
 
-	bool bCliMode, bCreateIndices, bConversion;
+	bool bCreateIndices, bConversion;
 
 	std::string programPath;
 	bool bOcclusionCulling;
@@ -40,6 +40,7 @@ private:
 	bool bUseEpsg;
 	std::string epsgCode;
 	double offsetX, offsetY, offsetZ;
+	bool bDumpObjectPosition;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -59,8 +60,8 @@ public:
 
 	void process();
 
-	void setIsCliMode(bool bMode) {bCliMode = bMode;}
-	bool getIsCliMode() {return bCliMode;}
+	//void setIsCliMode(bool bMode) {bCliMode = bMode;}
+	//bool getIsCliMode() {return bCliMode;}
 
 	void setInputFolder(std::string input) {inputFolderPath = input;}
 	void setOutputFolder(std::string output) {outputFolderPath = output;}

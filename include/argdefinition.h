@@ -24,6 +24,7 @@
 #define OffsetXW			L"-offsetX"
 #define OffsetYW			L"-offsetY"
 #define OffsetZW			L"-offsetZ"
+#define DumpObjectPositionW	L"-dumpObjectPos"
 
 // arguments for conversion configuration
 #define ProgramPath		"programPath"
@@ -46,5 +47,6 @@
 #define OffsetX			"-offsetX"
 #define OffsetY			"-offsetY"
 #define OffsetZ			"-offsetZ"
+#define DumpObjectPosition	"-dumpObjectPos"
 
 #endif // _ARGDEFINITION_H_

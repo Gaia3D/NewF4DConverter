@@ -189,6 +189,13 @@ bool extractArguments(int argc, char** argv)
 				i++;
 				continue;
 			}
+
+			if (tokens[i] == std::string(DumpObjectPosition))
+			{
+				arguments[DumpObjectPosition] = tokens[i + 1];
+				i++;
+				continue;
+			}
 		}
 		else
 		{
@@ -275,7 +282,7 @@ bool extractArguments(int argc, char** argv)
 			std::string skinLevel = arguments[SkinLevelNsm];
 			int nSkinLevel = std::stoi(skinLevel);
 
-			if (nSkinLevel > 3 || nSkinLevel < 1)
+			if (nSkinLevel > 4 || nSkinLevel < 1)
 			{
 				printf("[ERROR][Invalid Arguments] Value of -skinLevel MUST be one of [1, 2, 3, 4].\n");
 				return false;

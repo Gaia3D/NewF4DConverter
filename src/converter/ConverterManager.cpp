@@ -37,7 +37,7 @@ ConverterManager::ConverterManager()
 {
 	processor = NULL;
 
-	bCreateIndices = bCliMode = bConversion = false;
+	bCreateIndices =  bConversion = false;
 
 	bOcclusionCulling = false;
 
@@ -56,6 +56,8 @@ ConverterManager::ConverterManager()
 	bUseEpsg = false;
 
 	offsetX = offsetY = offsetZ = 0.0;
+
+	bDumpObjectPosition = false;
 }
 
 ConverterManager::~ConverterManager()
@@ -108,9 +110,11 @@ bool ConverterManager::initialize(std::map<std::string, std::string>& arguments)
 		return false;
 	}
 
+#ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
 	csvFullPath = programFolder + std::string("csv");
 
 	SetCSVFilenameHook(CSVFileFullPathOverride);
+#endif
 
 	if(processor == NULL)
 		processor = new ConversionProcessor();
@@ -329,6 +333,15 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 	}
 }
 
+bool ConverterManager::writeIndexFile()
+{
+	F4DWriter writer(NULL);
+	writer.setWriteFolder(outputFolderPath);
+	writer.writeIndexFile();
+
+	return true;
+}
+
 void ConverterManager::processSingleLoop(std::map<std::string, std::string>& targetFiles,
 	std::map<std::string, double>& centerXs,
 	std::map<std::string, double>& centerYs,
@@ -419,7 +432,7 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 
 		delete reader;
 
-		processor->addAttribute(std::string(F4dId), fullId);
+		processor->addAttribute(std::string(F4DID), fullId);
 
 		// 2. save the result
 		F4DWriter writer(processor);
@@ -431,6 +444,42 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 			continue;
 		}
 
+		// 2.1 dump object positions
+		if (bDumpObjectPosition)
+		{
+			std::map<std::string, gaia3d::BoundingBox> bboxes;
+			std::string guid;
+			for (size_t i = 0; i < processor->getAllMeshes().size(); i++)
+			{
+				guid = processor->getAllMeshes()[i]->getStringAttribute(std::string(ObjectGuid));
+				if (bboxes.find(guid) != bboxes.end())
+					bboxes[guid].addBox(processor->getAllMeshes()[i]->getBoundingBox());
+				else
+					bboxes[guid] = processor->getAllMeshes()[i]->getBoundingBox();
+			}
+			
+			std::string dumpFileName = outputFolder + std::string("/") + fullId + std::string("_objectPositions.txt");
+			FILE* dumpFile = NULL;
+			dumpFile = fopen(dumpFileName.c_str(), "wt");
+			double cx, cy, cz, xLength, yLength, zLength, radius;
+			for (std::map<std::string, gaia3d::BoundingBox>::iterator iter = bboxes.begin();
+				iter != bboxes.end();
+				iter++)
+			{
+				guid = iter->first;
+				iter->second.getCenterPoint(cx, cy, cz);
+
+				xLength = iter->second.getXLength();
+				yLength = iter->second.getYLength();
+				zLength = iter->second.getZLength();
+
+				radius = sqrt(xLength*xLength + yLength*yLength + zLength*zLength)/2.0;
+
+				fprintf(dumpFile, "%s %f %f %f %f\n", guid.c_str(), cx, cy, cz, radius);
+			}
+			fclose(dumpFile);
+		}
+
 		// 3. processor clear
 		processor->clear();
 		if (depth == 0)
@@ -440,14 +489,7 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 	}
 }
 
-bool ConverterManager::writeIndexFile()
-{
-	F4DWriter writer(NULL);
-	writer.setWriteFolder(outputFolderPath);
-	writer.writeIndexFile();
 
-	return true;
-}
 
 bool ConverterManager::processDataFile(std::string& filePath, Reader* reader)
 {
@@ -598,6 +640,15 @@ bool ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 
 		if (arguments.find(OffsetZ) != arguments.end())
 			offsetY = std::stod(arguments[OffsetZ]);
+
+		if (arguments.find(DumpObjectPosition) != arguments.end())
+		{
+			if (arguments[DumpObjectPosition] == std::string("Y") ||
+				arguments[DumpObjectPosition] == std::string("y"))
+				bDumpObjectPosition = true;
+			else
+				bDumpObjectPosition = false;
+		}
 	}
 	else
 		bConversion = false;

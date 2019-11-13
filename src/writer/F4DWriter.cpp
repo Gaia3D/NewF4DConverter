@@ -187,7 +187,7 @@ bool F4DWriter::writeMeshes()
 bool F4DWriter::writePoints()
 {
 	// make target root folder
-	std::string resultPath = folder + "/F4D_" + processor->getAttribute("id");
+	std::string resultPath = folder + "/F4D_" + processor->getAttribute(F4DID);
 
 	struct stat status;
 
@@ -618,8 +618,8 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 						fwrite(&colorDimension, sizeof(unsigned char), 1, file);
 
 						fwrite(&vboVertexCount, sizeof(unsigned int), 1, file);
-						for (unsigned int j = 0; j < vboVertexCount; j++)
-							writeColor(vbo->vertices[j]->color, valueType, false, file);
+						for (unsigned int l = 0; l < vboVertexCount; l++)
+							writeColor(vbo->vertices[l]->color, valueType, false, file);
 					}
 
 					if (bTextureCoordinate)
@@ -628,10 +628,10 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 						fwrite(&valueType, sizeof(unsigned short), 1, file);
 
 						fwrite(&vboVertexCount, sizeof(unsigned int), 1, file);
-						for (unsigned int j = 0; j < vboVertexCount; j++)
+						for (unsigned int l = 0; l < vboVertexCount; l++)
 						{
-							float tx = (float)vbo->vertices[j]->textureCoordinate[0];
-							float ty = (float)vbo->vertices[j]->textureCoordinate[1];
+							float tx = (float)vbo->vertices[l]->textureCoordinate[0];
+							float ty = (float)vbo->vertices[l]->textureCoordinate[1];
 							fwrite(&tx, sizeof(float), 1, file);
 							fwrite(&ty, sizeof(float), 1, file);
 						}

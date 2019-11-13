@@ -64,9 +64,11 @@ ConversionProcessor::ConversionProcessor()
 
 ConversionProcessor::~ConversionProcessor()
 {
+	delete scv;
+
 	clear();
 	uninitialize();
-	delete scv;
+
 }
 
 bool ConversionProcessor::initialize()
@@ -247,20 +249,21 @@ void ConversionProcessor::clear()
 
 	thisSpatialOctree.clear();
 
+/*
 	std::map<size_t, gaia3d::TrianglePolyhedron*>::iterator itr;
 	for(itr = legos.begin(); itr != legos.end(); itr++)
 		delete itr->second;
 	legos.clear();
-
+*/
 	allTextureInfo.clear();
-
+/*
 	if(legoTextureBitmap != NULL)
 	{
 		delete[] legoTextureBitmap;
 		legoTextureBitmap = NULL;
 		legoTextureDimension[0] = legoTextureDimension[1] = 0;
 	}
-
+*/
 	if (!resizedTextures.empty())
 	{
 		std::map<std::string, unsigned char*>::iterator itr = resizedTextures.begin();
@@ -282,7 +285,7 @@ void ConversionProcessor::clear()
 
 	std::map<unsigned char, unsigned char*>::iterator iterNetSurfaceTextures =  netSurfaceTextures.begin();
 	for (; iterNetSurfaceTextures != netSurfaceTextures.end(); iterNetSurfaceTextures++)
-		delete iterNetSurfaceTextures->second;
+		delete[] iterNetSurfaceTextures->second;
 	netSurfaceTextures.clear();
 
 	netSurfaceTextureWidth.clear();
@@ -712,7 +715,7 @@ void ConversionProcessor::convertSingleRealisticMesh(std::vector<gaia3d::Triangl
 	size_t vertexCount = 0;
 	for (size_t i = 0; i < meshCount; i++)
 	{
-		if (allMeshes[i]->getSurfaces().empty())	continue;
+		//if (allMeshes[i]->getSurfaces().empty())	continue;
 
 		triangleCount += allMeshes[i]->getSurfaces()[0]->getTriangles().size();
 		vertexCount += allMeshes[i]->getVertices().size();
@@ -728,7 +731,7 @@ void ConversionProcessor::convertSingleRealisticMesh(std::vector<gaia3d::Triangl
 	vertexCount = 0;
 	for (size_t i = 0; i < meshCount; i++)
 	{
-		if (allMeshes[i]->getSurfaces().empty())	continue;
+		//if (allMeshes[i]->getSurfaces().empty())	continue;
 
 		triangleCount += allMeshes[i]->getSurfaces()[0]->getTriangles().size();
 		vertexCount += allMeshes[i]->getVertices().size();
@@ -845,57 +848,59 @@ void ConversionProcessor::convertPointCloud(std::vector<gaia3d::TrianglePolyhedr
 void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedron*>& meshes)
 {
 	size_t meshCount = meshes.size();
-	double anglePNormalAndVNormal0, anglePNormalAndVNormal1, anglePNormalAndVNormal2;
+	//double anglePNormalAndVNormal0, anglePNormalAndVNormal1, anglePNormalAndVNormal2;
 	for(size_t i = 0; i < meshCount; i++)
 	{
 		if (meshes[i]->doesThisHaveNormals())
 		{
-			std::vector<gaia3d::Surface*>& surfaces = meshes[i]->getSurfaces();
-			size_t surfaceCount = surfaces.size();
-			for (size_t j = 0; j < surfaceCount; j++)
-			{
-				std::vector<gaia3d::Triangle*>& triangles = surfaces[j]->getTriangles();
-				size_t triangleCount = triangles.size();
-				for (size_t k = 0; k < triangleCount; k++)
-				{
-					gaia3d::Triangle* triangle = triangles[k];
-					gaia3d::Point3D planeNormal;
-					gaia3d::GeometryUtility::calculatePlaneNormal(triangle->getVertices()[0]->position.x, triangle->getVertices()[0]->position.y, triangle->getVertices()[0]->position.z,
-						triangle->getVertices()[1]->position.x, triangle->getVertices()[1]->position.y, triangle->getVertices()[1]->position.z,
-						triangle->getVertices()[2]->position.x, triangle->getVertices()[2]->position.y, triangle->getVertices()[2]->position.z,
-						planeNormal.x, planeNormal.y, planeNormal.z,
-						true);
+			continue;
 
-					anglePNormalAndVNormal0 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[0]->normal.x,
-						triangle->getVertices()[0]->normal.y,
-						triangle->getVertices()[0]->normal.z);
-					anglePNormalAndVNormal1 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[1]->normal.x,
-						triangle->getVertices()[1]->normal.y,
-						triangle->getVertices()[1]->normal.z);
-					anglePNormalAndVNormal2 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[2]->normal.x,
-						triangle->getVertices()[2]->normal.y,
-						triangle->getVertices()[2]->normal.z);
+			//std::vector<gaia3d::Surface*>& surfaces = meshes[i]->getSurfaces();
+			//size_t surfaceCount = surfaces.size();
+			//for (size_t j = 0; j < surfaceCount; j++)
+			//{
+			//	std::vector<gaia3d::Triangle*>& triangles = surfaces[j]->getTriangles();
+			//	size_t triangleCount = triangles.size();
+			//	for (size_t k = 0; k < triangleCount; k++)
+			//	{
+			//		gaia3d::Triangle* triangle = triangles[k];
+			//		gaia3d::Point3D planeNormal;
+			//		gaia3d::GeometryUtility::calculatePlaneNormal(triangle->getVertices()[0]->position.x, triangle->getVertices()[0]->position.y, triangle->getVertices()[0]->position.z,
+			//			triangle->getVertices()[1]->position.x, triangle->getVertices()[1]->position.y, triangle->getVertices()[1]->position.z,
+			//			triangle->getVertices()[2]->position.x, triangle->getVertices()[2]->position.y, triangle->getVertices()[2]->position.z,
+			//			planeNormal.x, planeNormal.y, planeNormal.z,
+			//			true);
+
+			//		anglePNormalAndVNormal0 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+			//			triangle->getVertices()[0]->normal.x,
+			//			triangle->getVertices()[0]->normal.y,
+			//			triangle->getVertices()[0]->normal.z);
+			//		anglePNormalAndVNormal1 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+			//			triangle->getVertices()[1]->normal.x,
+			//			triangle->getVertices()[1]->normal.y,
+			//			triangle->getVertices()[1]->normal.z);
+			//		anglePNormalAndVNormal2 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+			//			triangle->getVertices()[2]->normal.x,
+			//			triangle->getVertices()[2]->normal.y,
+			//			triangle->getVertices()[2]->normal.z);
 
 
-					if (anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0)
-					{
-						size_t tempIndex = triangle->getVertexIndices()[0];
-						triangle->getVertexIndices()[0] = triangle->getVertexIndices()[1];
-						triangle->getVertexIndices()[1] = tempIndex;
+			//		if (anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0)
+			//		{
+			//			size_t tempIndex = triangle->getVertexIndices()[0];
+			//			triangle->getVertexIndices()[0] = triangle->getVertexIndices()[1];
+			//			triangle->getVertexIndices()[1] = tempIndex;
 
-						gaia3d::Vertex* tempVertex = triangle->getVertices()[0];
-						triangle->getVertices()[0] = triangle->getVertices()[1];
-						triangle->getVertices()[1] = tempVertex;
+			//			gaia3d::Vertex* tempVertex = triangle->getVertices()[0];
+			//			triangle->getVertices()[0] = triangle->getVertices()[1];
+			//			triangle->getVertices()[1] = tempVertex;
 
-						triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);
-					}
-					else
-						*(triangle->getNormal()) = planeNormal;
-				}
-			}
+			//			triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);
+			//		}
+			//		else
+			//			*(triangle->getNormal()) = planeNormal;
+			//	}
+			//}
 		}
 		else
 		{
@@ -1620,7 +1625,7 @@ void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface
 	// Clear the screen and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Set the model matrix
+	// Reset the model matrix
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glPushMatrix();
@@ -2411,7 +2416,7 @@ void ConversionProcessor::loadAndBindTextures(std::map<std::string, unsigned cha
 		unsigned char* textureData = itr->second;
 		int width = textureWidths[fileName];
 		int height = textureHeights[fileName];
-		unsigned int idTextureBound;
+		unsigned int idTextureBound = 0;
 		
 		// binding
 		glGenTextures(1, &idTextureBound);
