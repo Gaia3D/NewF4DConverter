@@ -16,6 +16,8 @@
         "C:/DATA/conversionResult/logTest.txt",
         "-meshType",
         "0",
+        "-skinLevel",
+        "4",
         "-indexing",
         "y"
       ]
