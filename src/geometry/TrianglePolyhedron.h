@@ -5,6 +5,7 @@
 #define _TRIANGLEPOLYHEDRON_H_
 #pragma once
 
+#include <string>
 #include <vector>
 #include <map>
 

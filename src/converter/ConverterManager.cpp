@@ -622,7 +622,7 @@ bool ConverterManager::setProcessConfiguration(std::map<std::string, std::string
 			pjEpsg = pj_init_plus(proj4String.c_str());
 			if (pjEpsg == NULL)
 			{
-				char* errorMsg = pj_strerrno(pj_errno);
+				// char* errorMsg = pj_strerrno(pj_errno);
 				LogWriter::getLogWriter()->addContents(std::string(UNSUPPERTED_EPSG_CODE), false);
 				LogWriter::getLogWriter()->addContents(epsgCode, true);
 
