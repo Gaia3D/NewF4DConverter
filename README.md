@@ -43,26 +43,26 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 
 ## Dependencies
 
-Functionality           | Library
------------------------ | ------------------------------------------
-Utility                 | [boost](https://github.com/boostorg/boost)
-Mesh Loading            | [assimp](https://github.com/assimp/assimp)
-OpenGL Function Loader  | [glad](https://github.com/Dav1dde/glad)
-Windowing and Input     | [glfw](https://github.com/glfw/glfw)
-OpenGL Mathematics      | [glm](https://github.com/g-truc/glm)
-Texture Loading         | [stb](https://github.com/nothings/stb)
-IFC Loading             | [ifcplusplus](https://github.com/ifcquery/ifcplusplus)
-Json Loading            | [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
-Projections             | [proj.4](https://github.com/OSGeo/proj.4)
-XML Parserxerces-c      | [xerces-c](https://github.com/apache/xerces-c)
-CityGML Loading         | [libcitygml](https://github.com/jklimke/libcitygml)
-GDAL                    | [gdal](https://github.com/OSGeo/gdal)
-GeoTIFF Loading         | [libgeotiff](https://github.com/OSGeo/libgeotiff)
-LAS LiDAR Loading       | [liblas](https://github.com/libLAS/libLAS)
+Functionality           | Version | Library
+----------------------- | ------- | ------------------------------------------
+Utility                 | 1.71.0 | [boost](https://github.com/boostorg/boost)
+Mesh Loading            | 4.1.0 | [assimp](https://github.com/assimp/assimp)
+OpenGL Function Loader  | 0.1.11 | [glad](https://github.com/Dav1dde/glad)
+Windowing and Input     | 3.2.1 | [glfw](https://github.com/glfw/glfw)
+OpenGL Mathematics      | 0.9.9.3 | [glm](https://github.com/g-truc/glm)
+Texture Loading         | - | [stb](https://github.com/nothings/stb)
+IFC Loading             | - | [ifcplusplus](https://github.com/ifcquery/ifcplusplus)
+Json Loading            | 0.10.7 | [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
+Projections             | 4.9.3 | [proj.4](https://github.com/OSGeo/proj.4)
+XML Parserxerces-c      | 3.2.2-11 | [xerces-c](https://github.com/apache/xerces-c)
+CityGML Loading         | 2.0.9 | [libcitygml](https://github.com/jklimke/libcitygml)
+GDAL                    | 2.4.1-9 | [gdal](https://github.com/OSGeo/gdal)
+GeoTIFF Loading         | 1.4.2-10 | [libgeotiff](https://github.com/OSGeo/libgeotiff)
+LAS LiDAR Loading       | 1.8.1-3 | [liblas](https://github.com/libLAS/libLAS)
 
 
 ## License
-Copyright (c) 2012-2018, http://www.gaia3d.com
+Copyright (c) 2012-2019, http://www.gaia3d.com
 All rights reserved.
 
 mago3D F4DConverter Commercial License for ISVs and VARs:
