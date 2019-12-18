@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <cmath>
+#include <cstddef>   // size_t
 
 #define M_PI 3.14159265358979323846
 #define EarthHRadius 6378137.0
