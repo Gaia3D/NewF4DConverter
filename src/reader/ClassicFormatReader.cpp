@@ -7,13 +7,16 @@
 #include <assimp/scene.h>           // Output data structure
 #include <assimp/postprocess.h>     // Post processing flags
 
+#include <proj_api.h>
+
 #include "../geometry/Matrix4.h"
-#include "../util/StringUtility.h"
+#include "../util/GeometryUtility.h"
 #include "../converter/LogWriter.h"
 
 #include <iostream>
 
 std::string folder;
+bool bMustChangeYZCoordinate = false;
 
 bool proceedMesh(aiMesh* mesh,
 				const aiScene* scene,
@@ -88,6 +91,7 @@ bool proceedMesh(aiMesh* mesh,
 		polyhedron->setHasNormals(true);
 
 	// access to vertices
+	double tmpZ;
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
 		gaia3d::Vertex* vertex = new gaia3d::Vertex;
@@ -96,6 +100,13 @@ bool proceedMesh(aiMesh* mesh,
 		vertex->position.y = mesh->mVertices[i].y;
 		vertex->position.z = mesh->mVertices[i].z;
 
+		//if (bMustChangeYZCoordinate)
+		//{
+		//	tmpZ = vertex->position.z;
+		//	vertex->position.z = vertex->position.y;
+		//	vertex->position.y = -tmpZ;
+		//}
+
 		vertex->position = transform * vertex->position;
 
 		if (mesh->HasNormals())
@@ -103,6 +114,13 @@ bool proceedMesh(aiMesh* mesh,
 			vertex->normal.x = mesh->mNormals[i].x;
 			vertex->normal.y = mesh->mNormals[i].y;
 			vertex->normal.z = mesh->mNormals[i].z;
+
+			//if (bMustChangeYZCoordinate)
+			//{
+			//	tmpZ = vertex->normal.z;
+			//	vertex->normal.z = vertex->normal.y;
+			//	vertex->normal.y = -tmpZ;
+			//}
 
 			transform.applyOnlyRotationOnPoint(vertex->normal);
 
@@ -217,9 +235,6 @@ bool proceedNode(aiNode* node,
 
 ClassicFormatReader::ClassicFormatReader()
 {
-	unitScaleFactor = 1.0;
-
-	bHasGeoReferencingInfo = false;
 }
 
 
@@ -229,6 +244,22 @@ ClassicFormatReader::~ClassicFormatReader()
 
 bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 {
+	// before processing more, check if the georeferencing information is valid
+	projPJ pjSrc = NULL, pjWgs84 = NULL;
+	if (bCoordinateInfoInjected)
+	{
+		std::string originalSrsProjString = makeProj4String();
+		std::string wgs84ProjString("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
+
+		pjSrc = pj_init_plus(originalSrsProjString.c_str());
+		pjWgs84 = pj_init_plus(wgs84ProjString.c_str());
+		if (pjSrc == NULL || pjWgs84 == NULL)
+		{
+			printf("[ERROR][proj4]CANNOT initialize SRS\n");
+			return false;
+		}
+	}
+
 	Assimp::Importer importer;
 
 	//std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
@@ -256,13 +287,111 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 	else
 		folder = filePath.substr(0, slashPosition);
 
-	gaia3d::Matrix4 scaleMatrix;
-	scaleMatrix.set(scaleMatrix.m[0][0]*unitScaleFactor, scaleMatrix.m[0][1], scaleMatrix.m[0][2], scaleMatrix.m[0][3],
-					scaleMatrix.m[1][0], scaleMatrix.m[1][1] * unitScaleFactor, scaleMatrix.m[1][2], scaleMatrix.m[1][3],
-					scaleMatrix.m[2][0], scaleMatrix.m[2][1], scaleMatrix.m[2][2] * unitScaleFactor, scaleMatrix.m[2][3],
-					scaleMatrix.m[3][0], scaleMatrix.m[3][1], scaleMatrix.m[3][2], scaleMatrix.m[3][3]);
-	if (!proceedNode(scene->mRootNode, scene, scaleMatrix, container, textureContainer))
+	gaia3d::Matrix4 scaleMatrix, rotationMatrix, offsetMatrix, transformMatrix;
+	/*if (bYAxisUp)
+		scaleMatrix.rotationInDegree(90.0, 1.0, 0.0, 0.0);*/
+	//scaleMatrix.set(scaleMatrix.m[0][0]*unitScaleFactor, scaleMatrix.m[0][1], scaleMatrix.m[0][2], scaleMatrix.m[0][3],
+	//				scaleMatrix.m[1][0], scaleMatrix.m[1][1] * unitScaleFactor, scaleMatrix.m[1][2], scaleMatrix.m[1][3],
+	//				scaleMatrix.m[2][0], scaleMatrix.m[2][1], scaleMatrix.m[2][2] * unitScaleFactor, scaleMatrix.m[2][3],
+	//				scaleMatrix.m[3][0] + offsetX, scaleMatrix.m[3][1] + offsetY, scaleMatrix.m[3][2] + offsetZ, scaleMatrix.m[3][3]);
+	// if (!proceedNode(scene->mRootNode, scene, scaleMatrix, container, textureContainer))
+	bMustChangeYZCoordinate = bYAxisUp;
+
+	scaleMatrix.set(unitScaleFactor,			 0.0,			  0.0, 0.0,
+								0.0, unitScaleFactor,			  0.0, 0.0,
+								0.0,			 0.0, unitScaleFactor, 0.0,
+								0.0,			 0.0,			  0.0, 1.0);
+
+	if (bYAxisUp)
+	{
+		rotationMatrix.set( 1.0,  0.0, 0.0, 0.0,
+							0.0,  0.0, 1.0, 0.0,
+							0.0, -1.0, 0.0, 0.0,
+							0.0,  0.0, 0.0, 1.0 );
+		//rotationMatrix.rotationInDegree(90.0, 1.0, 0.0, 0.0);
+	}
+
+	offsetMatrix.set(	1.0,	 0.0,	  0.0, 0.0,
+						0.0,	 1.0,	  0.0, 0.0,
+						0.0,	 0.0,	  1.0, 0.0,
+					offsetX, offsetY, offsetZ, 1.0);
+
+	transformMatrix = scaleMatrix * rotationMatrix * offsetMatrix;
+
+	if (!proceedNode(scene->mRootNode, scene, transformMatrix, container, textureContainer))
 		return false;
+
+	// transform coordinates if information for georeferencing is injected.
+	if (bCoordinateInfoInjected)
+	{
+		gaia3d::BoundingBox bbox;
+		size_t meshCount = container.size();
+		for (size_t i = 0; i < meshCount; i++)
+		{
+			std::vector<gaia3d::Vertex*>& vertices = container[i]->getVertices();
+			size_t vertexCount = vertices.size();
+			for (size_t j = 0; j < vertexCount; j++)
+				bbox.addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
+		}
+
+		double cx, cy, cz;
+		bbox.getCenterPoint(cx, cy, cz);
+
+		refLon = cx; refLat = cy;
+		double alt = cz;
+		int errorCode = pj_transform(pjSrc, pjWgs84, 1, 1, &refLon, &refLat, &alt);
+		char* errorMessage = pj_strerrno(errorCode);
+		if (errorMessage != NULL)
+		{
+			printf("[ERROR][proj4]%s\n", errorMessage);
+			size_t meshCount = container.size();
+			for (size_t i = 0; i < meshCount; i++)
+				delete container[i];
+			container.clear();
+			return false;
+		}
+
+		refLon *= RAD_TO_DEG;
+		refLat *= RAD_TO_DEG;
+
+		bHasGeoReferencingInfo = true;
+
+		double absPosOfCenterXY[3];
+		alt = 0.0;
+		gaia3d::GeometryUtility::wgs84ToAbsolutePosition(refLon, refLat, alt, absPosOfCenterXY);
+		double m[16];
+		gaia3d::GeometryUtility::transformMatrixAtAbsolutePosition(absPosOfCenterXY[0], absPosOfCenterXY[1], absPosOfCenterXY[2], m);
+		gaia3d::Matrix4 globalTransformMatrix;
+		globalTransformMatrix.set(m[0], m[4], m[8], m[12],
+			m[1], m[5], m[9], m[13],
+			m[2], m[6], m[10], m[14],
+			m[3], m[7], m[11], m[15]);
+		gaia3d::Matrix4 inverseGlobalTransMatrix = globalTransformMatrix.inverse();
+
+		double px, py, pz;
+		for (size_t i = 0; i < meshCount; i++)
+		{
+			std::vector<gaia3d::Vertex*>& vertices = container[i]->getVertices();
+			size_t vertexCount = vertices.size();
+			for (size_t j = 0; j < vertexCount; j++)
+			{
+				gaia3d::Vertex* vertex = vertices[j];
+				px = vertex->position.x;
+				py = vertex->position.y;
+				pz = vertex->position.z;
+
+				pj_transform(pjSrc, pjWgs84, 1, 1, &px, &py, &pz);
+				px *= RAD_TO_DEG;
+				py *= RAD_TO_DEG;
+
+				double absPosOfTargetPointArray[3];
+				gaia3d::GeometryUtility::wgs84ToAbsolutePosition(px, py, pz, absPosOfTargetPointArray);
+				gaia3d::Point3D absPosOfTargetPoint;
+				absPosOfTargetPoint.set(absPosOfTargetPointArray[0], absPosOfTargetPointArray[1], absPosOfTargetPointArray[2]);
+				vertex->position = inverseGlobalTransMatrix * absPosOfTargetPoint;
+			}
+		}
+	}
 
 	return true;
 }

@@ -21,6 +21,10 @@
 #define MeshTypeW			L"-meshType"
 #define AlignToCenterW		L"-alignToCenter"
 #define EpsgW				L"-epsg"
+#define OffsetXW			L"-offsetX"
+#define OffsetYW			L"-offsetY"
+#define OffsetZW			L"-offsetZ"
+#define DumpObjectPositionW	L"-dumpObjectPos"
 
 // arguments for conversion configuration
 #define ProgramPath		"programPath"
@@ -40,5 +44,9 @@
 #define MeshType		"-meshType"
 #define AlignToCenter	"-alignToCenter"
 #define Epsg			"-epsg"
+#define OffsetX			"-offsetX"
+#define OffsetY			"-offsetY"
+#define OffsetZ			"-offsetZ"
+#define DumpObjectPosition	"-dumpObjectPos"
 
 #endif // _ARGDEFINITION_H_

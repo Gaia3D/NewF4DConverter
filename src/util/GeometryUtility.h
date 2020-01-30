@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <cmath>
+#include <cstddef>   // size_t
 
 #define M_PI 3.14159265358979323846
 #define EarthHRadius 6378137.0
@@ -46,11 +47,19 @@ namespace gaia3d
 												double& minX, double& minY, double& minZ,
 												double& maxX, double& maxY, double& maxZ);
 
+		static void wgs84ToAbsolutePosition(double&lon, double& lat, double& alt, double* result);
+		static void normalAtAbsolutePosition(double& x, double& y, double& z, double* result);
+		static void transformMatrixAtAbsolutePosition(double& x, double& y, double& z, double* m);
+
 		static void mergeLegoBlocksAlongZAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
 
 		static void mergeLegoBlocksAlongYAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
 
 		static void mergeLegoBlocksAlongXAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
+
+		static void earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result);
+
+		static void tessellate(double* xs, double* ys, double* zs, size_t vertexCount, std::vector<size_t>& polygonIndices, std::vector<size_t>& indices);
 	};
 }
 

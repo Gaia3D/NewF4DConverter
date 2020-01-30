@@ -5,6 +5,15 @@
 
 Reader::Reader()
 {
+	unitScaleFactor = 1.0;
+
+	bHasGeoReferencingInfo = false;
+
+	bCoordinateInfoInjected = false;
+
+	bYAxisUp = false;
+
+	offsetX = offsetY = offsetZ = 0.0;
 }
 
 Reader::~Reader()
@@ -29,4 +38,22 @@ void Reader::TexCoord_Flip_Y()
 		gaia3d::TrianglePolyhedron *polyhedron = container[i];
 		polyhedron->TexCoord_Flip_Y();
 	}
+}
+
+std::string Reader::makeProj4String()
+{
+	std::string proj4String;
+
+	if (epsg.empty())
+	{
+		proj4String = std::string("+proj=tmerc +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
+		proj4String += std::string(" +lon_0=") + std::to_string(lonOrigin);
+		proj4String += std::string(" +lat_0=") + std::to_string(latOrigin);
+	}
+	else
+	{
+		proj4String = std::string("+init=epsg:") + epsg;
+	}
+
+	return proj4String;
 }

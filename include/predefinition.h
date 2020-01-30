@@ -41,6 +41,6 @@
 // attribute key names
 #define ObjectGuid "objectGuid"
 #define TextureName "textureName"
-#define F4dId "id"
+#define F4DID "id"
 
 #endif // _PREDEFINITION_H_

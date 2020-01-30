@@ -26,7 +26,7 @@ private:
 
 	ConversionProcessor* processor;
 
-	bool bCliMode, bCreateIndices, bConversion;
+	bool bCreateIndices, bConversion;
 
 	std::string programPath;
 	bool bOcclusionCulling;
@@ -39,6 +39,8 @@ private:
 	int meshType;
 	bool bUseEpsg;
 	std::string epsgCode;
+	double offsetX, offsetY, offsetZ;
+	bool bDumpObjectPosition;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -58,8 +60,8 @@ public:
 
 	void process();
 
-	void setIsCliMode(bool bMode) {bCliMode = bMode;}
-	bool getIsCliMode() {return bCliMode;}
+	//void setIsCliMode(bool bMode) {bCliMode = bMode;}
+	//bool getIsCliMode() {return bCliMode;}
 
 	void setInputFolder(std::string input) {inputFolderPath = input;}
 	void setOutputFolder(std::string output) {outputFolderPath = output;}
@@ -93,7 +95,9 @@ private:
 
 	std::string makeProj4String();
 
-	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs, std::string proj4String);
+	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs);
+
+	void processSingleLoop(std::map<std::string, std::string>& targetFiles, std::map<std::string, double>& centerXs, std::map<std::string, double>& centerYs, unsigned char depth);
 };
 
 #endif // _CONVERTERMANAGER_H_

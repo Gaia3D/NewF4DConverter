@@ -1,0 +1,64 @@
+image: centos:7
+
+variables:
+  GIT_STRATEGY: recursive
+
+stages:
+  - prepare
+  - build
+  # - test
+  # - package
+
+# cache:
+#   untracked: true
+#     paths:
+#       - build
+#       - external
+
+before_script:
+  - yum -y install wget centos-release-scl
+  - wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  - rpm -Uvh epel-release-latest-7.noarch.rpm
+  - yum -y update
+  - yum -y install git openssh-server make gcc-c++ gdb gdb-gdbserver zip rsync devtoolset-4-toolchain scl-utils curl-devel expat-devel zlib-devel gettext openssl-devel ncurses-devel boost-devel libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel xorg-x11-server-Xvfb proj-devel xerces-c-devel libgeotiff-devel gdal-devel liblas-devel
+  - rm -fr /var/cache/yum/*
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+  - wget --no-check-certificate https://cmake.org/files/v3.14/cmake-3.14.5.tar.gz
+  - tar xvzf cmake-3.14.5.tar.gz && cd cmake-3.14.5
+  - ./configure --prefix=/usr/local
+  - make -j2
+  - ./bin/cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_USE_OPENSSL:BOOL=ON .
+  - make install && cd -
+
+prepare:
+  stage: prepare
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cd -
+
+build:
+  stage: build
+  script:
+    - cd build
+    - make
+    - cd -
+    # - make install
+
+# test:
+#   stage: test
+#   script:
+#     - cd build
+#     - make check
+
+# package:
+#   stage: package
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#       - build/out/
+#   script:
+#     - cd build
+#     - make package

@@ -18,7 +18,13 @@
 #include "ClassicFormatReader.h"
 #endif
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
-#include "CitygmlReader.h"
+#include "CityGMLReader.h"
+#endif
+#ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
+#include "PointCloudReader.h"
+#endif
+#ifdef F4D_FORMAT_SUPPORT_INDOORGML
+#include "IndoorGMLReader.h"
 #endif
 
 ReaderFactory::ReaderFactory()
@@ -35,7 +41,7 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	if(dotPosition == std::string::npos)
 	{
 		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(INVALID_TRIANGLE_COUNT), false);
+		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
 		return NULL;
 	}
 
@@ -61,8 +67,9 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 
 #ifdef F4D_FORMAT_SUPPORT_CLASSIC
 	if (fileExt.compare(std::string("obj")) == 0 ||
-		fileExt.compare(std::string("dae")) == 0||
-		fileExt.compare(std::string("3ds")) == 0)
+		fileExt.compare(std::string("dae")) == 0 ||
+		fileExt.compare(std::string("3ds")) == 0 ||
+		fileExt.compare(std::string("fbx")) == 0)
 	{
 		return new ClassicFormatReader;
 	}
@@ -72,6 +79,21 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	if (fileExt.compare(std::string("citygml")) == 0)
 	{
 		return new CitygmlReader;
+	}
+#endif
+
+#ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
+	if (fileExt.compare(std::string("las")) == 0 ||
+		fileExt.compare(std::string("tpc")) == 0)
+	{
+		return new PointCloudReader;
+	}
+#endif
+
+#ifdef F4D_FORMAT_SUPPORT_INDOORGML
+	if (fileExt.compare(std::string("indoorgml")) == 0)
+	{
+		return new IndoorGMLReader;
 	}
 #endif
 	return NULL;
