@@ -1,7 +1,7 @@
 ﻿/**
 * Implementation of the ReaderFactory class
 */
-#include "CitygmlReader.h"
+#include "CityGMLReader.h"
 
 #include <algorithm>
 

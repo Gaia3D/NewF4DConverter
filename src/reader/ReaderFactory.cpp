@@ -18,7 +18,7 @@
 #include "ClassicFormatReader.h"
 #endif
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
-#include "CitygmlReader.h"
+#include "CityGMLReader.h"
 #endif
 #ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
 #include "PointCloudReader.h"

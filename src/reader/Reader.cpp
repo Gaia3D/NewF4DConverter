@@ -5,19 +5,19 @@
 
 Reader::Reader()
 {
+	unitScaleFactor = 1.0;
+
+	bHasGeoReferencingInfo = false;
+
+	bCoordinateInfoInjected = false;
+
+	bYAxisUp = false;
+
+	offsetX = offsetY = offsetZ = 0.0;
 }
 
 Reader::~Reader()
 {
-		unitScaleFactor = 1.0;
-
-		bHasGeoReferencingInfo = false;
-
-		bCoordinateInfoInjected = false;
-
-		bYAxisUp = false;
-
-		offsetX = offsetY = offsetZ = 0.0;
 }
 std::vector<gaia3d::TrianglePolyhedron*>& Reader::getDataContainer()
 {

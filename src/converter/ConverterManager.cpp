@@ -126,8 +126,8 @@ void ConverterManager::uninitialize()
 {
 	pj_set_searchpath(0, NULL);
 
-	if (processor != NULL)
-		processor->uninitialize();
+	//if (processor != NULL)
+	//	processor->uninitialize();
 }
 
 void ConverterManager::changeGLDimension(int width, int height)

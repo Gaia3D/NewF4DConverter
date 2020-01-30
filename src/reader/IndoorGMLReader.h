@@ -7,11 +7,12 @@
 #include "Reader.h"
 
 #include "../geometry/TrianglePolyhedron.h"
-#include <../xerces/src/xercesc/parsers/XercesDOMParser.hpp>
-#include <../xerces/src/xercesc/dom/DOM.hpp>
-#include <../xerces/src/xercesc/sax/HandlerBase.hpp>
-#include <../xerces/src/xercesc/util/XMLString.hpp>
-#include <../xerces/src/xercesc/util/PlatformUtils.hpp>
+
+#include <xercesc/parsers/XercesDOMParser.hpp>
+#include <xercesc/dom/DOM.hpp>
+#include <xercesc/sax/HandlerBase.hpp>
+#include <xercesc/util/XMLString.hpp>
+#include <xercesc/util/PlatformUtils.hpp>
 
 using namespace xercesc;
 
