@@ -79,12 +79,12 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 	double volume_all_products = 0;
 	shared_ptr<ProductShapeData> ifc_project_data;
 
-	std::map<int, shared_ptr<ProductShapeData> >& map_shape_data = geometry_converter->getShapeInputData();
-	std::map<int, shared_ptr<ProductShapeData> >::iterator it;
+	std::map<std::string, shared_ptr<ProductShapeData> >& map_shape_data = geometry_converter->getShapeInputData();
+	std::map<std::string, shared_ptr<ProductShapeData> >::iterator it;
 	for (it = map_shape_data.begin(); it != map_shape_data.end(); ++it)
 	{
 		// STEP entity id:
-		int entity_id = it->first;
+		std::string entity_id = it->first;
 
 		// shape data
 		shared_ptr<ProductShapeData>& shape_data = it->second;
@@ -393,14 +393,14 @@ bool IfcppLoader::loadOnlyPropertiesFromIfc(std::wstring& filePath)
 	//geometry_converter->createGeometryOSG(model_switch);
 
 	// contains the VEF graph for each IfcProduct:
-	std::map<int, shared_ptr<ProductShapeData> >& map_shape_data = geometry_converter->getShapeInputData();
+	std::map<std::string, shared_ptr<ProductShapeData> >& map_shape_data = geometry_converter->getShapeInputData();
 	double volume_all_products = 0;
 
-	std::map<int, shared_ptr<ProductShapeData> >::iterator it;
+	std::map<std::string, shared_ptr<ProductShapeData> >::iterator it;
 	for (it = map_shape_data.begin(); it != map_shape_data.end(); ++it)
 	{
 		// STEP entity id:
-		int entity_id = it->first;
+		std::string entity_id = it->first;
 
 		// shape data
 		shared_ptr<ProductShapeData>& shape_data = it->second;
