@@ -3,6 +3,7 @@
 */
 #include "StringUtility.h"
 
+///< 각 나라 언어에 맞는 wide string을 utf8로 변환
 std::string gaia3d::StringUtility::convertWideStringToUtf8(const std::wstring& wstr)
 {
 #ifdef WIN32

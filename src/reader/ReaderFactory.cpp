@@ -23,6 +23,9 @@
 #ifdef F4D_FORMAT_SUPPORT_POINTCLOUD
 #include "PointCloudReader.h"
 #endif
+#ifdef F4D_FORMAT_SUPPORT_AVEVAREVIEW
+#include "AvevaRevReader.h"
+#endif
 #ifdef F4D_FORMAT_SUPPORT_INDOORGML
 #include "IndoorGMLReader.h"
 #endif
@@ -40,8 +43,6 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	std::string::size_type dotPosition = filePath.rfind(".");
 	if(dotPosition == std::string::npos)
 	{
-		LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
-		LogWriter::getLogWriter()->addContents(std::string(NO_DATA_OR_INVALID_PATH), false);
 		return NULL;
 	}
 
@@ -76,7 +77,9 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 #endif
 
 #ifdef F4D_FORMAT_SUPPORT_CITYGML
-	if (fileExt.compare(std::string("citygml")) == 0)
+	if (fileExt.compare(std::string("gml")) == 0 || 
+		fileExt.compare(std::string("xml")) == 0 || 
+		fileExt.compare(std::string("citygml")) == 0)
 	{
 		return new CitygmlReader;
 	}
@@ -87,6 +90,13 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 		fileExt.compare(std::string("tpc")) == 0)
 	{
 		return new PointCloudReader;
+	}
+#endif
+
+#ifdef F4D_FORMAT_SUPPORT_AVEVAREVIEW
+	if (fileExt.compare(std::string("rev")) == 0)
+	{
+		return new AvevaRevReader;
 	}
 #endif
 

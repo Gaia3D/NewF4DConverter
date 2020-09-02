@@ -10,8 +10,8 @@
 
 #include <string>
 
-//class Reader;
-//class ConversionProcessor;
+ //class Reader;
+ //class ConversionProcessor;
 
 class ConverterManager
 {
@@ -33,14 +33,17 @@ private:
 	double unitScaleFactor;
 	unsigned char skinLevel;
 	bool bYAxisUp;
-	bool bAlignPostionToCenter;
+	int alignType;
+	///< ReferenceLonLat is used or not? Default value is false.
 	bool bUseReferenceLonLat;
 	double referenceLon, referenceLat;
 	int meshType;
+	///< EPSG Code is used or not? 
 	bool bUseEpsg;
 	std::string epsgCode;
 	double offsetX, offsetY, offsetZ;
-	bool bDumpObjectPosition;
+	std::string projectName;
+	std::map<std::string, bool> splitFilter;
 
 	std::string inputFolderPath, outputFolderPath;
 
@@ -50,54 +53,43 @@ public:
 	static ConverterManager* getConverterManager() { return &m_ConverterManager; }
 
 public:
-	bool isInitialized();
 	bool initialize(std::map<std::string, std::string>& arguments);
-	void uninitialize();
-
-	void changeGLDimension(int width, int height);
 
 	//bool processSingleFile(std::string& filePath);
 
 	void process();
 
-	//void setIsCliMode(bool bMode) {bCliMode = bMode;}
-	//bool getIsCliMode() {return bCliMode;}
-
-	void setInputFolder(std::string input) {inputFolderPath = input;}
-	void setOutputFolder(std::string output) {outputFolderPath = output;}
-	void setIdPrefix(std::string prefix) { idPrefix = prefix; }
-	void setIdSuffix(std::string suffix) { idSuffix = suffix; }
-
-	void setIndexCreation(bool bIndexing) {bCreateIndices = bIndexing;}
-	bool getIndexCreation() {return bCreateIndices;}
-
-	void setConversionOn(bool bOn) {bConversion = bOn;}
-	bool getConversionOn() {return bConversion;}
-
-	void setOcclusionCulling(bool bOn) { bOcclusionCulling = bOn; }
-	void setUnitScaleFactor(double factor) { unitScaleFactor = factor; }
+	void uninitialize();
 
 private:
-
+	//Set the passed arguments at here for the program configuration
+	///< Set the passed arguments at here for the program configuration
 	bool setProcessConfiguration(std::map<std::string, std::string>& arguments);
 
-	bool writeIndexFile();
+	///< Traverse data folders to find target data.
 
 	bool processDataFolder();
 
-	//void processDataFolder(std::string inputFolder);
+	///< Collect target files which will be converted..
+	void collectTargetFiles(std::string& inputFolder, std::map<std::string, std::string>& targetFiles);
 
-	void collectTargetFiles(std::string inputFolder, std::map<std::string, std::string>& targetFiles);
+	///< It writes the index file.
+	bool writeIndexFile();
 
+	///< Convert and create F4D files at this function.
 	void processDataFiles(std::map<std::string, std::string>& targetFiles);
 
-	bool processDataFile(std::string& filePath, Reader* reader);
-
-	std::string makeProj4String();
-
+	///< Write each reference lat and lon at here.
 	void writeRepresentativeLonLatOfEachData(std::map<std::string, double>& posXs, std::map<std::string, double>& posYs);
 
-	void processSingleLoop(std::map<std::string, std::string>& targetFiles, std::map<std::string, double>& centerXs, std::map<std::string, double>& centerYs, unsigned char depth);
+	///< Write additional information which doesn't go through converting process.
+	void writeAdditionalInfosOfEachData(std::map<std::string, std::string>& additionalInfos);
+
+	///< Write relative path of each data for hierarchy structure of F4D files.
+	void writeRelativePathOfEachData(std::map<std::string, std::string>& relativePaths);
+
+	///< This function treats the single process of the converting
+	void processSingleLoop(std::map<std::string, std::string>& targetFiles, std::map<std::string, double>& centerXs, std::map<std::string, double>& centerYs, std::map<std::string, std::string>& additionalInfos, std::map<std::string, std::string>& relativePaths, unsigned char depth);
 };
 
 #endif // _CONVERTERMANAGER_H_

@@ -15,6 +15,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+//#include <boost/filesystem.hpp>
 
 #include "argdefinition.h"
 #include "converter/ConverterManager.h"
@@ -39,19 +40,14 @@ void print_version()
 -indexing [one of Y, y, N, n] : wheter objectIndexFile.ihe should be created or not. "NOT created" is default.
 */
 
-std::map<std::string, std::string> arguments;
-
-bool extractArguments(int argc, char** argv)
+bool extractArguments(int argc, char** argv, std::map<std::string, std::string>& arguments)
 {
-	std::string token;
 	std::vector<std::string> tokens;
 
 	arguments[ProgramPath] = std::string(argv[0]);
 	for (int i = 1; i < argc; i++)
 	{
-		//token = gaia3d::s2ws(argv[i]);
-		token = std::string(argv[i]);
-		tokens.push_back(std::string(token));
+		tokens.push_back(std::string(argv[i]));
 	}
 
 	size_t tokenCount = tokens.size();
@@ -155,9 +151,9 @@ bool extractArguments(int argc, char** argv)
 				continue;
 			}
 
-			if (tokens[i] == std::string(AlignToCenter))
+			if (tokens[i] == std::string(AlignTo))
 			{
-				arguments[AlignToCenter] = tokens[i + 1];
+				arguments[AlignTo] = tokens[i + 1];
 				i++;
 				continue;
 			}
@@ -190,9 +186,16 @@ bool extractArguments(int argc, char** argv)
 				continue;
 			}
 
-			if (tokens[i] == std::string(DumpObjectPosition))
+			if (tokens[i] == std::string(ProjectName))
 			{
-				arguments[DumpObjectPosition] = tokens[i + 1];
+				arguments[ProjectName] = tokens[i + 1];
+				i++;
+				continue;
+			}
+
+			if (tokens[i] == std::string(SplitFilter))
+			{
+				arguments[SplitFilter] = tokens[i + 1];
 				i++;
 				continue;
 			}
@@ -282,9 +285,9 @@ bool extractArguments(int argc, char** argv)
 			std::string skinLevel = arguments[SkinLevelNsm];
 			int nSkinLevel = std::stoi(skinLevel);
 
-			if (nSkinLevel > 4 || nSkinLevel < 1)
+			if (nSkinLevel > 6 || nSkinLevel < 1)
 			{
-				printf("[ERROR][Invalid Arguments] Value of -skinLevel MUST be one of [1, 2, 3, 4].\n");
+				printf("[ERROR][Invalid Arguments] Value of -skinLevel MUST be one of [1, 2, 3, 4, 5, 6].\n");
 				return false;
 			}
 		}
@@ -328,10 +331,10 @@ bool extractArguments(int argc, char** argv)
 		return false;
 	}
 
-	if (arguments.find(AlignToCenter) != arguments.end() &&
+	if (arguments.find(AlignTo) != arguments.end() &&
 		(arguments.find(Epsg) != arguments.end() || arguments.find(ReferenceLonLat) != arguments.end()))
 	{
-		printf("[ERROR][Invalid Arguments] -alignToCenter CANNOT be used with -epsg or -referenceLonLat.\n");
+		printf("[ERROR][Invalid Arguments] -alignTo CANNOT be used with -epsg or -referenceLonLat.\n");
 		return false;
 	}
 
@@ -339,7 +342,7 @@ bool extractArguments(int argc, char** argv)
 	{
 		size_t lonLatLength = arguments[ReferenceLonLat].length();
 		char* original = new char[lonLatLength + 1];
-		memset(original, 0x00, sizeof(char)*(lonLatLength + 1));
+		memset(original, 0x00, sizeof(char) * (lonLatLength + 1));
 		memcpy(original, arguments[ReferenceLonLat].c_str(), lonLatLength);
 		char* lon = std::strtok(original, ",");
 		if (lon == NULL)
@@ -355,6 +358,8 @@ bool extractArguments(int argc, char** argv)
 			printf("[ERROR][Invalid Arguments] Value of -referenceLonLat MUST be of [numericValue,numericValue] format.\n");
 			return false;
 		}
+
+		delete[] original;
 
 		try
 		{
@@ -375,7 +380,6 @@ bool extractArguments(int argc, char** argv)
 			printf("[ERROR][Invalid Arguments] Value of -referenceLonLat : %s\n", errorMessage.c_str());
 			return false;
 		}
-		delete[] original;
 	}
 
 	if (arguments.find(MeshType) != arguments.end())
@@ -407,14 +411,29 @@ bool extractArguments(int argc, char** argv)
 		}
 	}
 
-	if (arguments.find(AlignToCenter) != arguments.end())
+	if (arguments.find(AlignTo) != arguments.end())
 	{
-		if (arguments[AlignToCenter] != std::string("Y") &&
-			arguments[AlignToCenter] != std::string("y") &&
-			arguments[AlignToCenter] != std::string("N") &&
-			arguments[AlignToCenter] != std::string("n"))
+		try
 		{
-			printf("[ERROR][Invalid Arguments] Value of -alignToCenter MUST be one of [Y, y, N, n].\n");
+			int alignTo = std::stoi(arguments[AlignTo]);
+
+
+			if (alignTo > 1 || alignTo < 0)
+			{
+				printf("[ERROR][Invalid Arguments] Value of -alignTo MUST be one of [0, 1].\n");
+				return false;
+			}
+		}
+		catch (const std::invalid_argument& error)
+		{
+			std::string errorMessage = error.what();
+			printf("[ERROR][Invalid Arguments] Value of -alignTo : %s.\n", errorMessage.c_str());
+			return false;
+		}
+		catch (const std::out_of_range& error)
+		{
+			std::string errorMessage = error.what();
+			printf("[ERROR][Invalid Arguments] Value of -alignTo : %s.\n", errorMessage.c_str());
 			return false;
 		}
 	}
@@ -499,53 +518,101 @@ bool extractArguments(int argc, char** argv)
 		}
 	}
 
+	if (arguments.find(ProjectName) != arguments.end())
+	{
+		///< , \ / : * ? " < > |  can't be used in the string of project name
+		if (arguments[ProjectName].find(std::string(",")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("\\")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("/")) != std::string::npos ||
+			arguments[ProjectName].find(std::string(":")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("*")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("?")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("\"")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("<")) != std::string::npos ||
+			arguments[ProjectName].find(std::string(">")) != std::string::npos ||
+			arguments[ProjectName].find(std::string("|")) != std::string::npos)
+		{
+			printf("[ERROR][Invalid Arguments] One of characters [ , \\ / : * ? \" < > | ] can't be used in project name : %s.\n", arguments[ProjectName].c_str());
+			return false;
+		}
+	}
+
 	return true;
 }
 
 // The MAIN function, from here we start the application and run the render loop
 int main(int argc, char** argv)
 {
-	bool isValidParams = false;
-	if (argc != 0)
+	///< basic argument validation
+	if (argc < 2)
 	{
-		if (!(isValidParams = extractArguments(argc, argv)))
-		{
-			print_version();
-			return false;
-		}
+		///< TODO(khj 20180424) : NYI must print log messages through logger system
+		printf("[Error]No Argument.\n");
+		print_version();
+		return -1;
 	}
 
-	// arguments log
-	printf("[info]Arguments are following.\n");
+	///< extract arguments
+	std::map<std::string, std::string> arguments;
+	if (!extractArguments(argc, argv, arguments))
+	{
+		///< TODO(khj 20180424) : NYI must print log messages through logger system
+		printf("[Error]Invalid Arguments.\n");
+		print_version();
+		return -2;
+	}
+
+	///< arguments log
+	printf("[Info]Arguments are following.\n");
 	std::map<std::string, std::string>::iterator iter = arguments.begin();
 	for (; iter != arguments.end(); iter++)
 	{
 		printf("%s : %s\n", iter->first.c_str(), iter->second.c_str());
 	}
 
+	
+
 	// TODO(khj 20180424) : NYI must make log file through logger system
 	// start log writer if needed
 	if (arguments.find(LogFilePath) != arguments.end())
 	{
+		//namespace bfs = boost::filesystem;
+
+		//bfs::path folderPath(arguments[LogFilePath]);
+		//bfs::path logFilePath = folderPath.parent_path();
+		//bfs::create_directories(logFilePath);
+
 		LogWriter::getLogWriter()->start();
 		LogWriter::getLogWriter()->setFullPath(arguments[LogFilePath]);
 	}
 
-	print_version();
-
-	// process
+	///< process
 	if (ConverterManager::getConverterManager()->initialize(arguments))
 	{
 		ConverterManager::getConverterManager()->process();
 		ConverterManager::getConverterManager()->uninitialize();
-	}
 
-	// TODO(khj 20180424) : NYI must make log file through logger system
-	// finish and save log if log writing started
-	if (LogWriter::getLogWriter()->isStarted())
+		///< TODO(khj 20180424) : NYI must make log file through logger system
+		///< finish and save log if log writing started
+		if (LogWriter::getLogWriter()->isStarted())
+		{
+			LogWriter::getLogWriter()->finish();
+			LogWriter::getLogWriter()->save();
+		}
+
+		return 0;
+	}
+	else
 	{
-		LogWriter::getLogWriter()->finish();
-		LogWriter::getLogWriter()->save();
+		///< TODO(khj 20180424) : NYI must make log file through logger system
+		///< finish and save log if log writing started
+		if (LogWriter::getLogWriter()->isStarted())
+		{
+			LogWriter::getLogWriter()->finish();
+			LogWriter::getLogWriter()->save();
+		}
+
+		return -3;
 	}
 
 	return 0;

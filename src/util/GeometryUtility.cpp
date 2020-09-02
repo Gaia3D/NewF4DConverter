@@ -6,8 +6,11 @@
 #include "../geometry/TrianglePolyhedron.h"
 #include "../geometry/LegoBlock.h"
 
+ ///< micrometer까지 지원하기 때문에
 #define EdgeLengthComparisonTolerance 10E-5
+///< magnitude가 작은 벡터를 구분할 때 쓴다. 
 #define RotationAxisVectorMagnitudeTolerance 10E-7
+///< 두 점이 같은가?
 #define PointCoincidenceTolerance 10E-4
 #define AngleComparisonTolerance 10E-9
 

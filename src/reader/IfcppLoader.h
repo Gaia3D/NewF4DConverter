@@ -14,7 +14,17 @@
 #include <ifcpp/reader/ReaderSTEP.h>
 #include <ifcpp/IFC4/include/IfcSite.h>
 #include <ifcpp/IFC4/include/IfcSpace.h>
-#include <ifcpp/IFC4/include/IfcGloballyUniqueId.h>
+//#include <ifcpp/IFC4/include/IfcGloballyUniqueId.h>
+
+// for spatial structure
+#include "ifcpp/IFC4/include/IfcBuilding.h"
+#include "ifcpp/IFC4/include/IfcBuildingStorey.h"
+#include "ifcpp/IFC4/include/IfcFooting.h"
+#include "ifcpp/IFC4/include/IfcColumn.h"
+#include "ifcpp/IFC4/include/IfcSlab.h"
+#include "ifcpp/IFC4/include/IfcBeam.h"
+#include "ifcpp/IFC4/include/IfcWall.h"
+#include "ifcpp/IFC4/include/IfcWallStandardCase.h"
 
 // for property value
 #include <ifcpp/IFC4/include/IfcAreaMeasure.h>
@@ -51,12 +61,23 @@ public:
 
 	virtual size_t getPolyhedronCount();
 	virtual float* getRepresentativeColor(size_t polyhedronIndex);
-	virtual std::wstring getGuid(size_t polyhedronIndex);
+	virtual void getGuid(size_t polyhedronIndex, wchar_t buffer[]);
 	virtual size_t getVertexCount(size_t polyhedronIndex);
 	virtual double* getVertexPositions(size_t polyhedronIndex);
 	virtual size_t getSurfaceCount(size_t polyhedronIndex);
 	virtual size_t getTrialgleCount(size_t polyhedronIndex, size_t surfaceIndex);
 	virtual size_t* getTriangleIndices(size_t polyhedronIndex, size_t surfaceIndex);
+
+	virtual size_t getStoryCount();
+	virtual size_t getStoryDivisionCount(size_t storyIndex);
+	virtual size_t getPolyhedronCount(size_t storyIndex, size_t divisionIndex);
+	virtual float* getRepresentativeColor(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex);
+	virtual void getGuid(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, wchar_t buffer[]);
+	virtual size_t getVertexCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex);
+	virtual double* getVertexPositions(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex);
+	virtual size_t getSurfaceCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex);
+	virtual size_t getTrialgleCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, size_t surfaceIndex);
+	virtual size_t* getTriangleIndices(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, size_t surfaceIndex);
 
 	virtual bool loadOnlyPropertiesFromIfc(std::wstring& filePath);
 	virtual void setAttributesExtraction(bool bOn);
@@ -96,6 +117,10 @@ private:
 	};
 
 	std::vector<Polyhedron*> polyhedrons;
+
+	std::vector<std::vector<std::vector<Polyhedron*>>> stories;
+
+	std::vector<Polyhedron*> objectsOutsideStory;
 
 	Json::Value objectPropertyRoot;
 	Json::Value projectPropertyRoot;

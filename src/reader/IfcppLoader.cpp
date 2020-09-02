@@ -67,6 +67,170 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 
 	// loading
 	reader->loadModelFromFile(filePath, ifc_model);
+
+	// relationship information
+	// 0. basic preparation
+	std::map<double, std::map<unsigned int, std::vector<std::wstring>>> guidToStoryMapper;
+	// 1. project
+	shared_ptr<IfcProject> ifc_project = ifc_model->getIfcProject();
+	// 2. project's children
+	std::vector<weak_ptr<IfcRelAggregates> > projectChildren = ifc_project->m_IsDecomposedBy_inverse;
+	for (size_t i = 0; i < projectChildren.size(); i++)
+	{
+		// 2-1. project's child
+		shared_ptr<IfcRelAggregates> projectChild = projectChildren[i].lock();
+		// 3. project's grandchildren
+		std::vector<shared_ptr<IfcObjectDefinition>> projectChildObjectDefinitions = projectChild->m_RelatedObjects;
+		for (size_t j = 0; j < projectChildObjectDefinitions.size(); j++)
+		{
+			// 3-1. project's grandchild
+			shared_ptr<IfcObjectDefinition> projectChilidObjectDefinition = projectChildObjectDefinitions[j];
+
+			// 3-2. site as project's grandchild type
+			shared_ptr<IfcSite> ifc_site = dynamic_pointer_cast<IfcSite>(projectChilidObjectDefinition);
+			if (ifc_site != NULL)
+			{
+				// 4. site's children
+				std::vector<weak_ptr<IfcRelAggregates>> siteChildren = ifc_site->m_IsDecomposedBy_inverse;
+				for (size_t k = 0; k < siteChildren.size(); k++)
+				{
+					// 4-1. site's child
+					shared_ptr<IfcRelAggregates> siteChild = siteChildren[k].lock();
+					// 5. site's grandchildren
+					std::vector<shared_ptr<IfcObjectDefinition>> siteChildObjectDefinitions = siteChild->m_RelatedObjects;
+					for (size_t ii = 0; ii < siteChildObjectDefinitions.size(); ii++)
+					{
+						// 5-1. site's grandchild
+						shared_ptr<IfcObjectDefinition> siteChilidObjectDefinition = siteChildObjectDefinitions[ii];
+
+						// 5-2. building as site's grandchild type
+						shared_ptr<IfcBuilding> ifc_building = dynamic_pointer_cast<IfcBuilding>(siteChilidObjectDefinition);
+						if (ifc_building != NULL)
+						{
+							for (size_t jj = 0; jj < ifc_building->m_ContainsElements_inverse.size(); jj++)
+							{
+								shared_ptr<IfcRelContainedInSpatialStructure> buildingElements = ifc_building->m_ContainsElements_inverse[jj].lock();
+							}
+
+							// 6. building's children
+							for (size_t jj = 0; jj < ifc_building->m_IsDecomposedBy_inverse.size(); jj++)
+							{
+								// 6-1. building's child
+								shared_ptr<IfcRelAggregates> buildingChild = ifc_building->m_IsDecomposedBy_inverse[jj].lock();
+								// 7. building's grandchildren
+								std::vector<shared_ptr<IfcObjectDefinition>> buildingChildObjectDefinitions = buildingChild->m_RelatedObjects;
+								for (size_t kk = 0; kk < buildingChildObjectDefinitions.size(); kk++)
+								{
+									// 7-1. building's grandchild
+									shared_ptr<IfcObjectDefinition> buildingChildObjectDefinition = buildingChildObjectDefinitions[kk];
+
+									// 7-2. building storey as building's grandchild type
+									shared_ptr<IfcBuildingStorey> buildingStorey = dynamic_pointer_cast<IfcBuildingStorey>(buildingChildObjectDefinition);
+									if (buildingStorey != NULL)
+									{
+										// initialize guidToStoryMapper
+										guidToStoryMapper[buildingStorey->m_Elevation->m_value] = std::map<unsigned int, std::vector<std::wstring>>();
+
+										// 8-1. elements in building storey
+										for (size_t iii = 0; iii < buildingStorey->m_ContainsElements_inverse.size(); iii++)
+										{
+											shared_ptr<IfcRelContainedInSpatialStructure> element = buildingStorey->m_ContainsElements_inverse[iii].lock();
+
+											// 8-1-1. products(element's children)
+											for (size_t jjj = 0; jjj < element->m_RelatedElements.size(); jjj++)
+											{
+												// 9. product(finally, an single object)
+												shared_ptr<IfcProduct> product = element->m_RelatedElements[jjj];
+
+												if (dynamic_pointer_cast<IfcFooting>(product) != NULL || dynamic_pointer_cast<IfcColumn>(product) != NULL)
+												{
+													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(0) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
+														guidToStoryMapper[buildingStorey->m_Elevation->m_value][0] = std::vector<std::wstring>();
+
+													guidToStoryMapper[buildingStorey->m_Elevation->m_value][0].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													continue;
+												}
+
+												if (dynamic_pointer_cast<IfcSlab>(product) != NULL || dynamic_pointer_cast<IfcBeam>(product) != NULL)
+												{
+													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(1) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
+														guidToStoryMapper[buildingStorey->m_Elevation->m_value][1] = std::vector<std::wstring>();
+
+													guidToStoryMapper[buildingStorey->m_Elevation->m_value][1].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													continue;
+												}
+
+												if (dynamic_pointer_cast<IfcWall>(product) != NULL || dynamic_pointer_cast<IfcWallStandardCase>(product) != NULL)
+												{
+													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(2) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
+														guidToStoryMapper[buildingStorey->m_Elevation->m_value][2] = std::vector<std::wstring>();
+
+													guidToStoryMapper[buildingStorey->m_Elevation->m_value][2].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													continue;
+												}
+
+												if (std::string(product->className()) == std::string("IfcAnnotation"))
+													continue;
+
+												if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(3) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
+													guidToStoryMapper[buildingStorey->m_Elevation->m_value][3] = std::vector<std::wstring>();
+
+												guidToStoryMapper[buildingStorey->m_Elevation->m_value][3].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+											}
+										}
+
+										// 8-2. building storey's children;
+										for (size_t iii = 0; iii < buildingStorey->m_IsDecomposedBy_inverse.size(); iii++)
+										{
+											// 8-2-1. building storey's child
+											shared_ptr<IfcRelAggregates> storeyChild = buildingStorey->m_IsDecomposedBy_inverse[iii].lock();
+											// 9. building storey's grandchildren
+											std::vector<shared_ptr<IfcObjectDefinition>> storeyChildObjectDefinitions = storeyChild->m_RelatedObjects;
+											for (size_t jjj = 0; jjj < storeyChildObjectDefinitions.size(); jjj++)
+											{
+												// 9-1. building storey's grandchild
+												shared_ptr<IfcObjectDefinition> storeyChildObjectDefinition = storeyChildObjectDefinitions[jjj];
+
+												// 9-2. space as building storey's grandchild type
+												shared_ptr<IfcSpace> space = dynamic_pointer_cast<IfcSpace>(storeyChildObjectDefinition);
+												if (space != NULL)
+												{
+													// 10. elements as space's childtren
+													for (size_t kkk = 0; kkk < space->m_ContainsElements_inverse.size(); kkk++)
+													{
+														// 10-1. element(space's child)
+														shared_ptr<IfcRelContainedInSpatialStructure> element = space->m_ContainsElements_inverse[kkk].lock();
+
+														// 11. products(element's children)
+														for (size_t iiii = 0; iiii < element->m_RelatedElements.size(); iiii++)
+														{
+															// 12. product(finally, an single object)
+															shared_ptr<IfcProduct> product = element->m_RelatedElements[iiii];
+
+															if (std::string(product->className()) == std::string("IfcAnnotation"))
+																continue;
+
+															if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(4) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
+																guidToStoryMapper[buildingStorey->m_Elevation->m_value][4] = std::vector<std::wstring>();
+
+															guidToStoryMapper[buildingStorey->m_Elevation->m_value][4].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	std::map<std::wstring, std::vector<Polyhedron*>> polyhedronToGuidMapper;
+
 	geometry_converter->convertGeometry();
 
 	// conversion raw data into geometries of OSG type
@@ -117,7 +281,7 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 		{
 			continue;
 		}
-		
+
 		// filtering out IfcProduct of IfcSpace type
 		shared_ptr<IfcSpace> Ifc_Space = dynamic_pointer_cast<IfcSpace>(ifc_product);
 		if (Ifc_Space)
@@ -132,6 +296,30 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 			continue;
 		}
 		*/
+		// extract basic attributes of this IfcProduct
+		std::string productEntityName = ifc_product->className();
+		std::wstring productLabel = (ifc_product->m_Name != NULL) ? ifc_product->m_Name->m_value : L"";
+		std::wstring productDescription = (ifc_product->m_Description != NULL) ? ifc_product->m_Description->m_value : L"";
+		std::wstring productGuid, productIdentifier;
+		std::vector<std::pair<std::string, shared_ptr<BuildingObject> > > vec_attributes;
+		std::string ifcAttributeTitle, ifcAttributeClassName;
+
+		ifc_product->getAttributes(vec_attributes);
+		for (size_t i_attr = 0; i_attr < vec_attributes.size(); i_attr++)
+		{
+			ifcAttributeTitle = vec_attributes[i_attr].first;
+
+			shared_ptr<BuildingObject> ifcPpObj = vec_attributes[i_attr].second;
+			if (ifcPpObj == NULL)
+				continue;
+
+			ifcAttributeClassName = ifcPpObj->className();
+			if (ifcAttributeClassName.compare("IfcGloballyUniqueId") == 0)
+				productGuid = dynamic_pointer_cast<IfcGloballyUniqueId>(ifcPpObj)->m_value;
+			else if (ifcAttributeClassName.compare("IfcIdentifier") == 0)
+				productIdentifier = dynamic_pointer_cast<IfcElement>(ifc_product)->m_Tag->m_value;
+		}
+
 		int product_id = ifc_product->m_entity_id;
 
 		std::cout << "#" << product_id << "=" << ifc_product->className() << " group" << std::endl;
@@ -147,7 +335,7 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 				continue;
 			}
 			shared_ptr<IfcRepresentation> ifc_representation(representation_data->m_ifc_representation);
-			
+
 			int representation_id = ifc_representation->m_entity_id;
 
 			// a representation item can have multiple item shapes
@@ -175,8 +363,8 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 					if (bVertexReduction)
 					{
 						// vertices of this meshset(to add all vertices to a Polyhedron)
-						std::map<carve::mesh::Vertex<3> *, size_t> vertices;
-						std::map<carve::mesh::Vertex<3> *, size_t>::iterator vertexIter;
+						std::map<carve::mesh::Vertex<3>*, size_t> vertices;
+						std::map<carve::mesh::Vertex<3>*, size_t>::iterator vertexIter;
 
 						// A meshset is composed of multiple meshes.( mesh = surface)
 						std::vector<carve::mesh::Mesh<3>* >& vec_meshes = meshset->meshes;
@@ -247,9 +435,9 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 							continue;
 
 						// fill vertex count and vertex position information
-						std::map<size_t, carve::mesh::Vertex<3> *> verticesSorted;
+						std::map<size_t, carve::mesh::Vertex<3>*> verticesSorted;
 						for (vertexIter = vertices.begin(); vertexIter != vertices.end(); vertexIter++)
-							verticesSorted.insert(std::map<size_t, carve::mesh::Vertex<3> *>::value_type(vertexIter->second, vertexIter->first));
+							verticesSorted.insert(std::map<size_t, carve::mesh::Vertex<3>*>::value_type(vertexIter->second, vertexIter->first));
 
 						polyhedron->vertexCount = verticesSorted.size();
 						polyhedron->vertices = new double[3 * polyhedron->vertexCount];
@@ -265,7 +453,7 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 					else
 					{
 						// vertices of this meshset(to add all vertices to a Polyhedron)
-						std::vector<carve::mesh::Vertex<3> *> vertices;
+						std::vector<carve::mesh::Vertex<3>*> vertices;
 
 						// A meshset is composed of multiple meshes.( mesh = surface)
 						std::vector<carve::mesh::Mesh<3>* >& vec_meshes = meshset->meshes;
@@ -348,10 +536,18 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 						memset(polyhedron->color, 0x00, sizeof(float) * 4);
 
 					// extract and allocate guid into this polyhedron
-					polyhedron->guid = ifc_product->m_GlobalId->m_value;
+					//polyhedron->guid = ifc_product->m_GlobalId->m_value;
+					//polyhedron->guid = productGuid;
+					polyhedron->guid = productIdentifier;
 
 					// add this polyhedron
 					polyhedrons.push_back(polyhedron);
+
+
+					if (polyhedronToGuidMapper.find(productIdentifier) == polyhedronToGuidMapper.end())
+						polyhedronToGuidMapper[productIdentifier] = std::vector<Polyhedron*>();
+
+					polyhedronToGuidMapper[productIdentifier].push_back(polyhedron);
 				}
 			}
 		}
@@ -361,14 +557,46 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 		//	loadObjectAttributes(ifc_product, objectPropertyRoot);
 	}
 
-	/*
-	// in case there are IFC entities that are not in the spatial structure
-	const std::map<int, shared_ptr<BuildingObject> >& objects_outside_spatial_structure = geometry_converter->getObjectsOutsideSpatialStructure();
-	if (objects_outside_spatial_structure.size() > 0)
+	std::map<double, std::map<unsigned int, std::vector<Polyhedron*>>> tmpStories;
+	std::map<double, std::map<unsigned int, std::vector<std::wstring>>>::iterator itrStory = guidToStoryMapper.begin();
+	for (; itrStory != guidToStoryMapper.end(); itrStory++)
 	{
-	std::cout << "IfcProduct objects outside spatial structure" << std::endl;
+		tmpStories[itrStory->first] = std::map<unsigned int, std::vector<Polyhedron*>>();
+		std::map<unsigned int, std::vector<std::wstring>>::iterator itrStoryDivision = itrStory->second.begin();
+		for (; itrStoryDivision != itrStory->second.end(); itrStoryDivision++)
+		{
+			tmpStories[itrStory->first][itrStoryDivision->first] = std::vector<Polyhedron*>();
+			for (size_t i = 0; i < itrStoryDivision->second.size(); i++)
+			{
+				for (size_t j = 0; j < polyhedronToGuidMapper[itrStoryDivision->second[i]].size(); j++)
+				{
+					tmpStories[itrStory->first][itrStoryDivision->first].push_back(polyhedronToGuidMapper[itrStoryDivision->second[i]][j]);
+				}
+			}
+		}
 	}
-	*/
+
+	std::map<double, std::map<unsigned int, std::vector<Polyhedron*>>>::iterator iterSortedStory = tmpStories.begin();
+	for (; iterSortedStory != tmpStories.end(); iterSortedStory++)
+	{
+		stories.push_back(std::vector<std::vector<Polyhedron*>>());
+		std::map<unsigned int, std::vector<Polyhedron*>>::iterator iterStoryDivision = iterSortedStory->second.begin();
+		for (; iterStoryDivision != iterSortedStory->second.end(); iterStoryDivision++)
+		{
+			stories[stories.size() - 1].push_back(std::vector<Polyhedron*>());
+			stories[stories.size() - 1][stories[stories.size() - 1].size() - 1].assign(iterStoryDivision->second.begin(), iterStoryDivision->second.end());
+		}
+	}
+
+	/*printf("[TEMP]story count : %zd\n", stories.size());
+	for (size_t i = 0; i < stories.size(); i++)
+	{
+		printf("-[TEMP]division count : %zd\n", stories[i].size());
+		for (size_t j = 0; j < stories[i].size(); j++)
+		{
+			printf("--[TEMP]polyhedron count : %zd\n", stories[i][j].size());
+		}
+	}*/
 
 	return true;
 }
@@ -480,9 +708,17 @@ float* IfcppLoader::getRepresentativeColor(size_t polyhedronIndex)
 	return polyhedrons[polyhedronIndex]->color;
 }
 
+/*
 std::wstring IfcppLoader::getGuid(size_t polyhedronIndex)
 {
 	return polyhedrons[polyhedronIndex]->guid;
+}
+*/
+
+void IfcppLoader::getGuid(size_t polyhedronIndex, wchar_t buffer[])
+{
+	size_t length = polyhedrons[polyhedronIndex]->guid.size();
+	memcpy(buffer, polyhedrons[polyhedronIndex]->guid.c_str(), sizeof(wchar_t) * length);
 }
 
 size_t IfcppLoader::getVertexCount(size_t polyhedronIndex)
@@ -508,6 +744,57 @@ size_t IfcppLoader::getTrialgleCount(size_t polyhedronIndex, size_t surfaceIndex
 size_t* IfcppLoader::getTriangleIndices(size_t polyhedronIndex, size_t surfaceIndex)
 {
 	return polyhedrons[polyhedronIndex]->surfaces[surfaceIndex]->triangleIndices;
+}
+
+size_t IfcppLoader::getStoryCount()
+{
+	return stories.size();
+}
+
+size_t IfcppLoader::getStoryDivisionCount(size_t storyIndex)
+{
+	return stories[storyIndex].size();
+}
+
+size_t IfcppLoader::getPolyhedronCount(size_t storyIndex, size_t divisionIndex)
+{
+	return stories[storyIndex][divisionIndex].size();
+}
+
+float* IfcppLoader::getRepresentativeColor(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->color;
+}
+
+void IfcppLoader::getGuid(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, wchar_t buffer[])
+{
+	size_t length = stories[storyIndex][divisionIndex][polyhedronIndex]->guid.size();
+	memcpy(buffer, stories[storyIndex][divisionIndex][polyhedronIndex]->guid.c_str(), sizeof(wchar_t) * length);
+}
+
+size_t IfcppLoader::getVertexCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->vertexCount;
+}
+
+double* IfcppLoader::getVertexPositions(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->vertices;
+}
+
+size_t IfcppLoader::getSurfaceCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->surfaces.size();
+}
+
+size_t IfcppLoader::getTrialgleCount(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, size_t surfaceIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->surfaces[surfaceIndex]->triangleCount;
+}
+
+size_t* IfcppLoader::getTriangleIndices(size_t storyIndex, size_t divisionIndex, size_t polyhedronIndex, size_t surfaceIndex)
+{
+	return stories[storyIndex][divisionIndex][polyhedronIndex]->surfaces[surfaceIndex]->triangleIndices;
 }
 
 std::string IfcppLoader::getObjectAttributes()
@@ -554,6 +841,9 @@ void IfcppLoader::loadObjectAttributes(shared_ptr<IfcProduct> ifcProduct, Json::
 		shared_ptr<IfcRelDefinesByProperties> propertySetWrapper = dynamic_pointer_cast<IfcRelDefinesByProperties>(ifcProduct->m_IsDefinedBy_inverse[i].lock());
 
 		shared_ptr<IfcPropertySet> propertySet = dynamic_pointer_cast<IfcPropertySet>(propertySetWrapper->m_RelatingPropertyDefinition);
+
+		if (propertySet == NULL)
+			continue;
 
 		Json::Value aSet(Json::objectValue);
 
@@ -696,444 +986,3 @@ void destroyIfcLoader(IfcLoader* aLoader)
 {
 	delete static_cast<IfcppLoader*>(aLoader);
 }
-/*
-void convertToOpenGL(const std::map<int, shared_ptr<ProductShapeData> >& map_shape_data)
-{
-	progressTextCallback(L"Converting geometry to OpenGL format ...");
-	progressValueCallback(0, "scenegraph");
-	m_map_entity_id_to_switch.clear();
-	m_map_representation_id_to_switch.clear();
-	m_vec_existing_statesets.clear();
-
-	shared_ptr<ProductShapeData> ifc_project_data;
-	std::vector<shared_ptr<ProductShapeData> > vec_products;
-
-	for (auto it = map_shape_data.begin(); it != map_shape_data.end(); ++it)
-	{
-		shared_ptr<ProductShapeData> shape_data = it->second;
-		if (shape_data)
-		{
-			vec_products.push_back(shape_data);
-		}
-	}
-
-	// create geometry for for each IfcProduct independently, spatial structure will be resolved later
-	//std::map<int, osg::ref_ptr<osg::Switch> >* map_entity_id = &m_map_entity_id_to_switch;
-	//std::map<int, osg::ref_ptr<osg::Switch> >* map_representations = &m_map_representation_id_to_switch;
-	const int num_products = (int)vec_products.size();
-
-#ifdef ENABLE_OPENMP
-	Mutex writelock_map;
-	Mutex writelock_message_callback;
-	Mutex writelock_ifc_project;
-
-#pragma omp parallel firstprivate(num_products) shared(map_entity_id, map_representations)
-	{
-		// time for one product may vary significantly, so schedule not so many
-#pragma omp for schedule(dynamic,40)
-#endif
-		for (int i = 0; i < num_products; ++i)
-		{
-			shared_ptr<ProductShapeData>& shape_data = vec_products[i];
-
-			weak_ptr<IfcObjectDefinition>& ifc_object_def_weak = shape_data->m_ifc_object_definition;
-			if (ifc_object_def_weak.expired())
-			{
-				continue;
-			}
-			shared_ptr<IfcObjectDefinition> ifc_object_def(ifc_object_def_weak);
-
-			std::stringstream thread_err;
-			if (dynamic_pointer_cast<IfcFeatureElementSubtraction>(ifc_object_def))
-			{
-				// geometry will be created in method subtractOpenings
-				continue;
-			}
-			else if (dynamic_pointer_cast<IfcProject>(ifc_object_def))
-			{
-				ifc_project_data = shape_data;
-			}
-
-			shared_ptr<IfcProduct> ifc_product = dynamic_pointer_cast<IfcProduct>(ifc_object_def);
-			if (!ifc_product)
-			{
-				continue;
-			}
-
-			if (!ifc_product->m_Representation)
-			{
-				continue;
-			}
-
-			const int product_id = ifc_product->m_entity_id;
-			//std::map<int, osg::ref_ptr<osg::Switch> > map_representation_switches;
-			try
-			{
-				//convertProductShapeToOSG(shape_data, map_representation_switches);
-				convertProductShapeToOpenGL(shape_data);
-			}
-			catch (OutOfMemoryException& e)
-			{
-				throw e;
-			}
-			catch (BuildingException& e)
-			{
-				thread_err << e.what();
-			}
-			catch (carve::exception& e)
-			{
-				thread_err << e.str();
-			}
-			catch (std::exception& e)
-			{
-				thread_err << e.what();
-			}
-			catch (...)
-			{
-				thread_err << "undefined error, product id " << product_id;
-			}
-//			
-			if (map_representation_switches.size() > 0)
-			{
-				osg::ref_ptr<osg::Switch> product_switch = new osg::Switch();
-
-				osg::ref_ptr<osg::MatrixTransform> product_transform = new osg::MatrixTransform();
-				product_transform->setMatrix(convertMatrixToOSG(shape_data->getTransform()));
-				product_switch->addChild(product_transform);
-
-				std::stringstream strs_product_switch_name;
-				strs_product_switch_name << "#" << product_id << "=" << ifc_product->className() << " group";
-				product_switch->setName(strs_product_switch_name.str().c_str());
-
-				for (auto it_map = map_representation_switches.begin(); it_map != map_representation_switches.end(); ++it_map)
-				{
-					osg::ref_ptr<osg::Switch>& repres_switch = it_map->second;
-					product_transform->addChild(repres_switch);
-				}
-
-				// apply statesets if there are any
-				const std::vector<shared_ptr<AppearanceData> >& vec_product_appearances = shape_data->getAppearances();
-				if (vec_product_appearances.size() > 0)
-				{
-					applyAppearancesToGroup(vec_product_appearances, product_switch);
-				}
-
-#ifdef ENABLE_OPENMP
-				ScopedLock scoped_lock(writelock_map);
-#endif
-				map_entity_id->insert(std::make_pair(product_id, product_switch));
-				map_representations->insert(map_representation_switches.begin(), map_representation_switches.end());
-			}
-
-			if (thread_err.tellp() > 0)
-			{
-#ifdef ENABLE_OPENMP
-				ScopedLock scoped_lock(writelock_message_callback);
-#endif
-				messageCallback(thread_err.str().c_str(), StatusCallback::MESSAGE_TYPE_ERROR, __FUNC__);
-			}
-
-			// progress callback
-			double progress = (double)i / (double)num_products;
-			if (progress - m_recent_progress > 0.02)
-			{
-#ifdef ENABLE_OPENMP
-				if (omp_get_thread_num() == 0)
-#endif
-				{
-					// leave 10% of progress to openscenegraph internals
-					progressValueCallback(progress*0.9, "scenegraph");
-					m_recent_progress = progress;
-				}
-			}
-//
-		}
-#ifdef ENABLE_OPENMP
-	} // implicit barrier
-#endif
-
-	try
-	{
-		// now resolve spatial structure
-		if (ifc_project_data)
-		{
-			resolveProjectStructure(ifc_project_data, parent_group);
-		}
-	}
-	catch (OutOfMemoryException& e)
-	{
-		throw e;
-	}
-	catch (BuildingException& e)
-	{
-		//messageCallback(e.what(), StatusCallback::MESSAGE_TYPE_ERROR, "");
-	}
-	catch (std::exception& e)
-	{
-		//messageCallback(e.what(), StatusCallback::MESSAGE_TYPE_ERROR, "");
-	}
-	catch (...)
-	{
-		//messageCallback("undefined error", StatusCallback::MESSAGE_TYPE_ERROR, __FUNC__);
-	}
-	//progressValueCallback(0.9, "scenegraph");
-}
-*/
-/*
-// caution: when using OpenMP, this method runs in parallel threads, so every write access to member variables needs a write lock
-void convertProductShapeToOpenGL(shared_ptr<ProductShapeData>& product_shape)
-{
-	if (product_shape->m_ifc_object_definition.expired())
-	{
-		return;
-	}
-
-	shared_ptr<IfcObjectDefinition> ifc_object_def(product_shape->m_ifc_object_definition);
-	shared_ptr<IfcProduct> ifc_product = dynamic_pointer_cast<IfcProduct>(ifc_object_def);
-	if (!ifc_product)
-	{
-		return;
-	}
-	const int product_id = ifc_product->m_entity_id;
-	std::stringstream strs_product_switch_name;
-	strs_product_switch_name << "#" << product_id << "=" << ifc_product->className() << " group";
-	bool draw_bounding_box = false;
-
-	// create OSG objects
-	std::vector<shared_ptr<RepresentationData> >& vec_product_representations = product_shape->m_vec_representations;
-	for (size_t ii_representation = 0; ii_representation < vec_product_representations.size(); ++ii_representation)
-	{
-		const shared_ptr<RepresentationData>& product_representation_data = vec_product_representations[ii_representation];
-		if (product_representation_data->m_ifc_representation.expired())
-		{
-			continue;
-		}
-		shared_ptr<IfcRepresentation> ifc_representation(product_representation_data->m_ifc_representation);
-		const int representation_id = ifc_representation->m_entity_id;
-		osg::ref_ptr<osg::Switch> representation_switch = new osg::Switch();
-
-#ifdef _DEBUG
-		std::stringstream strs_representation_name;
-		strs_representation_name << strs_product_switch_name.str().c_str() << ", representation " << ii_representation;
-		representation_switch->setName(strs_representation_name.str().c_str());
-#endif
-
-		const std::vector<shared_ptr<ItemShapeData> >& product_items = product_representation_data->m_vec_item_data;
-		for (size_t i_item = 0; i_item < product_items.size(); ++i_item)
-		{
-			const shared_ptr<ItemShapeData>& item_shape = product_items[i_item];
-			osg::ref_ptr<osg::MatrixTransform> item_group = new osg::MatrixTransform();
-			if (!item_group) { throw OutOfMemoryException(__FUNC__); }
-
-#ifdef _DEBUG
-			std::stringstream strs_item_name;
-			strs_item_name << strs_representation_name.str().c_str() << ", item " << i_item;
-			item_group->setName(strs_item_name.str().c_str());
-#endif
-
-			// create shape for open shells
-			for (size_t ii = 0; ii < item_shape->m_meshsets_open.size(); ++ii)
-			{
-				shared_ptr<carve::mesh::MeshSet<3> >& item_meshset = item_shape->m_meshsets_open[ii];
-				CSG_Adapter::retriangulateMeshSet(item_meshset);
-				osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-				if (!geode) { throw OutOfMemoryException(__FUNC__); }
-				drawMeshSet(item_meshset, geode, m_geom_settings->getCoplanarFacesMaxDeltaAngle());
-
-				if (m_geom_settings->getRenderCreaseEdges())
-				{
-					renderMeshsetCreaseEdges(item_meshset, geode, m_geom_settings->getCreaseEdgesMaxDeltaAngle());
-				}
-
-				// disable back face culling for open meshes
-				geode->getOrCreateStateSet()->setAttributeAndModes(m_cull_back_off.get(), osg::StateAttribute::OFF);
-				item_group->addChild(geode);
-
-				if (draw_bounding_box)
-				{
-					carve::geom::aabb<3> bbox = item_meshset->getAABB();
-					osg::ref_ptr<osg::Geometry> bbox_geom = new osg::Geometry();
-					drawBoundingBox(bbox, bbox_geom);
-					geode->addDrawable(bbox_geom);
-				}
-
-#ifdef _DEBUG
-				std::stringstream strs_item_meshset_name;
-				strs_item_meshset_name << strs_item_name.str().c_str() << ", open meshset " << ii;
-				geode->setName(strs_item_meshset_name.str().c_str());
-#endif
-			}
-
-			// create shape for meshsets
-			for (size_t ii = 0; ii < item_shape->m_meshsets.size(); ++ii)
-			{
-				shared_ptr<carve::mesh::MeshSet<3> >& item_meshset = item_shape->m_meshsets[ii];
-				CSG_Adapter::retriangulateMeshSet(item_meshset);
-				osg::ref_ptr<osg::Geode> geode_meshset = new osg::Geode();
-				if (!geode_meshset) { throw OutOfMemoryException(__FUNC__); }
-				drawMeshSet(item_meshset, geode_meshset, m_geom_settings->getCoplanarFacesMaxDeltaAngle());
-				item_group->addChild(geode_meshset);
-
-				if (m_geom_settings->getRenderCreaseEdges())
-				{
-					renderMeshsetCreaseEdges(item_meshset, geode_meshset, m_geom_settings->getCreaseEdgesMaxDeltaAngle());
-				}
-
-				if (draw_bounding_box)
-				{
-					carve::geom::aabb<3> bbox = item_meshset->getAABB();
-					osg::ref_ptr<osg::Geometry> bbox_geom = new osg::Geometry();
-					drawBoundingBox(bbox, bbox_geom);
-					geode_meshset->addDrawable(bbox_geom);
-				}
-
-#ifdef _DEBUG
-				std::stringstream strs_item_meshset_name;
-				strs_item_meshset_name << strs_item_name.str().c_str() << ", meshset " << ii;
-				geode_meshset->setName(strs_item_meshset_name.str().c_str());
-#endif
-			}
-
-			// create shape for points
-			const std::vector<shared_ptr<carve::input::VertexData> >& vertex_points = item_shape->getVertexPoints();
-			for (size_t ii = 0; ii < vertex_points.size(); ++ii)
-			{
-				const shared_ptr<carve::input::VertexData>& pointset_data = vertex_points[ii];
-				if (pointset_data)
-				{
-					if (pointset_data->points.size() > 0)
-					{
-						osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-						if (!geode) { throw OutOfMemoryException(__FUNC__); }
-
-						osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array();
-						for (size_t i_pointset_point = 0; i_pointset_point < pointset_data->points.size(); ++i_pointset_point)
-						{
-							vec3& carve_point = pointset_data->points[i_pointset_point];
-							vertices->push_back(osg::Vec3d(carve_point.x, carve_point.y, carve_point.z));
-						}
-
-						osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry();
-						geometry->setVertexArray(vertices);
-						geometry->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POINTS, 0, vertices->size()));
-						geode->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-						geode->getOrCreateStateSet()->setAttribute(new osg::Point(3.0f), osg::StateAttribute::ON);
-						geode->addDrawable(geometry);
-						geode->setCullingActive(false);
-						item_group->addChild(geode);
-
-#ifdef _DEBUG
-						std::stringstream strs_item_meshset_name;
-						strs_item_meshset_name << strs_item_name.str().c_str() << ", vertex_point " << ii;
-						geode->setName(strs_item_meshset_name.str().c_str());
-#endif
-					}
-				}
-			}
-
-			// create shape for polylines
-			for (size_t ii = 0; ii < item_shape->m_polylines.size(); ++ii)
-			{
-				shared_ptr<carve::input::PolylineSetData>& polyline_data = item_shape->m_polylines[ii];
-				osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-				if (!geode) { throw OutOfMemoryException(__FUNC__); }
-				geode->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-				drawPolyline(polyline_data.get(), geode);
-				item_group->addChild(geode);
-
-#ifdef _DEBUG
-				std::stringstream strs_item_meshset_name;
-				strs_item_meshset_name << strs_item_name.str().c_str() << ", polylines " << ii;
-				geode->setName(strs_item_meshset_name.str().c_str());
-#endif
-			}
-
-			if (m_geom_settings->isShowTextLiterals())
-			{
-				for (size_t ii = 0; ii < item_shape->m_vec_text_literals.size(); ++ii)
-				{
-					shared_ptr<TextItemData>& text_data = item_shape->m_vec_text_literals[ii];
-					if (!text_data)
-					{
-						continue;
-					}
-					carve::math::Matrix& text_pos = text_data->m_text_position;
-					// TODO: handle rotation
-
-					std::string text_str;
-					text_str.assign(text_data->m_text.begin(), text_data->m_text.end());
-
-					osg::Vec3 pos2(text_pos._41, text_pos._42, text_pos._43);
-
-					osg::ref_ptr<osgText::Text> txt = new osgText::Text();
-					if (!txt)
-					{
-						throw OutOfMemoryException(__FUNC__);
-					}
-					txt->setFont("fonts/arial.ttf");
-					txt->setColor(osg::Vec4f(0, 0, 0, 1));
-					txt->setCharacterSize(0.1f);
-					txt->setAutoRotateToScreen(true);
-					txt->setPosition(pos2);
-					txt->setText(text_str.c_str());
-					txt->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-
-					osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-					if (!geode) { throw OutOfMemoryException(__FUNC__); }
-					geode->addDrawable(txt);
-					item_group->addChild(geode);
-				}
-			}
-
-			// apply statesets if there are any
-			if (item_shape->m_vec_item_appearances.size() > 0)
-			{
-				applyAppearancesToGroup(item_shape->m_vec_item_appearances, item_group);
-			}
-
-			// If anything has been created, add it to the representation group
-			if (item_group->getNumChildren() > 0)
-			{
-#ifdef _DEBUG
-				if (item_group->getNumParents() > 0)
-				{
-					std::cout << __FUNC__ << ": item_group->getNumParents() > 0" << std::endl;
-				}
-#endif
-				representation_switch->addChild(item_group);
-			}
-		}
-
-		// apply statesets if there are any
-		if (product_representation_data->m_vec_representation_appearances.size() > 0)
-		{
-			applyAppearancesToGroup(product_representation_data->m_vec_representation_appearances, representation_switch);
-		}
-
-		// If anything has been created, add it to the product group
-		if (representation_switch->getNumChildren() > 0)
-		{
-#ifdef _DEBUG
-			if (representation_switch->getNumParents() > 0)
-			{
-				std::cout << __FUNC__ << ": product_representation_switch->getNumParents() > 0" << std::endl;
-			}
-#endif
-			// enable transparency for certain objects
-			if (dynamic_pointer_cast<IfcSpace>(ifc_product))
-			{
-				representation_switch->setStateSet(m_glass_stateset);
-			}
-			else if (dynamic_pointer_cast<IfcCurtainWall>(ifc_product) || dynamic_pointer_cast<IfcWindow>(ifc_product))
-			{
-				representation_switch->setStateSet(m_glass_stateset);
-				SceneGraphUtils::setMaterialAlpha(representation_switch, 0.6f);
-			}
-
-			map_representation_switches.insert(std::make_pair(representation_id, representation_switch));
-		}
-	}
-
-	// TODO: if no color or material is given, set color 231/219/169 for walls, 140/140/140 for slabs 
-}
-*/

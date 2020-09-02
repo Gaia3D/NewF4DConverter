@@ -9,7 +9,6 @@
 
 namespace gaia3d
 {
-
 	TrianglePolyhedron::TrianglePolyhedron()
 	{
 		refInfo.model = NULL;
@@ -23,7 +22,6 @@ namespace gaia3d
 
 		id = MaxUnsignedLong;
 	}
-
 
 	TrianglePolyhedron::~TrianglePolyhedron()
 	{
