@@ -27,6 +27,9 @@
 #include "../geometry/ColorU4.h"
 #include "../util/StringUtility.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 
 F4DWriter::F4DWriter(ConversionProcessor* conversionResult)
 :processor(conversionResult)
@@ -57,7 +60,7 @@ bool F4DWriter::write()
 bool F4DWriter::writeMeshes()
 {
 	// make target root folder
-	std::string resultPath = folder + "/F4D_" + processor->getAttribute("id");
+	std::string resultPath = folder + "/F4D_" + processor->getAttribute(F4DID);
 
 	struct stat status;
 
@@ -139,7 +142,6 @@ bool F4DWriter::writeMeshes()
 	}
 
 	writeReferencesAndModels(referencePath, modelPath, lod2Path, textureIndices);
-	//writeLegoBlocks(legoBlockPath);
 
 	// create image directory
 	if (!processor->getTextureInfo().empty())
@@ -163,8 +165,6 @@ bool F4DWriter::writeMeshes()
 
 		writeTextures(imagePath);
 	}
-
-	//writeLegoTexture(resultPath);
 
 	// net surface mesh lod 3~5
 	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMesh = processor->getNetSurfaceMeshes().begin();
@@ -353,7 +353,6 @@ bool F4DWriter::writeHeader(FILE* f, std::map<std::string, size_t>& textureIndic
 	// end marker
 	char endMarker = 0;
 	fwrite(&endMarker, sizeof(char), 1, f);
-	// versoin div : end
 
 	return true;
 }
@@ -437,6 +436,7 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 				fwrite(&index, sizeof(unsigned short), 1, f);
 			}
 		}
+
 		bool bLegoExist = false;
 		fwrite(&bLegoExist, sizeof(bool), 1, f);
 	}
@@ -470,8 +470,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 	unsigned short valueType; // array value type
 	unsigned char colorDimension; // color channel count
 	bool bTextureCoordinate; // if texture coordinate exists
-	//float u, v;	// texture coordinate
-	//unsigned int textureCount = 0;
 	unsigned int textureIndex;
 	unsigned int totalTriangleCount;
 	for (size_t i = 0; i < leafCount; i++)
@@ -520,10 +518,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			if (reference->doesStringAttributeExist(std::string(ObjectGuid)))
 			{
 				objectId = reference->getStringAttribute(std::string(ObjectGuid));
-				//std::string wObjectId = reference->getStringAttribute(std::string(ObjectGuid));
-				//objectId = std::string(gaia3d::ws2s(wObjectId.c_str()));
-				//objectId = std::string(wObjectId.c_str());
-
 				objectIdLength = (unsigned char)objectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
 				if (objectIdLength > 0)
@@ -531,7 +525,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			}
 			else
 			{
-				//objectIdLength = (unsigned char)0;
 				std::string tmpObjectId = std::to_string(referenceId);
 				objectIdLength = (unsigned char)tmpObjectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
@@ -1003,38 +996,35 @@ void F4DWriter::writeTextures(std::string imagePath)
 			fclose(file);
 			delete[] fileContents;
 		}
+		else if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
+		{
+			stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
+		}
+		else if (fileExt.compare("png") == 0)
+		{
+			stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
+		}
+		else if (fileExt.compare("gif") == 0)
+		{
+			// TODO 
+			continue;
+		}
+		else if (fileExt.compare("tif") == 0 || fileExt.compare("tiff") == 0)
+		{
+			// TODO 
+			continue;
+		}
+		else if (fileExt.compare("bmp") == 0)
+		{
+			stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
+		}
+		else if (fileExt.compare("tga") == 0)
+		{
+			stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
+		}
 		else
 		{
-			if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
-			{
-				stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
-			}
-			else if (fileExt.compare("png") == 0)
-			{
-				stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
-			}
-			else if (fileExt.compare("gif") == 0)
-			{
-				// TODO 
-				continue;
-			}
-			else if (fileExt.compare("tif") == 0 || fileExt.compare("tiff") == 0)
-			{
-				// TODO 
-				continue;
-			}
-			else if (fileExt.compare("bmp") == 0)
-			{
-				stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
-			}
-			else if (fileExt.compare("tga") == 0)
-			{
-				stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
-			}
-			else
-			{
-				continue;
-			}
+			continue;
 		}
 	}
 }

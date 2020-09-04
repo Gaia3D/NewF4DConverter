@@ -6,13 +6,14 @@
 #include <iostream>
 
 #ifdef __APPLE__
-#include <sys/uio.h>
+	#include <sys/uio.h>
 #elif defined WIN32
-#include <direct.h>
-#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+	#include <direct.h>
+	#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+	#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+	#define mkdir(dirname,mode)   _mkdir(dirname)
 #else
-#include <sys/io.h>
+	#include <sys/io.h>
 #endif
 
 #include <sys/stat.h>
@@ -206,7 +207,7 @@ bool ConverterManager::processDataFolder()
 
 		if (!bProjectFolderExist)
 		{
-			if (_mkdir(outputFolder.c_str()) != 0)
+			if (mkdir(outputFolder.c_str(), 0755) != 0)
 			{
 				LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 				LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
@@ -524,7 +525,7 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 
 					if (!bFinalOutputFolder)
 					{
-						if (_mkdir(finalOutputFolder.c_str()) != 0)
+						if (mkdir(finalOutputFolder.c_str(), 0755) != 0)
 						{
 							LogWriter::getLogWriter()->addContents(std::string(ERROR_FLAG), false);
 							LogWriter::getLogWriter()->addContents(std::string(CANNOT_CREATE_DIRECTORY), false);
