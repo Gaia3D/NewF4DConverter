@@ -16,17 +16,23 @@
 
 using namespace xercesc;
 
+class GeometryManager;
+
 class IndoorGMLReader : public Reader
 {
 public:
 	IndoorGMLReader();
-	virtual ~IndoorGMLReader();
-	gaia3d::BoundingBox bb;
 
-public:
-	bool readIndoorSpace(DOMDocument* dom, std::vector<gaia3d::TrianglePolyhedron*>& container, double& lon, double& lat);
-	virtual void clear();
+	virtual ~IndoorGMLReader();
+
 	virtual bool readRawDataFile(std::string& filePath);
+
+	virtual void clear();
+	
+private:
+	GeometryManager parseIndoorGeometry(DOMDocument* dom, std::string filePath);
+	bool readIndoorGML(DOMDocument* dom, std::string filePath, std::map<std::string, bool> splitFilter, std::vector<gaia3d::TrianglePolyhedron*>& container, double& lon, double& lat);
+
 };
 
 #endif

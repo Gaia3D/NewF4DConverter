@@ -827,6 +827,8 @@ void collectF4DFolderInfo(std::string targetFolder, std::map<std::string, std::s
 	std::vector<std::string> subFolders;
 
 	bfs::path folderPath(targetFolder);
+	folderPath.normalize();
+
 	if (bfs::is_directory(folderPath))
 	{
 		std::cout << "In directory: " << folderPath.string() << std::endl;
@@ -838,12 +840,14 @@ void collectF4DFolderInfo(std::string targetFolder, std::map<std::string, std::s
 
 			try
 			{
-				if (bfs::is_directory(subFolder) && subFolder.find(std::string("F4D_")))
+				if (!bfs::is_directory(subFolderPath) || subFolder.find(std::string("F4D_")) != 0)
 				{
-					info[subFolder] = subFolderPath.string();
-					subFolders.push_back(subFolderPath.string());
-					std::cout << "[directory]" << subFolderPath << std::endl;
+					continue;
 				}
+
+				info[subFolder] = subFolderPath.string();
+				subFolders.push_back(subFolderPath.string());
+				std::cout << "[directory]" << subFolderPath << std::endl;
 			}
 			catch (const std::exception& ex)
 			{
@@ -998,7 +1002,7 @@ void F4DWriter::writeTextures(std::string imagePath)
 		}
 		else if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
 		{
-			stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
+			stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
 		}
 		else if (fileExt.compare("png") == 0)
 		{

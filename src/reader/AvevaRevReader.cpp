@@ -1,8 +1,6 @@
 ﻿/**
 * Implementation of the ReaderFactory class
 */
-//#ifdef AVEVAREVIEWFORMAT
-
 #include "AvevaRevReader.h"
 
 #include <stdexcept>
@@ -479,7 +477,7 @@ bool readPrimInfo(FILE* file, RevNode* node)
 	case RevPrim::PRIM_TYPE::UNKNOWN:
 	{
 		printf("[ERROR]Unknwon Prim Type\n");
-		_ASSERT(false);
+		return false;
 	}
 	break;
 	case RevPrim::PRIM_TYPE::TYPE1:
@@ -736,6 +734,8 @@ bool readObstInfo(FILE* file, RevNode* node)
 		return false;// read dummy line
 
 	readingMode = 0;
+
+	return true;
 }
 
 void extractGeometryInformation(RevNode* node, std::vector<gaia3d::TrianglePolyhedron*>& container)
@@ -1003,5 +1003,3 @@ void tokenizeFloatingNumbers(char buffer[], std::vector<double>& receiver)
 		token = strtok(NULL, " \t\n");
 	}
 }
-
-#endif

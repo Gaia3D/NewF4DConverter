@@ -9,22 +9,22 @@
 
 #include "IfcLoader.h"
 
+#include <ifcpp/model/StatusCallback.h>
 #include <ifcpp/model/BuildingModel.h>
 #include <ifcpp/geometry/Carve/GeometryConverter.h>
 #include <ifcpp/reader/ReaderSTEP.h>
 #include <ifcpp/IFC4/include/IfcSite.h>
 #include <ifcpp/IFC4/include/IfcSpace.h>
-//#include <ifcpp/IFC4/include/IfcGloballyUniqueId.h>
+#include <ifcpp/IFC4/include/IfcGloballyUniqueId.h>
 
-// for spatial structure
-#include "ifcpp/IFC4/include/IfcBuilding.h"
-#include "ifcpp/IFC4/include/IfcBuildingStorey.h"
-#include "ifcpp/IFC4/include/IfcFooting.h"
-#include "ifcpp/IFC4/include/IfcColumn.h"
-#include "ifcpp/IFC4/include/IfcSlab.h"
-#include "ifcpp/IFC4/include/IfcBeam.h"
-#include "ifcpp/IFC4/include/IfcWall.h"
-#include "ifcpp/IFC4/include/IfcWallStandardCase.h"
+// for geometry structure
+#include <ifcpp/IFC4/include/IfcBuilding.h>
+#include <ifcpp/IFC4/include/IfcBuildingStorey.h>
+#include <ifcpp/IFC4/include/IfcFooting.h>
+#include <ifcpp/IFC4/include/IfcColumn.h>
+#include <ifcpp/IFC4/include/IfcSlab.h>
+#include <ifcpp/IFC4/include/IfcBeam.h>
+#include <ifcpp/IFC4/include/IfcWallStandardCase.h>
 
 // for property value
 #include <ifcpp/IFC4/include/IfcAreaMeasure.h>
@@ -32,6 +32,7 @@
 #include <ifcpp/IFC4/include/IfcIdentifier.h>
 #include <ifcpp/IFC4/include/IfcInteger.h>
 #include <ifcpp/IFC4/include/IfcLabel.h>
+#include <ifcpp/IFC4/include/IfcText.h>
 #include <ifcpp/IFC4/include/IfcLengthMeasure.h>
 #include <ifcpp/IFC4/include/IfcPlaneAngleMeasure.h>
 #include <ifcpp/IFC4/include/IfcPositiveLengthMeasure.h>
@@ -94,7 +95,8 @@ public:
 private:
 
 	void loadProjectAttributes();
-	//void loadObjectAttributes(shared_ptr<IfcProduct> ifcProduct, Json::Value& root);
+	void loadObjectAttributes(shared_ptr<IfcProduct> ifcProduct, Json::Value& root);
+	bool checkIfPropertiesCanBeExtracted(std::string className);
 	//bool checkIfPropertiesCanBeExtracted(IfcPPEntityEnum ppEnum);
 	void parsePropertySingleValue(Json::Value& valueObject, shared_ptr<IfcValue> value);
 

@@ -159,10 +159,10 @@ bool PointCloudReader::readLasFile(std::string& filePath)
 				char* pszProj4 = NULL;
 				if (OGRERR_NONE != srs.exportToProj4(&pszProj4))
 				{
-					CPLFree(pszWKT);
 					// new log
 					LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
 					LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("PointCloudReader::readLasFile : failed to convert WKT to proj string"));
+					CPLFree(pszWKT);
 					return false;
 				}
 

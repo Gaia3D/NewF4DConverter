@@ -57,7 +57,7 @@ namespace gaia3d
 
 		static void mergeLegoBlocksAlongXAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
 
-		static void earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result);
+		static bool earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result, bool bDebug = false);
 
 		static void tessellate(double* xs, double* ys, double* zs, size_t vertexCount, std::vector<size_t>& polygonIndices, std::vector<size_t>& indices);
 	};

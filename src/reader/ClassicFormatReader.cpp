@@ -44,7 +44,6 @@ bool proceedMesh(aiMesh* mesh,
 		aiString texturePath;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
 		
-		//std::string fullPath = folder + "/" + std::string(gaia3d::s2ws(texturePath.C_Str()));
 		std::string fullPath = folder + "/" + std::string(texturePath.C_Str());
 
 		size_t lastSlashIndex = fullPath.find_last_of("\\/");
@@ -92,7 +91,7 @@ bool proceedMesh(aiMesh* mesh,
 		polyhedron->setHasNormals(true);
 
 	// access to vertices
-	double tmpZ;
+	//double tmpZ;
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
 		gaia3d::Vertex* vertex = new gaia3d::Vertex;
@@ -266,9 +265,6 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 	}
 
 	Assimp::Importer importer;
-
-	//std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
-	//std::string singleCharFilePath = std::string(filePath.c_str());
 
 	const aiScene* scene = importer.ReadFile(filePath,
 		//aiProcess_SplitLargeMeshes |
