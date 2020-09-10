@@ -149,6 +149,9 @@ bool ConversionProcessor::initialize()
 
 	glfwSwapInterval(1);
 
+	std::cout << "OpenGL" << std::string((const char*)glGetString(GL_VERSION)) << std::endl;
+	std::cout << "Supported GLSL version is " << std::string((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION)) << std::endl;
+
 	//// initialize gl
 	glEnable(GL_TEXTURE_2D);
 	// Enables Depth Testing

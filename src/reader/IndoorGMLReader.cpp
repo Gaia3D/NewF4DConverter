@@ -525,7 +525,7 @@ public:
 
 	~IndoorGMLSolid() {}
 
-	bool IndoorGMLSolid::hasExterior() {
+	bool hasExterior() {
 		if (exterior.size() == 0) {
 			return false;
 		}
@@ -533,7 +533,7 @@ public:
 			return true;
 		}
 	}
-	bool IndoorGMLSolid::hasInterior() {
+	bool hasInterior() {
 		if (interior.size() == 0) {
 			return false;
 		}
@@ -542,21 +542,21 @@ public:
 		}
 	}
 	//const IndoorGMLSolid& IndoorGMLSolid::getExterior() const {	}
-	vector<shared_ptr<IndoorGMLPolygon>> IndoorGMLSolid::getExterior() {
+	vector<shared_ptr<IndoorGMLPolygon>> getExterior() {
 		return exterior;
 	}
-	std::vector<std::shared_ptr<IndoorGMLSolid>> IndoorGMLSolid::getInterior() {
+	std::vector<std::shared_ptr<IndoorGMLSolid>> getInterior() {
 		return interior;
 	}
-	void IndoorGMLSolid::addInterior(std::shared_ptr<IndoorGMLSolid> s) {
+	void addInterior(std::shared_ptr<IndoorGMLSolid> s) {
 		interior.push_back(s);
 	}
 	//void deleteInterior(){}
-	void IndoorGMLSolid::setExterior(vector<std::shared_ptr<IndoorGMLPolygon>> s) {
+	void setExterior(vector<std::shared_ptr<IndoorGMLPolygon>> s) {
 		exterior = s;
 	}
 
-	IndoorGMLSolid::IndoorGMLSolid(const std::string& _id) { id = _id; }
+	IndoorGMLSolid(const std::string& _id) { id = _id; }
 
 	void setId(string _id) { id = _id; }
 	string getId() { return id; }
