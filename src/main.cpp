@@ -15,6 +15,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <sstream>
+
 //#include <boost/filesystem.hpp>
 
 #include "argdefinition.h"
@@ -39,6 +41,20 @@ void print_version()
 -usf [numericValue] : unit scale factor. Geometries in F4D are described in meter. That is, the unit scale factor of raw data descrived in centimeter is 0.01 for example.
 -indexing [one of Y, y, N, n] : wheter objectIndexFile.ihe should be created or not. "NOT created" is default.
 */
+std::vector<std::string> split(const std::string& str, const std::string& delim)
+{
+	std::vector<std::string> tokens;
+	size_t prev = 0, pos = 0;
+	do
+	{
+		pos = str.find(delim, prev);
+		if (pos == std::string::npos) pos = str.length();
+		std::string token = str.substr(prev, pos - prev);
+		if (!token.empty()) tokens.push_back(token);
+		prev = pos + delim.length();
+	} while (pos < str.length() && prev < str.length());
+	return tokens;
+}
 
 bool extractArguments(int argc, char** argv, std::map<std::string, std::string>& arguments)
 {
@@ -363,8 +379,10 @@ bool extractArguments(int argc, char** argv, std::map<std::string, std::string>&
 
 		try
 		{
-			double refLon = std::stod(lon);
-			double refLat = std::stod(lat);
+			std::vector<std::string> lonlat = split(arguments[ReferenceLonLat], ",");
+
+			double refLon = std::stod(lonlat[0]);
+			double refLat = std::stod(lonlat[1]);
 		}
 		catch (const std::invalid_argument& error)
 		{
