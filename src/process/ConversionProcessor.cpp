@@ -2324,7 +2324,7 @@ unsigned int ConversionProcessor::makeShaders()
 	// vertex shader source
 	GLchar vs_source[] =
 	{
-		"#version 150\n"
+		"#version 120\n"
 		"attribute vec3 position;\n"
 		"attribute vec4 aVertexColor;\n"
 		"attribute vec2 aTextureCoord;\n"
@@ -2385,7 +2385,7 @@ unsigned int ConversionProcessor::makeShaders()
 	// fragment shader source
 	GLchar fs_source[] =
 	{
-		"#version 150\n"
+		"#version 120\n"
 		"varying vec4 vColor;\n"
 		"varying vec2 vTextureCoord;\n"
 		"uniform sampler2D uSampler;\n"
@@ -2487,7 +2487,7 @@ unsigned int ConversionProcessor::makeShadersForNSM()
 	// vertex shader source
 	GLchar vs_source[] =
 	{
-		"#version 150\n"
+		"#version 120\n"
 		"attribute vec3 position;\n"
 		"attribute vec4 aVertexColor;\n"
 		"attribute vec2 aTextureCoord;\n"
@@ -2548,7 +2548,7 @@ unsigned int ConversionProcessor::makeShadersForNSM()
 	// fragment shader source
 	GLchar fs_source[] =
 	{
-		"#version 150\n"
+		"#version 120\n"
 		"varying vec4 vColor;\n"
 		"varying vec2 vTextureCoord;\n"
 		"uniform sampler2D uSampler;\n"
