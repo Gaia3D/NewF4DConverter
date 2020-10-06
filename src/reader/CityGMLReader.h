@@ -1,5 +1,5 @@
 ﻿/**
-* CitygmlReader Header
+* CityGMLReader Header
 */
 #ifndef _CITYGMLREADER_H_
 #define _CITYGMLREADER_H_
@@ -18,8 +18,6 @@ public:
 
 	virtual void clear();
 
-private:
-	bool bUseMaxLODOnly;
 };
 
 #endif // _CITYGMLREADER_H_

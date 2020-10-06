@@ -1,5 +1,4 @@
 ﻿{
-  // 이 파일에 대한 자세한 내용은 https://go.microsoft.com//fwlink//?linkid=834763 을 참조하세요.
   "configurations": [
     {
       "name": "x86-Debug",
@@ -27,7 +26,7 @@
     },
     {
       "name": "x64-Debug",
-      "generator": "Visual Studio 15 2017 Win64",
+      "generator": "Visual Studio 16 2019 Win64",
       "configurationType": "Debug",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\build\\${name}",
@@ -45,17 +44,21 @@
     },
     {
       "name": "x64-Release",
-      "generator": "Visual Studio 15 2017 Win64",
+      "generator": "Visual Studio 16 2019 Win64",
       "configurationType": "RelWithDebInfo",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-      "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "buildRoot": "${projectDir}\\build\\${name}",
       "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "variables": []
+      "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        }
+      ]
     }
   ]
 }

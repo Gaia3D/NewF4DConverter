@@ -27,6 +27,9 @@
 #include "../geometry/ColorU4.h"
 #include "../util/StringUtility.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 
 F4DWriter::F4DWriter(ConversionProcessor* conversionResult)
 :processor(conversionResult)
@@ -57,7 +60,7 @@ bool F4DWriter::write()
 bool F4DWriter::writeMeshes()
 {
 	// make target root folder
-	std::string resultPath = folder + "/F4D_" + processor->getAttribute("id");
+	std::string resultPath = folder + "/F4D_" + processor->getAttribute(F4DID);
 
 	struct stat status;
 
@@ -139,7 +142,6 @@ bool F4DWriter::writeMeshes()
 	}
 
 	writeReferencesAndModels(referencePath, modelPath, lod2Path, textureIndices);
-	//writeLegoBlocks(legoBlockPath);
 
 	// create image directory
 	if (!processor->getTextureInfo().empty())
@@ -163,8 +165,6 @@ bool F4DWriter::writeMeshes()
 
 		writeTextures(imagePath);
 	}
-
-	//writeLegoTexture(resultPath);
 
 	// net surface mesh lod 3~5
 	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMesh = processor->getNetSurfaceMeshes().begin();
@@ -353,7 +353,6 @@ bool F4DWriter::writeHeader(FILE* f, std::map<std::string, size_t>& textureIndic
 	// end marker
 	char endMarker = 0;
 	fwrite(&endMarker, sizeof(char), 1, f);
-	// versoin div : end
 
 	return true;
 }
@@ -437,6 +436,7 @@ bool F4DWriter::writeModels(FILE* f, std::vector<gaia3d::TrianglePolyhedron*>& m
 				fwrite(&index, sizeof(unsigned short), 1, f);
 			}
 		}
+
 		bool bLegoExist = false;
 		fwrite(&bLegoExist, sizeof(bool), 1, f);
 	}
@@ -470,8 +470,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 	unsigned short valueType; // array value type
 	unsigned char colorDimension; // color channel count
 	bool bTextureCoordinate; // if texture coordinate exists
-	//float u, v;	// texture coordinate
-	//unsigned int textureCount = 0;
 	unsigned int textureIndex;
 	unsigned int totalTriangleCount;
 	for (size_t i = 0; i < leafCount; i++)
@@ -520,10 +518,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			if (reference->doesStringAttributeExist(std::string(ObjectGuid)))
 			{
 				objectId = reference->getStringAttribute(std::string(ObjectGuid));
-				//std::string wObjectId = reference->getStringAttribute(std::string(ObjectGuid));
-				//objectId = std::string(gaia3d::ws2s(wObjectId.c_str()));
-				//objectId = std::string(wObjectId.c_str());
-
 				objectIdLength = (unsigned char)objectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
 				if (objectIdLength > 0)
@@ -531,7 +525,6 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 			}
 			else
 			{
-				//objectIdLength = (unsigned char)0;
 				std::string tmpObjectId = std::to_string(referenceId);
 				objectIdLength = (unsigned char)tmpObjectId.length();
 				fwrite(&objectIdLength, sizeof(unsigned char), 1, file);
@@ -733,109 +726,6 @@ bool F4DWriter::writeVisibilityIndices(FILE* f, gaia3d::OctreeBox* octree)
 	return true;
 }
 
-bool F4DWriter::writeLegoBlocks(std::string& legoBlockPath)
-{
-	std::map<size_t, gaia3d::TrianglePolyhedron*>::iterator itr = processor->getLegos().begin();
-	std::string octreeLegoFilePath;
-	FILE* file = NULL;
-	size_t key;
-	gaia3d::TrianglePolyhedron* lego;
-	float minX, minY, minZ, maxX, maxY, maxZ; // bounding box
-	unsigned int vertexCount;	// vertex count of each lego
-	float x, y, z;
-	bool bNormal;
-	char nx, ny, nz;
-	bool bInterleavedMode = false;
-	char padding = 0;
-	bool bColor;
-	bool bTexture;
-	for (; itr != processor->getLegos().end(); itr++)
-	{
-		// octree lego file
-		key = itr->first;
-		lego = itr->second;
-
-		octreeLegoFilePath = legoBlockPath + "/" + std::to_string((unsigned long long)key) + std::string("_Brick");
-		file = fopen(octreeLegoFilePath.c_str(), "wb");
-
-		// bounding box
-		minX = (float)lego->getBoundingBox().minX; minY = (float)lego->getBoundingBox().minY; minZ = (float)lego->getBoundingBox().minZ;
-		maxX = (float)lego->getBoundingBox().maxX; maxY = (float)lego->getBoundingBox().maxY; maxZ = (float)lego->getBoundingBox().maxZ;
-		fwrite(&minX, sizeof(float), 1, file); fwrite(&minY, sizeof(float), 1, file); fwrite(&minZ, sizeof(float), 1, file);
-		fwrite(&maxX, sizeof(float), 1, file); fwrite(&maxY, sizeof(float), 1, file); fwrite(&maxZ, sizeof(float), 1, file);
-
-		// vertices count
-		vertexCount = (unsigned int)lego->getVertices().size();
-		fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-
-		// vertex positions
-		for (unsigned int i = 0; i < vertexCount; i++)
-		{
-			x = (float)lego->getVertices()[i]->position.x; y = (float)lego->getVertices()[i]->position.y; z = (float)lego->getVertices()[i]->position.z;
-			fwrite(&x, sizeof(float), 1, file); fwrite(&y, sizeof(float), 1, file); fwrite(&z, sizeof(float), 1, file);
-		}
-
-		// normals
-		bNormal = lego->doesThisHaveNormals();
-		fwrite(&bNormal, sizeof(bool), 1, file);
-		if (bNormal)
-		{
-			fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-			for (unsigned int i = 0; i < vertexCount; i++)
-			{
-				nx = (char)(127.0f * lego->getVertices()[i]->normal.x);
-				ny = (char)(127.0f * lego->getVertices()[i]->normal.y);
-				nz = (char)(127.0f * lego->getVertices()[i]->normal.z);
-				fwrite(&nx, sizeof(char), 1, file); fwrite(&ny, sizeof(char), 1, file); fwrite(&nz, sizeof(char), 1, file);
-				if (bInterleavedMode)
-					fwrite(&padding, sizeof(char), 1, file);
-			}
-		}
-
-		// colors
-		if (lego->getColorMode() == gaia3d::ColorsOnVertices)
-		{
-			bColor = true;
-			fwrite(&bColor, sizeof(bool), 1, file);
-			fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-			for (unsigned int i = 0; i < vertexCount; i++)
-			{
-				writeColor(lego->getVertices()[i]->color, 5121, true, file);
-			}
-		}
-		else
-		{
-			bColor = false;
-			fwrite(&bColor, sizeof(bool), 1, file);
-		}
-
-		// texture coordinate and resource
-		bTexture = lego->doesThisHaveTextureCoordinates();
-		fwrite(&bTexture, sizeof(bool), 1, file);
-		if (bTexture)
-		{
-			// save the data type.***
-			// (5120 signed byte), (5121 unsigned byte), (5122 signed short), (5123 unsigned short), (5126 float)
-			unsigned short type = 5126;
-			fwrite(&type, sizeof(unsigned short), 1, file);
-
-			// vertex count
-			fwrite(&vertexCount, sizeof(unsigned int), 1, file);
-			// texture coordinates of each vertex
-			for (unsigned int i = 0; i < vertexCount; i++)
-			{
-				float tx = (float)lego->getVertices()[i]->textureCoordinate[0];
-				float ty = (float)lego->getVertices()[i]->textureCoordinate[1];
-				fwrite(&tx, sizeof(float), 1, file);
-				fwrite(&ty, sizeof(float), 1, file);
-			}
-		}
-		fclose(file);
-	}
-
-	return true;
-}
-
 bool F4DWriter::writeOctreeInfo(gaia3d::OctreeBox* octree, unsigned short dataType, FILE* f)
 {
 	unsigned int level = octree->level;
@@ -930,59 +820,51 @@ void F4DWriter::writeColor(unsigned long color, unsigned short type, bool bAlpha
 	}
 }
 
-bool F4DWriter::writeIndexFile()
+void collectF4DFolderInfo(std::string targetFolder, std::map<std::string, std::string>& info)
 {
-	std::vector<std::string> convertedDataFolders;
-
 	namespace bfs = boost::filesystem;
 
-	bfs::path folderPath(folder);
+	std::vector<std::string> subFolders;
+
+	bfs::path folderPath(targetFolder);
+	folderPath.normalize();
+
 	if (bfs::is_directory(folderPath))
 	{
 		std::cout << "In directory: " << folderPath.string() << std::endl;
-		bfs::directory_iterator end;
-		for (bfs::directory_iterator it(folderPath); it != end; ++it)
+		bfs::recursive_directory_iterator end;
+		for (bfs::recursive_directory_iterator it(folderPath); it != end; ++it)
 		{
+			const bfs::path subFolderPath = (*it);
+			std::string subFolder = subFolderPath.filename().string();
+
 			try
 			{
-				if (bfs::is_directory(*it))
+				if (!bfs::is_directory(subFolderPath) || subFolder.find(std::string("F4D_")) != 0)
 				{
-					convertedDataFolders.push_back(it->path().string());
-					std::cout << "[directory]" << it->path() << std::endl;
+					continue;
 				}
+
+				info[subFolder] = subFolderPath.string();
+				subFolders.push_back(subFolderPath.string());
+				std::cout << "[directory]" << subFolderPath << std::endl;
 			}
-			catch (const std::exception &ex)
+			catch (const std::exception& ex)
 			{
-				std::cout << it->path().filename() << " " << ex.what() << std::endl;
+				std::cout << subFolder << " " << ex.what() << std::endl;
 			}
 		}
 	}
-	/*
-	_wfinddata64_t fd;
-	long long handle;
-	int result = 1;
-	std::string structureJtFilter = folder + std::string( "/*.*");
-	handle = _wfindfirsti64(structureJtFilter.c_str(), &fd);
+}
 
-	if(handle == -1)
-	{
-		return false;
-	}
+bool F4DWriter::writeIndexFile()
+{
+	namespace bfs = boost::filesystem;
 
-	std::vector<std::string> convertedDataFolders;
-	while(result != -1)
-	{
-		if((fd.attrib & _A_SUBDIR) == _A_SUBDIR)
-		{
-			if(std::string(fd.name) !=  "." && std::string(fd.name) !=  "..")
-				convertedDataFolders.push_back(std::string(fd.name));
-		}
-		result = _wfindnexti64(handle, &fd);
-	}
+	std::map<std::string, std::string> convertedDataFolders;
+	collectF4DFolderInfo(folder, convertedDataFolders);
 
-	_findclose(handle);
-	*/
-	if (convertedDataFolders.size() == 0)
+	if (convertedDataFolders.empty())
 		return false;
 
 	std::string targetFilePath = folder + "/objectIndexFile.ihe";
@@ -1001,9 +883,11 @@ bool F4DWriter::writeIndexFile()
 	float altitude;
 	float minX, minY, minZ, maxX, maxY, maxZ;
 	unsigned int dataFolderNameLength;
-	for (size_t i = 0; i < dataFolderCount; i++)
+
+	std::map<std::string, std::string>::iterator iter = convertedDataFolders.begin();
+	for (; iter != convertedDataFolders.end(); iter++)
 	{
-		eachDataHeader = convertedDataFolders[i] + "/HeaderAsimetric.hed";
+		eachDataHeader = iter->second + "/HeaderAsimetric.hed";
 		bfs::path headerPath(eachDataHeader);
 
 		if (!bfs::exists(headerPath))
@@ -1036,15 +920,11 @@ bool F4DWriter::writeIndexFile()
 		fclose(header);
 
 		bfs::detail::utf8_codecvt_facet utf8;
-		bfs::path convertedDataPath(convertedDataFolders[i]);
+		bfs::path convertedDataPath(iter->second);
 		std::string singleConvertedDataFolder(convertedDataPath.filename().string(utf8));
 
 		dataFolderNameLength = (unsigned int)singleConvertedDataFolder.length();
 		fwrite(&dataFolderNameLength, sizeof(unsigned int), 1, f);
-
-		//std::string singleConvertedDataFolder(gaia3d::ws2s(convertedDataFolders[i].c_str()));
-		//std::string singleConvertedDataFolder(convertedDataFolders[i].c_str());
-
 		fwrite(singleConvertedDataFolder.c_str(), sizeof(char), dataFolderNameLength, f);
 
 		fwrite(&longitude, sizeof(double), 1, f);
@@ -1059,25 +939,6 @@ bool F4DWriter::writeIndexFile()
 	fclose(f);
 
 	return true;
-}
-
-void F4DWriter::writeLegoTexture(std::string resultPath)
-{
-	unsigned int* legoTextureDimension = processor->getLegoTextureDimension();
-	unsigned char* legoTextureByteArray = processor->getLegoTextureBitmapArray();
-	unsigned int stride = legoTextureDimension[0] * 4;
-
-	int width = legoTextureDimension[0];
-	int height = legoTextureDimension[1];
-	int nrChannels = 4;
-
-	std::string legoTextureFullPath = resultPath + "/SimpleBuildingTexture3x3.png";
-
-	//std::string singleFullPath(gaia3d::ws2s(legoTextureFullPath.c_str()));
-	std::string singleFullPath(legoTextureFullPath.c_str());
-
-	stbi_flip_vertically_on_write(false);
-	stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, legoTextureByteArray, 0);
 }
 
 void F4DWriter::writeTextures(std::string imagePath)
@@ -1139,38 +1000,35 @@ void F4DWriter::writeTextures(std::string imagePath)
 			fclose(file);
 			delete[] fileContents;
 		}
+		else if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
+		{
+			stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
+		}
+		else if (fileExt.compare("png") == 0)
+		{
+			stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
+		}
+		else if (fileExt.compare("gif") == 0)
+		{
+			// TODO 
+			continue;
+		}
+		else if (fileExt.compare("tif") == 0 || fileExt.compare("tiff") == 0)
+		{
+			// TODO 
+			continue;
+		}
+		else if (fileExt.compare("bmp") == 0)
+		{
+			stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
+		}
+		else if (fileExt.compare("tga") == 0)
+		{
+			stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
+		}
 		else
 		{
-			if (fileExt.compare("jpg") == 0 || fileExt.compare("jpeg") == 0 || fileExt.compare("jpe") == 0)
-			{
-				stbi_write_jpg(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 100);
-			}
-			else if (fileExt.compare("png") == 0)
-			{
-				stbi_write_png(singleFullPath.c_str(), width, height, nrChannels, bmpArray, 0);
-			}
-			else if (fileExt.compare("gif") == 0)
-			{
-				// TODO 
-				continue;
-			}
-			else if (fileExt.compare("tif") == 0 || fileExt.compare("tiff") == 0)
-			{
-				// TODO 
-				continue;
-			}
-			else if (fileExt.compare("bmp") == 0)
-			{
-				stbi_write_bmp(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
-			}
-			else if (fileExt.compare("tga") == 0)
-			{
-				stbi_write_tga(singleFullPath.c_str(), width, height, nrChannels, bmpArray);
-			}
-			else
-			{
-				continue;
-			}
+			continue;
 		}
 	}
 }

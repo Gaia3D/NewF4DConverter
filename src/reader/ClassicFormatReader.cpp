@@ -11,6 +11,7 @@
 
 #include "../geometry/Matrix4.h"
 #include "../util/GeometryUtility.h"
+#include "../geometry/TrianglePolyhedron.h"
 #include "../converter/LogWriter.h"
 
 #include <iostream>
@@ -43,7 +44,6 @@ bool proceedMesh(aiMesh* mesh,
 		aiString texturePath;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
 		
-		//std::string fullPath = folder + "/" + std::string(gaia3d::s2ws(texturePath.C_Str()));
 		std::string fullPath = folder + "/" + std::string(texturePath.C_Str());
 
 		size_t lastSlashIndex = fullPath.find_last_of("\\/");
@@ -91,7 +91,7 @@ bool proceedMesh(aiMesh* mesh,
 		polyhedron->setHasNormals(true);
 
 	// access to vertices
-	double tmpZ;
+	//double tmpZ;
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
 		gaia3d::Vertex* vertex = new gaia3d::Vertex;
@@ -256,14 +256,15 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 		if (pjSrc == NULL || pjWgs84 == NULL)
 		{
 			printf("[ERROR][proj4]CANNOT initialize SRS\n");
+			// new log
+			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : failed to initialize proj"));
+
 			return false;
 		}
 	}
 
 	Assimp::Importer importer;
-
-	//std::string singleCharFilePath = std::string(gaia3d::ws2s(filePath.c_str()));
-	//std::string singleCharFilePath = std::string(filePath.c_str());
 
 	const aiScene* scene = importer.ReadFile(filePath,
 		//aiProcess_SplitLargeMeshes |
@@ -273,13 +274,28 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 		aiProcess_SortByPType);
 
 	if (scene == NULL)
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : loading failure"));
 		return false;
+	}
 
 	if (scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE)
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : loading imcomplete"));
 		return false;
+	}
 
 	if (scene->mRootNode == NULL)
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : no available data in file"));
 		return false;
+	}
 
 	size_t slashPosition = filePath.find_last_of("\\/");
 	if (slashPosition == std::string::npos)
@@ -288,13 +304,7 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 		folder = filePath.substr(0, slashPosition);
 
 	gaia3d::Matrix4 scaleMatrix, rotationMatrix, offsetMatrix, transformMatrix;
-	/*if (bYAxisUp)
-		scaleMatrix.rotationInDegree(90.0, 1.0, 0.0, 0.0);*/
-	//scaleMatrix.set(scaleMatrix.m[0][0]*unitScaleFactor, scaleMatrix.m[0][1], scaleMatrix.m[0][2], scaleMatrix.m[0][3],
-	//				scaleMatrix.m[1][0], scaleMatrix.m[1][1] * unitScaleFactor, scaleMatrix.m[1][2], scaleMatrix.m[1][3],
-	//				scaleMatrix.m[2][0], scaleMatrix.m[2][1], scaleMatrix.m[2][2] * unitScaleFactor, scaleMatrix.m[2][3],
-	//				scaleMatrix.m[3][0] + offsetX, scaleMatrix.m[3][1] + offsetY, scaleMatrix.m[3][2] + offsetZ, scaleMatrix.m[3][3]);
-	// if (!proceedNode(scene->mRootNode, scene, scaleMatrix, container, textureContainer))
+
 	bMustChangeYZCoordinate = bYAxisUp;
 
 	scaleMatrix.set(unitScaleFactor,			 0.0,			  0.0, 0.0,
@@ -321,10 +331,35 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 	if (!proceedNode(scene->mRootNode, scene, transformMatrix, container, textureContainer))
 		return false;
 
+	// bounding box limitation checking
+	gaia3d::BoundingBox bbox;
+	size_t meshCount = container.size();
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		std::vector<gaia3d::Vertex*>& vertices = container[i]->getVertices();
+		size_t vertexCount = vertices.size();
+		for (size_t j = 0; j < vertexCount; j++)
+			bbox.addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
+	}
+
+	if (bbox.getMaxLength() > 600.0)
+	{
+		for (size_t i = 0; i < meshCount; i++)
+		{
+			delete container[i];
+		}
+
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : bbox is too large. check length unit."));
+
+		return false;
+	}
+
 	// transform coordinates if information for georeferencing is injected.
 	if (bCoordinateInfoInjected)
 	{
-		gaia3d::BoundingBox bbox;
+		/*gaia3d::BoundingBox bbox;
 		size_t meshCount = container.size();
 		for (size_t i = 0; i < meshCount; i++)
 		{
@@ -332,7 +367,7 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 			size_t vertexCount = vertices.size();
 			for (size_t j = 0; j < vertexCount; j++)
 				bbox.addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
-		}
+		}*/
 
 		double cx, cy, cz;
 		bbox.getCenterPoint(cx, cy, cz);
@@ -348,6 +383,11 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 			for (size_t i = 0; i < meshCount; i++)
 				delete container[i];
 			container.clear();
+
+			// new log
+			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string(" ClassicFormatReader::readRawDataFile : boungding box center coordinate transform failure"));
+
 			return false;
 		}
 

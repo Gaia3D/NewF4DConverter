@@ -14,15 +14,26 @@ Reader::Reader()
 	bYAxisUp = false;
 
 	offsetX = offsetY = offsetZ = 0.0;
+
+	bBuildHiararchy = false;
+
+	bAlignToBottomCenter = bAlignToCenter = false;
 }
 
 Reader::~Reader()
 {
 }
+
 std::vector<gaia3d::TrianglePolyhedron*>& Reader::getDataContainer()
 {
 	return container;
 }
+
+std::map<std::string, std::vector<gaia3d::TrianglePolyhedron*>>& Reader::getMultipleDataContainers()
+{
+	return containers;
+}
+
 std::map<std::string, std::string>& Reader::getTextureInfoContainer()
 {
 	return textureContainer;
@@ -31,6 +42,7 @@ void Reader::setUnitScaleFactor(double factor)
 {
 	unitScaleFactor = factor;
 }
+
 void Reader::TexCoord_Flip_Y()
 {
 	for (int i = 0, count = container.size(); i < count; i++)

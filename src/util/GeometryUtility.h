@@ -21,7 +21,7 @@ namespace gaia3d
 	class GeometryUtility
 	{
 	public:
-
+		///< 점 3개로 이루어진 평면의 normal vector를 계산
 		static void calculatePlaneNormal(double& x0, double& y0, double& z0,
 										double& x1, double& y1, double& z1,
 										double& x2, double& y2, double& z2,
@@ -57,7 +57,7 @@ namespace gaia3d
 
 		static void mergeLegoBlocksAlongXAxis(std::vector<LegoBlock*>& legos, bool mustSameColor);
 
-		static void earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result);
+		static bool earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result, bool bDebug = false);
 
 		static void tessellate(double* xs, double* ys, double* zs, size_t vertexCount, std::vector<size_t>& polygonIndices, std::vector<size_t>& indices);
 	};
