@@ -42,6 +42,7 @@ namespace gaia3d
 
 		void getAllLeafBoxes(std::vector<PointDistributionOctree*>& container);
 
+		///< 어느 leaf octree box와 겹치는가
 		PointDistributionOctree* getIntersectedLeafOctree(Vertex* vertex);
 
 		void clear();

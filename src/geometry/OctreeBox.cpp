@@ -60,6 +60,7 @@ namespace gaia3d
 		}
 	}
 
+	///< Return the octree box list include itself(this) and the children
 	void OctreeBox::getAllBoxes(std::vector<OctreeBox*>& container, bool bExceptEmptyBox)
 	{
 		for (size_t i = 0; i < children.size(); i++)
@@ -74,6 +75,7 @@ namespace gaia3d
 			container.push_back(this);
 	}
 
+	///< Copy dimension of other octree box
 	void OctreeBox::copyDimensionsFromOtherOctreeBox(OctreeBox& input)
 	{
 		size_t childCount = children.size();
@@ -139,6 +141,7 @@ namespace gaia3d
 	{
 	}
 
+	///< Get the internal frustum point for deferred rendering
 	void VisionOctreeBox::getInternalDivisionPoints(std::vector<Point3D>& container, double scanStepX, double scanStepY, double scanStepZ)
 	{
 		int div_x = (int)ceil((maxX-minX)/scanStepX);
@@ -195,6 +198,8 @@ namespace gaia3d
 		double xLength = maxX - minX, yLength = maxY - minY, zLength = maxZ - minZ;
 		double maxEdgeLength = (xLength > yLength) ? ( (xLength > zLength) ? xLength : zLength ) : ((yLength > zLength) ? yLength : zLength);
 		double tolerance = minSize * 0.4;
+
+		///< 제일 긴 변이 해당 기준 임계값을 넘을때
 		if(maxEdgeLength > minSize + tolerance)
 		{
 			// 1) make 8 children
@@ -267,7 +272,9 @@ namespace gaia3d
 		for(size_t i = 0; i < meshCount; i++)
 		{
 			BoundingBox bbox;
+			///< TODO : 중복 제거
 			vertexCount = meshes[i]->getVertices().size();
+			///< 메쉬의 BB를 계산한다. 
 			for(size_t j = 0; j < vertexCount; j++)
 				bbox.addPoint(meshes[i]->getVertices()[j]->position.x, meshes[i]->getVertices()[j]->position.y, meshes[i]->getVertices()[j]->position.z);
 
@@ -302,6 +309,7 @@ namespace gaia3d
 																		children[j]->minX, children[j]->minY, children[j]->minZ,
 																		children[j]->maxX, children[j]->maxY, children[j]->maxZ) )
 						{
+							///< 하나라도 겹친다
 							anyTriangleIntersectsWithOctree = true;
 							break;
 						}
@@ -314,7 +322,7 @@ namespace gaia3d
 					continue;
 
 				children[j]->meshes.push_back(meshes[i]);
-
+				///< 한 리프노드에만 메쉬 데이터를 넣을 것인가.
 				if(isObjectInOnlyOneLeaf)
 				{
 					meshes.erase(meshes.begin() + i);
@@ -327,6 +335,7 @@ namespace gaia3d
 		if(!isObjectInOnlyOneLeaf)
 			meshes.clear();
 
+		///< 아래 children이 leaf가 아니라면 children에 대해서까지 작업을 하려고.
 		if(propagateToDescendents)
 		{
 			for(size_t i = 0; i < childCount; i++)
@@ -414,7 +423,9 @@ namespace gaia3d
 					children[j]->meshes.push_back(intersectedPart);
 				}
 
+				///< 중복 계산 피하려고 원본을 지운다
 				delete mesh;
+				///< 이후 계산은 할 필요 없다.
 				if (nonIntersectedPart == NULL)
 				{
 					break;

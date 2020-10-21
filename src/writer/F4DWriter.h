@@ -6,10 +6,8 @@
 #pragma once
 
 #include <string>
-#include <map>
 #include <vector>
-
-#include "stb_image_write.h"
+#include <map>
 
 class ConversionProcessor;
 
@@ -58,13 +56,9 @@ protected:
 
 	bool writeReferencesAndModels(std::string& referencePath, std::string& modelPath, std::string& lod2Path, std::map<std::string, size_t>& textureIndices);
 
-	bool writeLegoBlocks(std::string& legoBlockPath);
-
 	bool writeOctreeInfo(gaia3d::OctreeBox* octree, unsigned short dataType, FILE* f);
 
 	void writeColor(unsigned long color, unsigned short type, bool bAlpha, FILE* file);
-
-	void writeLegoTexture(std::string resultPath);
 
 	void writeTextures(std::string imagePath);
 

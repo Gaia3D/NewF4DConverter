@@ -23,6 +23,7 @@ namespace gaia3d
 		double xLength = maxX - minX, yLength = maxY - minY, zLength = maxZ - minZ;
 		double maxEdgeLength = (xLength > yLength) ? ((xLength > zLength) ? xLength : zLength) : ((yLength > zLength) ? yLength : zLength);
 		double tolerance = minSize * 0.4;
+		///< 제일 긴 변이 해당 기준 임계값을 넘을때
 		if (maxEdgeLength > minSize + tolerance)
 		{
 			// 1) make 8 children

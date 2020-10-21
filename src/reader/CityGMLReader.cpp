@@ -14,15 +14,17 @@
 #include <citygml/texture.h>
 
 #include <proj_api.h>
+#include <json/json.h>
 
 #include "../geometry/TrianglePolyhedron.h"
 #include "../util/GeometryUtility.h"
+#include "../converter/LogWriter.h"
 
 bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 	std::string& folderPath,
 	double& lon, double& lat,
 	std::vector<gaia3d::TrianglePolyhedron*>& container,
-	std::map<std::string, std::string>& textureContainer);
+	std::map<std::string, std::string>& textureContainer, std::string& attributesInfo);
 void createCityObject(const citygml::CityObject& object,
 	std::string& folderPath,
 	std::vector<gaia3d::TrianglePolyhedron*>& container,
@@ -56,19 +58,37 @@ bool CitygmlReader::readRawDataFile(std::string& filePath)
 	catch (const std::runtime_error& e)
 	{
 		printf("[ERROR]%s\n", e.what());
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("CitygmlReader::readRawDataFile : loading failure"));
+
 		return false;
 	}
 
 	if (city == NULL)
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("CitygmlReader::readRawDataFile : no city model in file"));
+
 		return false;
+	}
+
 
 	std::string folderPath;
 	size_t lastSlashIndex = filePath.find_last_of("\\/");
 	if (lastSlashIndex != std::string::npos)
 		folderPath = filePath.substr(0, lastSlashIndex + 1);
 
-	if (!readCity(city, folderPath, refLon, refLat, container, textureContainer))
+	std::string attributesInfo;
+	if (!readCity(city, folderPath, refLon, refLat, container, textureContainer, attributesInfo))
 		return false;
+
+	if (!attributesInfo.empty())
+	{
+		additionalInfo[std::string("attributes")] = attributesInfo;
+		bHasAdditionalInfo = true;
+	}
 
 	bHasGeoReferencingInfo = true;
 
@@ -86,11 +106,17 @@ bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 	std::string& folderPath,
 	double& lon, double& lat,
 	std::vector<gaia3d::TrianglePolyhedron*>& container,
-	std::map<std::string, std::string>& textureContainer)
+	std::map<std::string, std::string>& textureContainer,
+	std::string& attributesInfo)
 {
 	const citygml::ConstCityObjects& roots = city->getRootCityObjects();
 	if (roots.size() == 0)
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("(CitygmlReader.cpp)readCity : no root in city model"));
 		return false;
+	}
 
 	const citygml::Envelope envelope = city->getEnvelope();
 
@@ -124,7 +150,12 @@ bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 	}
 
 	if (epsgCodes.empty())
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("(CitygmlReader.cpp)readCity : no EPSG info"));
 		return false;
+	}
 
 	// select an available EPSG code
 	std::string originalSrsProjString;
@@ -140,7 +171,12 @@ bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 		}
 	}
 	if (originalSrsProjString.empty())
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("(CitygmlReader.cpp)readCity : unable to make proj string with EPSG"));
 		return false;
+	}
 
 	// get bounding box
 	const TVec3d bboxLowerPoint = envelope.getLowerBound();
@@ -156,13 +192,22 @@ bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 	projPJ pjSrc, pjDst;
 
 	if (!(pjDst = pj_init_plus(wgs84ProjString.c_str())) || !(pjSrc = pj_init_plus(originalSrsProjString.c_str())))
+	{
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("(CitygmlReader.cpp)readCity : failed to initialize proj"));
 		return false;
+	}
 
 	int errorCode = pj_transform(pjSrc, pjDst, 1, 1, &lon, &lat, &alt);
 	char* errorMessage = pj_strerrno(errorCode);
 	if (errorMessage != NULL)
 	{
 		printf("[ERROR]%s\n", errorMessage);
+		// new log
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("(CitygmlReader.cpp)readCity : boungding box center coordinate transform failure"));
+
 		return false;
 	}
 
@@ -181,12 +226,36 @@ bool readCity(std::shared_ptr<const citygml::CityModel>& city,
 		m[3], m[7], m[11], m[15]);
 	gaia3d::Matrix4 inverseGlobalTransMatrix = globalTransformMatrix.inverse();
 
-	// transform objects in citygml into triangle polyhedrons
+	// transform objects in citygml into triangle polyhedrons and extract basic attributes
+	Json::Value attributes(Json::arrayValue);
 	for (size_t i = 0; i < roots.size(); i++)
 	{
 		const citygml::CityObject &cityObject = *roots[i];
 
+		const citygml::AttributesMap& attributeMap = cityObject.getAttributes();
+
+		if (!attributeMap.empty())
+		{
+			Json::Value attribute(Json::objectValue);
+			citygml::AttributesMap::const_iterator attriIter = attributeMap.begin();
+			for (; attriIter != attributeMap.end(); attriIter++)
+			{
+				std::string key = attriIter->first;
+				std::string value = attriIter->second.asString();
+
+				attribute[key] = value;
+			}
+
+			attributes.append(attribute);
+		}
+
 		createCityObject(cityObject, folderPath, container, textureContainer, pjSrc, pjDst, inverseGlobalTransMatrix);
+	}
+
+	if (!attributes.empty())
+	{
+		Json::StyledWriter writer;
+		attributesInfo = writer.write(attributes);
 	}
 
 	return true;
