@@ -227,10 +227,19 @@ bool PointCloudReader::readLasFile(std::string& filePath)
 		return false;
 	}
 
+	double dfToRadians = 1.0;
+	OGRSpatialReference srs(NULL);
+	srs.importFromProj4(originalSrsProjString.c_str());
+
+	if (srs.IsGeographic()) {
+		dfToRadians = srs.GetAngularUnits((char**)NULL);
+	}
+	
 	double cx = (header.GetMaxX() + header.GetMinX())/2.0;
 	double cy = (header.GetMaxY() + header.GetMinY())/2.0;
 	double cz = (header.GetMaxZ() + header.GetMinZ())/2.0;
-	refLon = cx, refLat = cy;
+	refLon = cx * dfToRadians;
+	refLat = cy * dfToRadians;
 	double alt = cz;
 	int errorCode = pj_transform(pjSrc, pjDst, 1, 1, &refLon, &refLat, &alt);
 	char* errorMessage = pj_strerrno(errorCode);
@@ -273,8 +282,8 @@ bool PointCloudReader::readLasFile(std::string& filePath)
 
 		// position
 		liblas::Point const& p = reader.GetPoint();
-		px = p.GetX();
-		py = p.GetY();
+		px = p.GetX() * dfToRadians;
+		py = p.GetY() * dfToRadians;
 		pz = p.GetZ();
 
 		pj_transform(pjSrc, pjDst, 1, 1, &px, &py, &pz);
@@ -447,10 +456,19 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 
 	fclose(file);
 
+	double dfToRadians = 1.0;
+	OGRSpatialReference srs(NULL);
+	srs.importFromProj4(originalSrsProjString.c_str());
+
+	if (srs.IsGeographic()) {
+		dfToRadians = srs.GetAngularUnits((char**)NULL);
+	}
+	
 	double cx = (maxx + minx) / 2.0;
 	double cy = (maxy + miny) / 2.0;
 	double cz = (maxz + minz) / 2.0;
-	refLon = cx, refLat = cy;
+	refLon = cx * dfToRadians;
+	refLat = cy * dfToRadians;
 	double alt = cz;
 	int errorCode = pj_transform(pjSrc, pjDst, 1, 1, &refLon, &refLat, &alt);
 	char* errorMessage = pj_strerrno(errorCode);
@@ -490,6 +508,8 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 		for (size_t i = 0; i < vertexCount; i++)
 		{
 			vertex = polyhedron->getVertices()[i];
+			vertex->position.x *= dfToRadians;
+			vertex->position.y *= dfToRadians;
 
 			pj_transform(pjSrc, pjDst, 1, 1, &(vertex->position.x), &(vertex->position.y), &(vertex->position.z));
 			vertex->position.x *= RAD_TO_DEG;
@@ -515,6 +535,8 @@ bool PointCloudReader::readTemporaryPointCloudFile(std::string& filePath)
 		for (size_t i = 0; i < vertexCount; i++)
 		{
 			vertex = polyhedron->getVertices()[i];
+			vertex->position.x *= dfToRadians;
+			vertex->position.y *= dfToRadians;
 
 			pj_transform(pjSrc, pjDst, 1, 1, &(vertex->position.x), &(vertex->position.y), &(vertex->position.z));
 			vertex->position.x *= RAD_TO_DEG;
