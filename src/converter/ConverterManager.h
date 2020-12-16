@@ -88,8 +88,19 @@ private:
 	///< Write relative path of each data for hierarchy structure of F4D files.
 	void writeRelativePathOfEachData(std::map<std::string, std::string>& relativePaths);
 
+	///< relationship when 1 raw data to multiple F4D or multiple raw data to single F4D cases happen
+	void writeSplitInfo(std::map<std::string, std::vector<std::string>>& splitInfo );
+
 	///< This function treats the single process of the converting
-	void processSingleLoop(std::map<std::string, std::string>& targetFiles, std::map<std::string, double>& centerXs, std::map<std::string, double>& centerYs, std::map<std::string, std::string>& additionalInfos, std::map<std::string, std::string>& relativePaths, unsigned char depth);
+	void processSingleLoop(
+		std::map<std::string, std::string>& targetFiles,
+		std::map<std::string, double>& centerXs,
+		std::map<std::string, double>& centerYs,
+		std::map<std::string, std::string>& additionalInfos,
+		std::map<std::string, std::string>& relativePaths,
+		std::map<std::string, std::vector<std::string>>& splitInfo,
+		unsigned char depth
+	);
 };
 
 #endif // _CONVERTERMANAGER_H_

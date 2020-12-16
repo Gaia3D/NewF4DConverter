@@ -945,7 +945,7 @@ void F4DWriter::writeTextures(std::string imagePath)
 {
 	std::map<std::string, unsigned char*>::iterator itr = processor->getResizedTextures().begin();
 	std::string fileName, fileExt, targetFullPath;
-	int bpp = 4, width, height;
+	int bpp = 4;
 	for (; itr != processor->getResizedTextures().end(); itr++)
 	{
 		fileName = itr->first;
