@@ -1072,7 +1072,7 @@ void ConverterManager::writeRelativePathOfEachData(std::map<std::string, std::st
 
 void ConverterManager::writeSplitInfo(std::map<std::string, std::vector<std::string>>& splitInfo)
 {
-	Json::Value arrayNode(Json::arrayValue);
+	//Json::Value arrayNode(Json::arrayValue);
 
 	std::map<std::string, std::vector<std::string>>::iterator iter = splitInfo.begin();
 	for (; iter != splitInfo.end(); iter++)
@@ -1092,14 +1092,47 @@ void ConverterManager::writeSplitInfo(std::map<std::string, std::vector<std::str
 
 		item["result"] = result;
 
-		arrayNode.append(item);
+		Json::StyledWriter writer;
+		std::string documentContent = writer.write(item);
+		std::string resultFileFullPath = outputFolderPath + std::string("/") + originalName + std::string("_splitInfo.json");
+		FILE* file = NULL;
+		file = fopen(resultFileFullPath.c_str(), "wt");
+		fprintf(file, "%s", documentContent.c_str());
+		fclose(file);
+
+		//arrayNode.append(item);
 	}
 
-	Json::StyledWriter writer;
-	std::string documentContent = writer.write(arrayNode);
-	std::string resultFileFullPath = outputFolderPath + std::string("/splitInfo.json");
-	FILE* file = NULL;
-	file = fopen(resultFileFullPath.c_str(), "wt");
-	fprintf(file, "%s", documentContent.c_str());
-	fclose(file);
+	
+
+	//Json::Value arrayNode(Json::arrayValue);
+
+	//std::map<std::string, std::vector<std::string>>::iterator iter = splitInfo.begin();
+	//for (; iter != splitInfo.end(); iter++)
+	//{
+	//	Json::Value item(Json::objectValue);
+
+	//	// original data file name
+	//	std::string originalName = iter->first;
+	//	item["original"] = originalName;
+
+	//	// result
+	//	Json::Value result(Json::arrayValue);
+	//	for (size_t i = 0; i < iter->second.size(); i++)
+	//	{
+	//		result.append((iter->second)[i]);
+	//	}
+
+	//	item["result"] = result;
+
+	//	arrayNode.append(item);
+	//}
+
+	//Json::StyledWriter writer;
+	//std::string documentContent = writer.write(arrayNode);
+	//std::string resultFileFullPath = outputFolderPath + std::string("/splitInfo.json");
+	//FILE* file = NULL;
+	//file = fopen(resultFileFullPath.c_str(), "wt");
+	//fprintf(file, "%s", documentContent.c_str());
+	//fclose(file);
 }
