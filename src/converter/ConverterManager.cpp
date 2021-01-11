@@ -254,8 +254,9 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 	std::map<std::string, double> centerXs, centerYs;	//< Get each center positions of each files.
 	std::map<std::string, std::string> relativePaths;	//< Get each relative F4D folder paths from root folder.
 	std::map<std::string, std::string> additionalInfos;	//< Get the additional information of each files which doesn't have to go through converting process.
+	std::map<std::string, std::vector<std::string>> splitInfo; //< relationship info when 1 raw data to multiple F4D cases happen
 
-	processSingleLoop(targetFiles, centerXs, centerYs, additionalInfos, relativePaths, 0);
+	processSingleLoop(targetFiles, centerXs, centerYs, additionalInfos, relativePaths, splitInfo, 0);
 
 	// save representative lon / lat of F4D if a reference file exists
 	if (!centerXs.empty() && !centerYs.empty())
@@ -271,6 +272,10 @@ void ConverterManager::processDataFiles(std::map<std::string, std::string>& targ
 	// save relative path of each F4D
 	if (!relativePaths.empty())
 		writeRelativePathOfEachData(relativePaths);
+
+	// save 1 to multi F4D or multi data to 1 F4D relationship
+	if (!splitInfo.empty())
+		writeSplitInfo(splitInfo);
 }
 
 bool ConverterManager::writeIndexFile()
@@ -287,12 +292,15 @@ void writeCheckResult(std::string fileFullPath);
 #endif
 
 ///< the argument named 'depth' is used for checking the depth of recursive function calling while processing.
-void ConverterManager::processSingleLoop(std::map<std::string, std::string>& targetFiles,
+void ConverterManager::processSingleLoop(
+	std::map<std::string, std::string>& targetFiles,
 	std::map<std::string, double>& centerXs,
 	std::map<std::string, double>& centerYs,
 	std::map<std::string, std::string>& additionalInfos,
 	std::map<std::string, std::string>& relativePaths,
-	unsigned char depth)
+	std::map<std::string, std::vector<std::string>>& splitInfo,
+	unsigned char depth
+)
 {
 	std::string outputFolder = outputFolderPath;
 
@@ -380,8 +388,14 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 		{
 			printf("===== %zd temporary files are made. Proceeding conversion of temporary files\n", reader->getTemporaryFiles().size());
 
+			if (depth == 0)
+			{
+				if (splitInfo.find(dataFile) == splitInfo.end())
+					splitInfo[dataFile] = std::vector<std::string>();
+			}
+
 			// run recursively
-			processSingleLoop(reader->getTemporaryFiles(), centerXs, centerYs, additionalInfos, relativePaths, depth + 1);
+			processSingleLoop(reader->getTemporaryFiles(), centerXs, centerYs, additionalInfos, relativePaths, splitInfo, depth + 1);
 
 			// delete temporary files
 			std::map<std::string, std::string>::iterator tmpFileIter = reader->getTemporaryFiles().begin();
@@ -459,7 +473,12 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 		std::map<std::string, std::vector<gaia3d::TrianglePolyhedron*>> targetOriginalGeometries;
 		///< Check whether single raw file is needed to be converted into multiple files.
 		if (reader->shouldRawDataBeConvertedToMuitiFiles())
+		{
 			targetOriginalGeometries = reader->getMultipleDataContainers();
+
+			if (splitInfo.find(dataFile) == splitInfo.end())
+				splitInfo[dataFile] = std::vector<std::string>();
+		}
 		///< 1 F4D file from 1 raw file.
 		else
 		{
@@ -666,6 +685,10 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 					}
 				}
 
+				if (reader->shouldRawDataBeConvertedToMuitiFiles())
+				{
+					splitInfo[dataFile].push_back(std::string("F4D_") + fullId);
+				}
 			}
 
 			processor->clear();
@@ -698,6 +721,33 @@ void ConverterManager::processSingleLoop(std::map<std::string, std::string>& tar
 			LogWriter::getLogWriter()->numberOfFilesConverted += 1;
 			// new log
 			LogWriter::getLogWriter()->closeCurrentConversionJobLog();
+		}
+		else
+		{
+			std::map<std::string, std::vector<std::string>>::iterator iter = splitInfo.begin();
+			for (; iter != splitInfo.end(); iter++)
+			{
+				std::string originalFile = iter->first;
+
+				std::string::size_type dotPosition;
+				std::string originalFileName;
+				if ((dotPosition = originalFile.rfind(".")) != std::string::npos)
+					originalFileName = originalFile.substr(0, dotPosition);
+				else
+					originalFileName = originalFile;
+
+				if (dataFile.find(originalFileName) == std::string::npos)
+					continue;
+
+				std::string id;
+				if ((dotPosition = dataFile.rfind(".")) != std::string::npos)
+					id = dataFile.substr(0, dotPosition);
+				else
+					id = dataFile;
+
+				(iter->second).push_back(std::string("F4D_") + id);
+				break;
+			}
 		}
 
 		printf("===== End processing this file : %s\n", dataFile.c_str());
@@ -1018,4 +1068,71 @@ void ConverterManager::writeRelativePathOfEachData(std::map<std::string, std::st
 	file = fopen(lonLatFileFullPath.c_str(), "wt");
 	fprintf(file, "%s", documentContent.c_str());
 	fclose(file);
+}
+
+void ConverterManager::writeSplitInfo(std::map<std::string, std::vector<std::string>>& splitInfo)
+{
+	//Json::Value arrayNode(Json::arrayValue);
+
+	std::map<std::string, std::vector<std::string>>::iterator iter = splitInfo.begin();
+	for (; iter != splitInfo.end(); iter++)
+	{
+		Json::Value item(Json::objectValue);
+
+		// original data file name
+		std::string originalName = iter->first;
+		item["original"] = originalName;
+
+		// result
+		Json::Value result(Json::arrayValue);
+		for (size_t i = 0; i < iter->second.size(); i++)
+		{
+			result.append((iter->second)[i]);
+		}
+
+		item["result"] = result;
+
+		Json::StyledWriter writer;
+		std::string documentContent = writer.write(item);
+		std::string resultFileFullPath = outputFolderPath + std::string("/") + originalName + std::string("_splitInfo.json");
+		FILE* file = NULL;
+		file = fopen(resultFileFullPath.c_str(), "wt");
+		fprintf(file, "%s", documentContent.c_str());
+		fclose(file);
+
+		//arrayNode.append(item);
+	}
+
+	
+
+	//Json::Value arrayNode(Json::arrayValue);
+
+	//std::map<std::string, std::vector<std::string>>::iterator iter = splitInfo.begin();
+	//for (; iter != splitInfo.end(); iter++)
+	//{
+	//	Json::Value item(Json::objectValue);
+
+	//	// original data file name
+	//	std::string originalName = iter->first;
+	//	item["original"] = originalName;
+
+	//	// result
+	//	Json::Value result(Json::arrayValue);
+	//	for (size_t i = 0; i < iter->second.size(); i++)
+	//	{
+	//		result.append((iter->second)[i]);
+	//	}
+
+	//	item["result"] = result;
+
+	//	arrayNode.append(item);
+	//}
+
+	//Json::StyledWriter writer;
+	//std::string documentContent = writer.write(arrayNode);
+	//std::string resultFileFullPath = outputFolderPath + std::string("/splitInfo.json");
+	//FILE* file = NULL;
+	//file = fopen(resultFileFullPath.c_str(), "wt");
+	//fprintf(file, "%s", documentContent.c_str());
+	//fclose(file);
 }
