@@ -145,7 +145,13 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(0) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
 														guidToStoryMapper[buildingStorey->m_Elevation->m_value][0] = std::vector<std::wstring>();
 
-													guidToStoryMapper[buildingStorey->m_Elevation->m_value][0].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													if (dynamic_pointer_cast<IfcElement>(product) != NULL)
+													{
+														if (dynamic_pointer_cast<IfcElement>(product)->m_Tag != NULL)
+														{
+															guidToStoryMapper[buildingStorey->m_Elevation->m_value][0].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+														}
+													}
 													continue;
 												}
 
@@ -154,7 +160,13 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(1) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
 														guidToStoryMapper[buildingStorey->m_Elevation->m_value][1] = std::vector<std::wstring>();
 
-													guidToStoryMapper[buildingStorey->m_Elevation->m_value][1].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													if (dynamic_pointer_cast<IfcElement>(product) != NULL)
+													{
+														if (dynamic_pointer_cast<IfcElement>(product)->m_Tag != NULL)
+														{
+															guidToStoryMapper[buildingStorey->m_Elevation->m_value][1].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+														}
+													}
 													continue;
 												}
 
@@ -163,7 +175,13 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 													if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(2) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
 														guidToStoryMapper[buildingStorey->m_Elevation->m_value][2] = std::vector<std::wstring>();
 
-													guidToStoryMapper[buildingStorey->m_Elevation->m_value][2].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													if (dynamic_pointer_cast<IfcElement>(product) != NULL)
+													{
+														if (dynamic_pointer_cast<IfcElement>(product)->m_Tag != NULL)
+														{
+															guidToStoryMapper[buildingStorey->m_Elevation->m_value][2].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+														}
+													}
 													continue;
 												}
 
@@ -173,7 +191,14 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 												if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(3) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
 													guidToStoryMapper[buildingStorey->m_Elevation->m_value][3] = std::vector<std::wstring>();
 
-												guidToStoryMapper[buildingStorey->m_Elevation->m_value][3].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+												if (dynamic_pointer_cast<IfcElement>(product) != NULL)
+												{
+													if (dynamic_pointer_cast<IfcElement>(product)->m_Tag != NULL)
+													{
+														guidToStoryMapper[buildingStorey->m_Elevation->m_value][3].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+													}
+												}
+												
 											}
 										}
 
@@ -211,7 +236,14 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 															if (guidToStoryMapper[buildingStorey->m_Elevation->m_value].find(4) == guidToStoryMapper[buildingStorey->m_Elevation->m_value].end())
 																guidToStoryMapper[buildingStorey->m_Elevation->m_value][4] = std::vector<std::wstring>();
 
-															guidToStoryMapper[buildingStorey->m_Elevation->m_value][4].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+															if (dynamic_pointer_cast<IfcElement>(product) != NULL)
+															{
+																if (dynamic_pointer_cast<IfcElement>(product)->m_Tag != NULL)
+																{
+																	guidToStoryMapper[buildingStorey->m_Elevation->m_value][4].push_back(dynamic_pointer_cast<IfcElement>(product)->m_Tag->m_value);
+																}
+															}
+															
 														}
 													}
 												}
