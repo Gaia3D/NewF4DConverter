@@ -1,14 +1,14 @@
 #
 # CentOS
 #
-ARG IMG_VER
 ARG BUILD_DATE
+ARG IMAGE_VERSION
 ARG GIT_VERSION
 ARG CMAKE_VERSION
 ARG DISPLAY
 ARG SCREEN
 
-FROM centos:${IMG_VER:-latest}
+FROM centos:${IMAGE_VERSION:-latest}
 
 LABEL maintainer="Gaia3D Inc. <mago3d@gaia3d.com>" \
 		description="Development environment for CentOS" \
@@ -16,56 +16,28 @@ LABEL maintainer="Gaia3D Inc. <mago3d@gaia3d.com>" \
 		org.label-schema.build-date=$BUILD_DATE \
 		org.label-schema.schema-version="1.0.0"
 
-ENV GIT_VERSION ${GIT_VERSION:-2.17.0}
-ENV CMAKE_VERSION ${CMAKE_VERSION:-3.11.0}
+ENV GIT_VERSION ${GIT_VERSION:-2.30.0}
+ENV CMAKE_VERSION ${CMAKE_VERSION:-3.19.2}
+ENV LIBLAS_VERSION ${LIBLAS_VERSION:-1.8.1}
 ENV DISPLAY ${DISPLAY:-:99}
 ENV SCREEN ${SCREEN:-1920x1080x24}
 
 # Dependencies for development environment
-RUN yum -y install wget centos-release-scl && \
-	wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
-	rpm -Uvh epel-release-latest-7.noarch.rpm && \
-	yum -y update
-	
-RUN yum -y install \
-		openssh-server \
-		make gcc-c++ gdb gdb-gdbserver zip rsync \
-		devtoolset-4-toolchain scl-utils \
-		curl-devel expat-devel zlib-devel gettext \
-		openssl-devel ncurses-devel \
+RUN yum -y install wget centos-release-scl epel-release && \
+	yum -y install https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm && \
+	yum -y update --exclude=kernel* && \
+	yum -y install \
+		make gcc-c++ \
+		devtoolset-7 \
 		boost-devel \
 		libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel \
-		mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel\
-		xorg-x11-server-Xvfb \
-		proj-devel xerces-c-devel libgeotiff-devel gdal-devel liblas-devel \
+		mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel \
+		xorg-x11-server-Xvfb xorg-x11-utils \
+		proj71-devel xerces-c-devel libgeotiff-devel gdal31-devel geos38 \
+		openssl-devel curl-devel expat-devel zlib-devel gettext bzip2\
 		&& \
+	yum clean all && \
     rm -fr /var/cache/yum/*
-
-RUN mkdir /var/run/sshd && \
-	ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' && \
-	ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -N '' && \
-	ssh-keygen -A
-
-RUN echo X11UseLocalhost yes >> /etc/ssh/sshd_config && \
-	echo X11Forwarding yes >> /etc/ssh/sshd_config && \
-	echo PubkeyAuthentication yes >> /etc/ssh/sshd_config
-
-# Create User
-RUN mkdir /app && useradd -m -s /bin/bash -d /app/mago3d mago3d
-
-RUN	mkdir /app/mago3d/.ssh && \
-	chown mago3d /app/mago3d/.ssh && \
-	chmod 700 /app/mago3d/.ssh
-
-#RUN echo 'mago3d:welcome' | chpasswd
-
-COPY mago3d.pub /app/mago3d/.ssh/authorized_keys
-RUN chown mago3d:mago3d /app/mago3d/.ssh/authorized_keys && \
-	chmod 644 /app/mago3d/.ssh/authorized_keys
-
-# Enable the SCL for all bash scripts.
-# source scl_source enable devtoolset-4
-COPY env/enabledevtoolset-4.sh /etc/profile.d/
 
 # Build and install git from source.
 WORKDIR /usr/src
@@ -73,7 +45,7 @@ WORKDIR /usr/src
 RUN wget --no-check-certificate https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz && \
 	tar xvzf git-${GIT_VERSION}.tar.gz && \
 	cd git-${GIT_VERSION} && \
-	./configure --prefix=/usr/local && \
+	./configure --with-expat --with-openssl --prefix=/usr/local && \
 	make -j$(grep -c processor /proc/cpuinfo) && \
 	make install && \
 	cd .. && rm -rf git-${GIT_VERSION}*
@@ -91,21 +63,46 @@ RUN VERSION="$(cut -d '.' -f 1 <<<"${CMAKE_VERSION}")"."$(cut -d '.' -f 2 <<<"${
 	make install && \
 	cd .. && rm -rf cmake-${CMAKE_VERSION}*
 
+# Build and install liblas from source.
+RUN wget http://download.osgeo.org/liblas/libLAS-${LIBLAS_VERSION}.tar.bz2 && \
+	tar xvf libLAS-${LIBLAS_VERSION}.tar.bz2 && \
+	cd libLAS-${LIBLAS_VERSION} && \
+	mkdir build && cd build && \
+	cmake .. -DGEOTIFF_INCLUDE_DIR="/usr/include/libgeotiff" && \
+	make -j$(grep -c processor /proc/cpuinfo) && \
+	make install && \
+	cd ../.. && rm -rf libLAS-${LIBLAS_VERSION}*
+	
+RUN git clone --recursive https://github.com/Gaia3D/NewF4DConverter.git && \
+	cd NewF4DConverter && \
+	mkdir build && cd build && \
+	source scl_source enable devtoolset-7 && \
+	cmake .. -DCMAKE_INSTALL_PREFIX=/app/mago3d/f4dconverter -DPROJ4_INCLUDE_DIRS=/usr/proj71/include -DPROJ4_INCLUDE_DIR=/usr/proj71/include -DPROJ4_LIBRARY=/usr/proj71/lib/libproj.so -DGDAL_CONFIG=/usr/gdal31/bin/gdal-config && \
+	make -j$(grep -c processor /proc/cpuinfo) && \
+	make install && \
+	cp -r /usr/proj71/share/proj /app/mago3d/f4dconverter/bin &&\
+	cd ../.. && rm -rf NewF4DConverter
+
 WORKDIR /app/mago3d
 
-EXPOSE 22
+ENV PATH /app/mago3d/f4dconverter/bin:$PATH
+ENV LD_LIBRARY_PATH /app/mago3d/f4dconverter/lib:/usr/local/lib:$LD_LIBRARY_PATH
 
 # Set the locale
+RUN localedef -i ko_KR -f UTF-8 ko_KR.utf8 && \
+	ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
 ENV LANG ko_KR.utf8
 ENV LC_ALL ko_KR.utf8
-RUN localedef -f UTF-8 -i ko_KR ko_KR.utf8 && \
-	ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
 
-#export DISPLAY=:99
+# Enable the SCL for all bash scripts.
+# source scl_source enable devtoolset-7
+COPY env/enabledevtoolset-7.sh /etc/profile.d/
 COPY env/set-locale.sh /etc/profile.d/
-#export LANG=ko_KR.utf8
-#export LC_ALL=ko_KR.utf8
 COPY env/set-display.sh /etc/profile.d/
+
+RUN chmod 644 /etc/profile.d/set-locale.sh \
+	/etc/profile.d/set-display.sh \
+	/etc/profile.d/enabledevtoolset-7.sh
 
 # Copy our entrypoint into the container.
 COPY env/entrypoint.sh /usr/local/bin/entrypoint.sh
