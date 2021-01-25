@@ -107,6 +107,8 @@ RUN chmod 644 /etc/profile.d/set-locale.sh \
 # Copy our entrypoint into the container.
 COPY env/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Set the default command.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
