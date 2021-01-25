@@ -8,7 +8,7 @@ ARG CMAKE_VERSION
 ARG DISPLAY
 ARG SCREEN
 
-FROM centos:${IMAGE_VERSION:-latest}
+FROM centos:${IMAGE_VERSION:-centos7}
 
 LABEL maintainer="Gaia3D Inc. <mago3d@gaia3d.com>" \
 		description="Development environment for CentOS" \
@@ -106,6 +106,8 @@ RUN chmod 644 /etc/profile.d/set-locale.sh \
 
 # Copy our entrypoint into the container.
 COPY env/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set the default command.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
