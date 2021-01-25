@@ -77,16 +77,16 @@ RUN git clone --recursive https://github.com/Gaia3D/NewF4DConverter.git && \
 	cd NewF4DConverter && \
 	mkdir build && cd build && \
 	source scl_source enable devtoolset-7 && \
-	cmake .. -DCMAKE_INSTALL_PREFIX=/app/mago3d/f4dconverter -DPROJ4_INCLUDE_DIRS=/usr/proj71/include -DPROJ4_INCLUDE_DIR=/usr/proj71/include -DPROJ4_LIBRARY=/usr/proj71/lib/libproj.so -DGDAL_CONFIG=/usr/gdal31/bin/gdal-config && \
+	cmake .. -DCMAKE_INSTALL_PREFIX=/opt/gaia3d/f4dconverter -DPROJ4_INCLUDE_DIRS=/usr/proj71/include -DPROJ4_INCLUDE_DIR=/usr/proj71/include -DPROJ4_LIBRARY=/usr/proj71/lib/libproj.so -DGDAL_CONFIG=/usr/gdal31/bin/gdal-config && \
 	make -j$(grep -c processor /proc/cpuinfo) && \
 	make install && \
-	cp -r /usr/proj71/share/proj /app/mago3d/f4dconverter/bin &&\
+	cp -r /usr/proj71/share/proj /opt/gaia3d/f4dconverter/bin &&\
 	cd ../.. && rm -rf NewF4DConverter
 
-WORKDIR /app/mago3d
+WORKDIR /opt/gaia3d
 
-ENV PATH /app/mago3d/f4dconverter/bin:$PATH
-ENV LD_LIBRARY_PATH /app/mago3d/f4dconverter/lib:/usr/local/lib:$LD_LIBRARY_PATH
+ENV PATH /opt/gaia3d/f4dconverter/bin:$PATH
+ENV LD_LIBRARY_PATH /opt/gaia3d/f4dconverter/lib:/usr/local/lib:$LD_LIBRARY_PATH
 
 # Set the locale
 RUN localedef -i ko_KR -f UTF-8 ko_KR.utf8 && \

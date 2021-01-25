@@ -39,53 +39,6 @@
         "-indexing",
         "y"
       ]
-    },
-    {
-      "name": "F4DConverter (Linux for Debug)",
-      "type": "cppdbg",
-      "project": "CMakeLists.txt",
-      "projectTarget": "F4DConverter (F4DConverter\\F4DConverter)",
-      "cwd": "${debugInfo.remoteWorkspaceRoot}",
-      "program": "${debugInfo.fullTargetPath}",
-      "args": [
-        "-inputFolder",
-        "/DATA/conversionData",
-        "-outputFolder",
-        "/DATA/conversionResult",
-        "-log",
-        "/DATA/conversionResult/logTest.txt",
-        "-meshType",
-        "0",
-        "-indexing",
-        "y"
-      ],
-      "MIMode": "gdb",
-      "externalConsole": true,
-      "remoteMachineName": "${debugInfo.remoteMachineName}",
-      "pipeTransport": {
-        "pipeProgram": "${debugInfo.shellexecPath}",
-        "pipeArgs": [
-          "/s",
-          "${debugInfo.remoteMachineId}",
-          "/p",
-          "${debugInfo.parentProcessId}",
-          "/c",
-          "${debuggerCommand}",
-          "--tty=${debugInfo.tty}"
-        ]
-      },
-      "setupCommands": [
-        {
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ],
-      "visualizerFile": "${debugInfo.linuxNatvisPath}",
-      "showDisplayString": true,
-      "logging": {
-        "engineLogging": true,
-        "trace": false
-      }
     }
   ]
 }

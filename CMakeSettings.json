@@ -2,27 +2,29 @@
   "configurations": [
     {
       "name": "x86-Debug",
-      "generator": "Visual Studio 15 2017",
+      "generator": "Visual Studio 16 2019",
       "configurationType": "Debug",
       "inheritEnvironments": [ "msvc_x86" ],
-      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-      "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "variables": []
+      "variables": [],
+      "cmakeToolchain": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
     },
     {
       "name": "x86-Release",
-      "generator": "Visual Studio 15 2017",
+      "generator": "Visual Studio 16 2019",
       "configurationType": "RelWithDebInfo",
       "inheritEnvironments": [ "msvc_x86" ],
-      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-      "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "variables": []
+      "variables": [],
+      "cmakeToolchain": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
     },
     {
       "name": "x64-Debug",
@@ -34,13 +36,8 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "variables": [
-        {
-          "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
-      ]
+      "variables": [],
+      "cmakeToolchain": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
     },
     {
       "name": "x64-Release",
@@ -52,13 +49,8 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "variables": [
-        {
-          "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
-      ]
+      "variables": [],
+      "cmakeToolchain": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
   ]
 }
