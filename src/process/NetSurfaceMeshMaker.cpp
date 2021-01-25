@@ -914,7 +914,7 @@ bool checkIfPixelRepresentGeometry(GLfloat* depthBuffer,
 	if (!bIntersection)
 	{
 		// check right pixel.***
-		if (pixelX < bufferWidth)
+		if (pixelX + 1 < bufferWidth)
 		{
 			dataRGBIdx = (pixelX + 1 + pixelY * bufferWidth) * 4;
 			r = colorBuffer[dataRGBIdx];
@@ -937,7 +937,7 @@ bool checkIfPixelRepresentGeometry(GLfloat* depthBuffer,
 	if (!bIntersection)
 	{
 		// check top pixel.***
-		if (pixelY < bufferHeight)
+		if (pixelY + 1 < bufferHeight)
 		{
 			dataRGBIdx = (pixelX + (pixelY + 1) * bufferWidth) * 4;
 			r = colorBuffer[dataRGBIdx];
