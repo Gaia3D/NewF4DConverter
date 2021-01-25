@@ -8,7 +8,7 @@ ARG CMAKE_VERSION
 ARG DISPLAY
 ARG SCREEN
 
-FROM centos:${IMAGE_VERSION:-latest}
+FROM centos:${IMAGE_VERSION:-centos7}
 
 LABEL maintainer="Gaia3D Inc. <mago3d@gaia3d.com>" \
 		description="Development environment for CentOS" \
