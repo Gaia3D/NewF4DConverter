@@ -33,7 +33,7 @@
 [submodule "lib/xerces"]
 	path = lib/xerces
 	url = https://github.com/apache/xerces-c.git
-	branch = master
+	branch = xerces-3.2
 [submodule "lib/proj"]
 	path = lib/proj
 	url = https://github.com/OSGeo/proj.4.git
