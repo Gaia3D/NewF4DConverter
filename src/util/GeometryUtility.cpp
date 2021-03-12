@@ -3,7 +3,7 @@
  */
 #include "GeometryUtility.h"
 
-#include "../geometry/TrianglePolyhedron.h"
+
 #include "../geometry/LegoBlock.h"
 
  ///< micrometer까지 지원하기 때문에
@@ -1643,5 +1643,471 @@ namespace gaia3d
 		delete[] pys;
 
 		return true;
+	}
+
+	gaia3d::TrianglePolyhedron* GeometryUtility::makeSingleMeshWithTriangles(std::vector<gaia3d::Triangle*>& triangles, bool bCopy)
+	{
+		if (triangles.empty())
+			return NULL;
+
+		gaia3d::TrianglePolyhedron* singleMesh = new gaia3d::TrianglePolyhedron;
+		gaia3d::Surface* skinSurface = new gaia3d::Surface;
+		singleMesh->getSurfaces().push_back(skinSurface);
+		size_t triangleCount = triangles.size();
+		std::map<gaia3d::Vertex*, size_t> vertexDuplicationChecker;
+		if (bCopy)
+		{
+			for (size_t i = 0; i < triangleCount; i++)
+			{
+				gaia3d::Triangle* originalTriangle = triangles[i];
+				gaia3d::Vertex* originalVertex0 = originalTriangle->getVertices()[0];
+				gaia3d::Vertex* originalVertex1 = originalTriangle->getVertices()[1];
+				gaia3d::Vertex* originalVertex2 = originalTriangle->getVertices()[2];
+
+				gaia3d::Triangle* copiedTriangle = new gaia3d::Triangle;
+				gaia3d::Vertex* copiedVertex0;
+				gaia3d::Vertex* copiedVertex1;
+				gaia3d::Vertex* copiedVertex2;
+				size_t copiedVertex0Index, copiedVertex1Index, copiedVertex2Index;
+				if (vertexDuplicationChecker.find(originalVertex0) == vertexDuplicationChecker.end())
+				{
+					copiedVertex0Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[originalVertex0] = copiedVertex0Index;
+
+					copiedVertex0 = new gaia3d::Vertex;
+					copiedVertex0->color = originalVertex0->color;
+					copiedVertex0->position = originalVertex0->position;
+					copiedVertex0->normal = originalVertex0->normal;
+					memcpy(copiedVertex0->textureCoordinate, originalVertex0->textureCoordinate, sizeof(double) * 2);
+
+					singleMesh->getVertices().push_back(copiedVertex0);
+				}
+				else
+				{
+					copiedVertex0Index = vertexDuplicationChecker[originalVertex0];
+					copiedVertex0 = singleMesh->getVertices()[copiedVertex0Index];
+				}
+
+				if (vertexDuplicationChecker.find(originalVertex1) == vertexDuplicationChecker.end())
+				{
+					copiedVertex1Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[originalVertex1] = copiedVertex1Index;
+
+					copiedVertex1 = new gaia3d::Vertex;
+					copiedVertex1->color = originalVertex1->color;
+					copiedVertex1->position = originalVertex1->position;
+					copiedVertex1->normal = originalVertex1->normal;
+					memcpy(copiedVertex1->textureCoordinate, originalVertex1->textureCoordinate, sizeof(double) * 2);
+
+					singleMesh->getVertices().push_back(copiedVertex1);
+				}
+				else
+				{
+					copiedVertex1Index = vertexDuplicationChecker[originalVertex1];
+					copiedVertex1 = singleMesh->getVertices()[copiedVertex1Index];
+				}
+
+				if (vertexDuplicationChecker.find(originalVertex2) == vertexDuplicationChecker.end())
+				{
+					copiedVertex2Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[originalVertex2] = copiedVertex2Index;
+
+					copiedVertex2 = new gaia3d::Vertex;
+					copiedVertex2->color = originalVertex2->color;
+					copiedVertex2->position = originalVertex2->position;
+					copiedVertex2->normal = originalVertex2->normal;
+					memcpy(copiedVertex2->textureCoordinate, originalVertex2->textureCoordinate, sizeof(double) * 2);
+
+					singleMesh->getVertices().push_back(copiedVertex2);
+				}
+				else
+				{
+					copiedVertex2Index = vertexDuplicationChecker[originalVertex2];
+					copiedVertex2 = singleMesh->getVertices()[copiedVertex2Index];
+				}
+
+				copiedTriangle->setVertices(copiedVertex0, copiedVertex1, copiedVertex2);
+				copiedTriangle->setVertexIndices(copiedVertex0Index, copiedVertex1Index, copiedVertex2Index);
+				copiedTriangle->setNormal(originalTriangle->getNormal()->x, originalTriangle->getNormal()->y, originalTriangle->getNormal()->z);
+				copiedTriangle->setIfExterior(originalTriangle->isExterior());
+
+				singleMesh->getSurfaces()[0]->getTriangles().push_back(copiedTriangle);
+			}
+
+			return singleMesh;
+		}
+		else
+		{
+			for (size_t i = 0; i < triangleCount; i++)
+			{
+				gaia3d::Triangle* triangle = triangles[i];
+				gaia3d::Vertex* vertex0 = triangle->getVertices()[0];
+				gaia3d::Vertex* vertex1 = triangle->getVertices()[1];
+				gaia3d::Vertex* vertex2 = triangle->getVertices()[2];
+				
+				size_t vertex0Index, vertex1Index, vertex2Index;
+				if (vertexDuplicationChecker.find(vertex0) == vertexDuplicationChecker.end())
+				{
+					vertex0Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[vertex0] = vertex0Index;
+
+					singleMesh->getVertices().push_back(vertex0);
+				}
+				else
+				{
+					vertex0Index = vertexDuplicationChecker[vertex0];
+				}
+
+				if (vertexDuplicationChecker.find(vertex1) == vertexDuplicationChecker.end())
+				{
+					vertex1Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[vertex1] = vertex1Index;
+
+					singleMesh->getVertices().push_back(vertex1);
+				}
+				else
+				{
+					vertex1Index = vertexDuplicationChecker[vertex1];
+				}
+
+				if (vertexDuplicationChecker.find(vertex2) == vertexDuplicationChecker.end())
+				{
+					vertex2Index = singleMesh->getVertices().size();
+					vertexDuplicationChecker[vertex2] = vertex2Index;
+
+					singleMesh->getVertices().push_back(vertex2);
+				}
+				else
+				{
+					vertex2Index = vertexDuplicationChecker[vertex2];
+				}
+
+				triangle->setVertexIndices(vertex0Index, vertex1Index, vertex2Index);
+
+				singleMesh->getSurfaces()[0]->getTriangles().push_back(triangle);
+			}
+		}
+	}
+
+	int GeometryUtility::divideTriangleWithPlane(
+		double a, double b, double c, double d,
+		gaia3d::Triangle* triangle,
+		std::vector<gaia3d::Triangle*>& frontTriangles,
+		std::vector<gaia3d::Triangle*>& rearTriangles,
+		std::vector<gaia3d::Triangle*>& coplanarTriangles,
+		double tolerance
+	)
+	{
+		// plane equation : ax + by + cz + d = 0
+		// return value
+		// 0 : input triangle is splitted into 3 triangles.(input triangle intersects with the plane at 2 edges)
+		// 1 : input triangle is over the plane
+		// -1 : input triangle is under the plane
+		// 2 : input triangle is coplanar with the plane
+		// 3 : input triangle is splitted into 2 triangles(input triangle intersects with the plane at 1 vertex and 1 edge)
+
+		std::vector<unsigned int> frontVertices, rearVertices, coplanarVertices;
+		int relation = findRelationBetweenTriangleAndPlane(a, b, c, d, triangle, frontVertices, rearVertices, coplanarVertices, tolerance);
+
+		switch (relation)
+		{
+		case 0:
+		{
+			gaia3d::Triangle *triangle0 = NULL, *triangle1 = NULL, *triangle2 = NULL;
+			gaia3d::Point3D intersectionPoint0, intersectionPoint1;
+			gaia3d::Vertex *vertex0 = NULL, *vertex1 = NULL, *vertex2 = NULL;
+			gaia3d::Vertex *refVertex0 = NULL, *refVertex1 = NULL, *refVertex2 = NULL;
+			double weight0, weight1;
+			unsigned char red, green, blue;
+			if (frontVertices.size() < rearVertices.size())
+			{
+				refVertex0 = triangle->getVertices()[frontVertices[0]];
+				refVertex1 = triangle->getVertices()[(frontVertices[0] + 1) % 3];
+				refVertex2 = triangle->getVertices()[(frontVertices[0] + 2) % 3];
+			}
+			else
+			{
+				refVertex0 = triangle->getVertices()[rearVertices[0]];
+				refVertex1 = triangle->getVertices()[(rearVertices[0] + 1) % 3];
+				refVertex2 = triangle->getVertices()[(rearVertices[0] + 2) % 3];
+			}
+
+			findIntersectionPointBetweenPlaneAndLine(a, b, c, d, refVertex0->position, refVertex1->position, intersectionPoint0, tolerance);
+			findIntersectionPointBetweenPlaneAndLine(a, b, c, d, refVertex0->position, refVertex2->position, intersectionPoint1, tolerance);
+
+			// triangle 0
+			vertex0 = refVertex0;
+
+			vertex1 = new gaia3d::Vertex;
+			vertex1->position = intersectionPoint0;
+			weight0 = sqrt(vertex1->position.squaredDistanceTo(refVertex0->position));
+			weight1 = sqrt(vertex1->position.squaredDistanceTo(refVertex1->position));
+			red = (unsigned char)((GetRedValue(refVertex0->color)*weight1 + GetRedValue(refVertex1->color)*weight0)/(weight0 + weight1));
+			green = (unsigned char)((GetGreenValue(refVertex0->color) * weight1 + GetGreenValue(refVertex1->color) * weight0) / (weight0 + weight1));
+			blue = (unsigned char)((GetBlueValue(refVertex0->color) * weight1 + GetBlueValue(refVertex1->color) * weight0) / (weight0 + weight1));
+			vertex1->color = MakeColorU4(red, green, blue);
+
+			vertex2 = new gaia3d::Vertex;
+			vertex2->position = intersectionPoint1;
+			weight0 = sqrt(vertex2->position.squaredDistanceTo(refVertex0->position));
+			weight1 = sqrt(vertex2->position.squaredDistanceTo(refVertex2->position));
+			red = (unsigned char)((GetRedValue(refVertex0->color) * weight1 + GetRedValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			green = (unsigned char)((GetGreenValue(refVertex0->color) * weight1 + GetGreenValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			blue = (unsigned char)((GetBlueValue(refVertex0->color) * weight1 + GetBlueValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			vertex2->color = MakeColorU4(red, green, blue);
+
+			triangle0 = new gaia3d::Triangle;
+			triangle0->setVertices(vertex0, vertex1, vertex2);
+			triangle0->alignVertexNormalsToPlaneNormal();
+
+			// triangle 1
+			vertex0 = new gaia3d::Vertex;
+			vertex0->position = triangle0->getVertices()[1]->position;
+			vertex0->color = triangle0->getVertices()[1]->color;
+
+			vertex1 = refVertex1;
+
+			vertex2 = refVertex2;
+
+			triangle1 = new gaia3d::Triangle;
+			triangle1->setVertices(vertex0, vertex1, vertex2);
+			triangle1->alignVertexNormalsToPlaneNormal();
+
+			// triangle 2
+			vertex0 = new gaia3d::Vertex;
+			vertex0->position = refVertex2->position;
+			vertex0->color = refVertex2->color;
+
+			vertex1 = new gaia3d::Vertex;
+			vertex1->position = triangle0->getVertices()[2]->position;
+			vertex1->color = triangle0->getVertices()[2]->color;
+
+			vertex2 = new gaia3d::Vertex;
+			vertex2->position = triangle0->getVertices()[1]->position;
+			vertex2->color = triangle0->getVertices()[1]->color;
+
+			triangle2 = new gaia3d::Triangle;
+			triangle2->setVertices(vertex0, vertex1, vertex2);
+			triangle2->alignVertexNormalsToPlaneNormal();
+
+			if (frontVertices.size() < rearVertices.size())
+			{
+				frontTriangles.push_back(triangle0);
+				rearTriangles.push_back(triangle1);
+				rearTriangles.push_back(triangle2);
+			}
+			else
+			{
+				rearTriangles.push_back(triangle0);
+				frontTriangles.push_back(triangle1);
+				frontTriangles.push_back(triangle2);
+			}
+		}
+		return 0;
+		case 5:
+		{
+			gaia3d::Triangle* triangle0 = NULL, * triangle1 = NULL;
+			gaia3d::Point3D intersectionPoint;
+			gaia3d::Vertex* vertex0 = NULL, * vertex1 = NULL, * vertex2 = NULL;
+			gaia3d::Vertex* refVertex0 = NULL, * refVertex1 = NULL, * refVertex2 = NULL;
+			double weight0, weight1;
+			unsigned char red, green, blue;
+
+			refVertex0 = triangle->getVertices()[coplanarVertices[0]];
+			refVertex1 = triangle->getVertices()[(coplanarVertices[0] + 1) % 3];
+			refVertex2 = triangle->getVertices()[(coplanarVertices[0] + 2) % 3];
+
+			findIntersectionPointBetweenPlaneAndLine(a, b, c, d, refVertex1->position, refVertex2->position, intersectionPoint, tolerance);
+
+			// triangle 0
+			vertex0 = refVertex0;
+
+			vertex1 = refVertex1;
+
+			vertex2 = new gaia3d::Vertex;
+			vertex2->position = intersectionPoint;
+			weight0 = sqrt(vertex2->position.squaredDistanceTo(refVertex1->position));
+			weight1 = sqrt(vertex2->position.squaredDistanceTo(refVertex2->position));
+			red = (unsigned char)((GetRedValue(refVertex1->color) * weight1 + GetRedValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			green = (unsigned char)((GetGreenValue(refVertex1->color) * weight1 + GetGreenValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			blue = (unsigned char)((GetBlueValue(refVertex1->color) * weight1 + GetBlueValue(refVertex2->color) * weight0) / (weight0 + weight1));
+			vertex2->color = MakeColorU4(red, green, blue);
+
+			triangle0 = new gaia3d::Triangle;
+			triangle0->setVertices(vertex0, vertex1, vertex2);
+			triangle0->alignVertexNormalsToPlaneNormal();
+
+			// triangle 1
+			vertex0 = new gaia3d::Vertex;
+			vertex0->position = refVertex0->position;
+			vertex0->color = refVertex0->color;
+
+			vertex1 = new gaia3d::Vertex;
+			vertex1->position = triangle0->getVertices()[2]->position;
+			vertex1->color = triangle0->getVertices()[2]->color;
+
+			vertex2 = refVertex2;
+
+			triangle1 = new gaia3d::Triangle;
+			triangle1->setVertices(vertex0, vertex1, vertex2);
+			triangle1->alignVertexNormalsToPlaneNormal();
+
+			if ((coplanarVertices[0] + 1) % 3 == frontVertices[0])
+			{
+				frontTriangles.push_back(triangle0);
+				rearTriangles.push_back(triangle1);
+			}
+			else
+			{
+				frontTriangles.push_back(triangle1);
+				rearTriangles.push_back(triangle0);
+			}
+		}
+		return 3;
+		default:
+		{
+			// triangle 0
+			gaia3d::Triangle* triangle0 = new gaia3d::Triangle;
+			triangle0->setVertices(triangle->getVertices()[0], triangle->getVertices()[1], triangle->getVertices()[2]);
+			triangle0->setNormal(triangle->getNormal()->x, triangle->getNormal()->y, triangle->getNormal()->z);
+
+			switch (relation)
+			{
+			case 2:
+			{
+				coplanarTriangles.push_back(triangle0);
+			}
+			return 2;
+			case 1:
+			case 3:
+			case 4:
+			{
+				frontTriangles.push_back(triangle0);
+			}
+			return 1;
+			default:
+			{
+				rearTriangles.push_back(triangle0);
+			}
+			return -1;
+			}
+		}
+		}
+	}
+
+	bool GeometryUtility::findIntersectionPointBetweenPlaneAndLine(
+		double a, double b, double c, double d,
+		gaia3d::Point3D& lineStart, gaia3d::Point3D& lineEnd,
+		gaia3d::Point3D& intersectionPoint,
+		double tolerance
+	)
+	{
+		double denominator = a * (lineStart.x - lineEnd.x) + b * (lineStart.y - lineEnd.y) + c * (lineStart.z - lineEnd.z);
+
+		if (denominator > tolerance || denominator < -tolerance)
+		{
+			double numerator = a * lineStart.x + b * lineStart.y + c * lineStart.z + d;
+
+			double u = numerator / denominator;
+
+			// p = p1 + u * (p2 - p1)
+			intersectionPoint.x = lineStart.x + u * (lineEnd.x - lineStart.x);
+			intersectionPoint.y = lineStart.y + u * (lineEnd.y - lineStart.y);
+			intersectionPoint.z = lineStart.z + u * (lineEnd.z - lineStart.z);
+		}
+		else
+			return false;
+	}
+
+	int GeometryUtility::findRelationBetweenTriangleAndPlane(
+		double a, double b, double c, double d,
+		gaia3d::Triangle* triangle,
+		std::vector<unsigned int>& frontVertices,
+		std::vector<unsigned int>& rearVertices,
+		std::vector<unsigned int>& coplanarVertices,
+		double tolerance
+	)
+	{
+		// plane equation : ax + by + cz + d = 0
+		// return value
+		// 0 : intersects with the plane at 2 edges
+		// 1 : over the plane
+		// -1 : under the plane
+		// 2 : coincident with the plane
+		// 3 : 1 point is tangent to and the others are over the plane
+		// -3 : 1 point is tangent to and the others are under the plane
+		// 4 : 2 points are tangent to and the other is over the plane
+		// -4 : 2 points are tangent to and the other is under the plane
+		// 5 : intersects with the plane at a vertex and an edge
+		
+		gaia3d::Vertex** vertices = triangle->getVertices();
+		for (unsigned int i = 0; i < 3; i++)
+		{
+			int pointRelation = findRelationBetweenPointAndPlane(a, b, c, d, vertices[i]->position, tolerance);
+			switch (pointRelation)
+			{
+			case 1:
+				frontVertices.push_back(i);
+				break;
+			case -1:
+				rearVertices.push_back(i);
+				break;
+			default:
+				coplanarVertices.push_back(i);
+			}
+		}
+		
+		size_t coplanarVertexCount = coplanarVertices.size();
+		switch (coplanarVertexCount)
+		{
+		case 3:
+			return 2;
+		case 2:
+		{
+			if (frontVertices.empty())
+				return -4;
+			else
+				return 4;
+		}
+		case 1:
+		{
+			if (frontVertices.empty())
+				return -3;
+
+			if (rearVertices.empty())
+				return 3;
+
+			return 5;
+		}
+		default: // case 0
+		{
+			if (frontVertices.empty())
+				return -1;
+
+			if (rearVertices.empty())
+				return 1;
+
+			return 0;
+		}
+		}
+	}
+
+	int GeometryUtility::findRelationBetweenPointAndPlane(
+		double a, double b, double c, double d,
+		gaia3d::Point3D& point,
+		double tolerance
+	)
+	{
+		// plane equation : ax + by + cz + d = 0
+		// return value
+		// 1 : over the plane, 0 : coincident with the plane, -1 : under the plane
+
+		double value = a * point.x + b * point.y + c * point.z + d;
+		if (value > tolerance)
+			return 1;
+		else if (value < -tolerance)
+			return -1;
+		else
+			return 0;
 	}
 }

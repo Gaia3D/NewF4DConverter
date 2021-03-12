@@ -8,6 +8,11 @@ namespace gaia3d
 	
 	Triangle::Triangle()
 	{
+		vertexIndex[0] = vertexIndex[1] = vertexIndex[2] = 0;
+
+		vertex[0] = vertex[1] = vertex[2] = NULL;
+
+		bExterior = false;
 	}
 
 	Triangle::~Triangle()

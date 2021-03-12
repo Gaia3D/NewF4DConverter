@@ -13,6 +13,8 @@
 #define EarthHRadius 6378137.0
 #define EarthVRadius 6356751.9566//10375702081371855231
 
+#include "../geometry/TrianglePolyhedron.h"
+
 
 namespace gaia3d
 {
@@ -60,6 +62,39 @@ namespace gaia3d
 		static bool earCut(double** xs, double** ys, double** zs, std::vector<size_t>& eachRingPointCount, std::vector<std::pair<size_t, size_t>>& result, bool bDebug = false);
 
 		static void tessellate(double* xs, double* ys, double* zs, size_t vertexCount, std::vector<size_t>& polygonIndices, std::vector<size_t>& indices);
+
+		static gaia3d::TrianglePolyhedron* makeSingleMeshWithTriangles(std::vector<gaia3d::Triangle*>& triangles, bool bCopy = true);
+
+		static int divideTriangleWithPlane(
+			double a, double b, double c, double d,
+			gaia3d::Triangle* triangle,
+			std::vector<gaia3d::Triangle*>& frontTriangles,
+			std::vector<gaia3d::Triangle*>& rearTriangles,
+			std::vector<gaia3d::Triangle*>& coplanarTriangles,
+			double tolerance
+		);
+
+		static int findRelationBetweenTriangleAndPlane(
+			double a, double b, double c, double d,
+			gaia3d::Triangle* triangle,
+			std::vector<unsigned int>& frontVertices,
+			std::vector<unsigned int>& rearVertices,
+			std::vector<unsigned int>& coplanarVertices,
+			double tolerance
+		);
+
+		static int findRelationBetweenPointAndPlane(
+			double a, double b, double c, double d,
+			gaia3d::Point3D& point,
+			double tolerance
+		);
+
+		static bool findIntersectionPointBetweenPlaneAndLine(
+			double a, double b, double c, double d,
+			gaia3d::Point3D& lineStart, gaia3d::Point3D& lineEnd,
+			gaia3d::Point3D& intersectionPoint,
+			double tolerance
+		);
 	};
 }
 

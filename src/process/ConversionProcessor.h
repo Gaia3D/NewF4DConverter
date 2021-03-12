@@ -75,10 +75,17 @@ protected:
 
 	gaia3d::SpatialOctreeBox thisSpatialOctree;
 
+	// for net surface mesh
 	std::map<unsigned char, gaia3d::TrianglePolyhedron*> netSurfaceMeshes;
 	std::map<unsigned char, unsigned char*> netSurfaceTextures;
 	std::map<unsigned char, unsigned int> netSurfaceTextureWidth;
 	std::map<unsigned char, unsigned int> netSurfaceTextureHeight;
+
+	// for pretty lod mesh
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*> skinMeshes;
+	std::map<unsigned char, unsigned char*> skinMeshTextures;
+	std::map<unsigned char, unsigned int> skinMeshTextureWidth;
+	std::map<unsigned char, unsigned int> skinMeshTextureHeight;
 
 	bool textureFlip[2];
 
@@ -151,6 +158,9 @@ protected:
 	void convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 		std::map<std::string, std::string>& originalTextureInfo);
 
+	void convertTest(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+		std::map<std::string, std::string>& originalTextureInfo);
+
 	void convertSingleRealisticMesh(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 		std::map<std::string, std::string>& originalTextureInfo);
 
@@ -164,6 +174,8 @@ protected:
 	void makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*>& meshes, bool bBind = false);
 
 	void determineWhichSurfacesAreExterior(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox);
+
+	void determineWhichTrianglesAreExterior(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox);
 
 	void determineModelAndReference(std::vector<gaia3d::TrianglePolyhedron*>& meshes);
 
@@ -211,7 +223,11 @@ protected:
 
 	void checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surface*>& surfaces, std::vector<gaia3d::ColorU4>& colors);
 
+	void checkIfEachTriangleIsExterior(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors);
+
 	void drawSurfacesWithIndexColor(std::vector<gaia3d::Surface*>& surfaces, std::vector<gaia3d::ColorU4>& colors);
+
+	void drawTrianglesWithIndexColor(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors);
 
 	void makeDisplayListOfMeshes(std::vector<gaia3d::TrianglePolyhedron*>& meshes, std::vector<gaia3d::ColorU4>& colors);
 
@@ -254,6 +270,13 @@ protected:
 		std::map<std::string, unsigned int>& textureHeights,
 		std::map<unsigned char, unsigned char>& lodUsingOriginalMesh);
 
+	void makeSkinMeshes(gaia3d::BoundingBox& bbox,
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		gaia3d::SpatialOctreeBox& octree,
+		std::map<std::string, unsigned char*>& textures,
+		std::map<std::string, unsigned int>& textureWidths,
+		std::map<std::string, unsigned int>& textureHeights);
+
 	void normalizeMosiacTextures(std::map<unsigned char, unsigned char*>& mosaicTextures,
 		std::map<unsigned char, unsigned int>& mosaicTextureWidth,
 		std::map<unsigned char, unsigned int>& mosaicTextureHeight);
@@ -278,6 +301,36 @@ protected:
 		std::map<std::string, std::string>& resultTextureInfo);
 
 	void reuseOriginalMeshForRougherLods(gaia3d::SpatialOctreeBox& octree);
+
+	void extractExteriorTriangles(
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		std::vector<gaia3d::Triangle*> outputTriangles,
+		bool bCopy);
+
+	void makeSkinTexturesAndThumbnail(
+		gaia3d::BoundingBox& bbox,
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		gaia3d::SpatialOctreeBox& octree,
+		std::map<std::string, unsigned char*>& textures,
+		std::map<std::string, unsigned int>& textureWidths,
+		std::map<std::string, unsigned int>& textureHeights);
+
+	void makeSixFaceTexturesOnBox(
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		gaia3d::BoundingBox& bbox,
+		std::vector<unsigned char*>& output,
+		int textureWidth, int textureHeight,
+		unsigned int shaderProgram,
+		std::map<std::string, unsigned int>& bindingResult);
+
+	unsigned char* makeFaceTextureOnBox(
+		unsigned int faceType,
+		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+		gaia3d::BoundingBox& bbox,
+		int textureWidth, int textureHeight,
+		unsigned int shaderProgram,
+		std::map<std::string, unsigned int>& bindingResult);
+
 };
 
 #endif // _CONVERSIONPROCESSOR_H_

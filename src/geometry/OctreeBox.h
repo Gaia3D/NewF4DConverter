@@ -73,7 +73,11 @@ namespace gaia3d
 		gaia3d::VisionOctreeBox* interiorOcclusionInfo;
 		gaia3d::VisionOctreeBox* exteriorOcclusionInfo;
 
+		// skin data structure for v0.0.1
 		gaia3d::TrianglePolyhedron* netSurfaceMesh;
+
+		// skin data structure for versions over v0.0.1
+		gaia3d::TrianglePolyhedron* prettySkinMesh;
 
 		virtual OctreeBox* makeChild() {return new SpatialOctreeBox(this);}
 
@@ -93,6 +97,8 @@ namespace gaia3d
 										gaia3d::TrianglePolyhedron** nonIntersected);
 
 		void calculateBoundingBox(gaia3d::TrianglePolyhedron* mesh);
+
+		void makeSkinMesh(std::vector<gaia3d::Triangle*>& triangles);
 
 	};
 }

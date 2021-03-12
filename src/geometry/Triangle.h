@@ -26,6 +26,8 @@ namespace gaia3d
 
 		Point3D normal;
 
+		bool bExterior;
+
 	public:
 		void setVertices(Vertex* vertex0, Vertex* vertex1, Vertex* vertex2) {vertex[0] = vertex0; vertex[1]= vertex1; vertex[2] = vertex2;}
 
@@ -38,6 +40,10 @@ namespace gaia3d
 		Point3D* getNormal() {return &normal;}
 
 		void setNormal(double x, double y, double z) {this->normal.set(x, y, z);}
+
+		void setIfExterior(bool bExterior) { this->bExterior = bExterior; }
+
+		bool isExterior() { return bExterior; }
 
 		///< plane normal을 vertex normal에 뒤집어씌운다
 		void alignVertexNormalsToPlaneNormal();

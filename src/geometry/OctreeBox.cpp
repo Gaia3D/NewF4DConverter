@@ -179,6 +179,8 @@ namespace gaia3d
 		exteriorOcclusionInfo = new VisionOctreeBox(NULL);
 
 		netSurfaceMesh = NULL;
+
+		prettySkinMesh = NULL;
 	}
 
 	SpatialOctreeBox::~SpatialOctreeBox()
@@ -757,6 +759,147 @@ namespace gaia3d
 
 				allVertices.clear();
 			}
+		}
+	}
+
+	void SpatialOctreeBox::makeSkinMesh(std::vector<gaia3d::Triangle*>& triangles)
+	{
+		if (children.empty())
+		{
+			this->prettySkinMesh = GeometryUtility::makeSingleMeshWithTriangles(triangles, false);
+		}
+		else
+		{
+			double tolerance = 1E-7;
+			gaia3d::Point3D center;
+			center.set((maxX - minX) / 2.0, (maxY - minY) / 2.0, (maxZ - minZ) / 2.0);
+
+			// divide and group triangles along xy plane
+			double a = 0.0, b = 0.0, c = 1.0;
+			double d = -a * center.x - b * center.y - c * center.z;
+			std::vector<gaia3d::Triangle*> upperTriangles, lowerTriangles, coplanarTriangles;
+			for (size_t i = 0; i < triangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = triangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, upperTriangles, lowerTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			triangles.clear();
+
+			//// insert coplanar triangles into lower triangle container
+			lowerTriangles.insert(lowerTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			// divide and group upper/lower triangles along zx plane
+			a = 0.0, b = 1.0, c = 0.0;
+			d = -a * center.x - b * center.y - c * center.z;
+			std::vector<gaia3d::Triangle*> upperFrontTriangles, upperRearTriangles, lowerFrontTriangles, lowerRearTriangles;
+
+			//// upper triangle container
+			for (size_t i = 0; i < upperTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = upperTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, upperRearTriangles, upperFrontTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			upperTriangles.clear();
+
+			////// insert coplanar triangles into upper front triangle container
+			upperFrontTriangles.insert(upperFrontTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			//// lower triangle container
+			for (size_t i = 0; i < lowerTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = lowerTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, lowerRearTriangles, lowerFrontTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			lowerTriangles.clear();
+
+			////// insert coplanar triangles into lower front triangle container
+			lowerFrontTriangles.insert(lowerFrontTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			// divide and group triangles along yz plane
+			a = 1.0, b = 0.0, c = 0.0;
+			d = -a * center.x - b * center.y - c * center.z;
+
+			std::vector<Triangle*> upperFrontLeftTriangles, upperFrontRightTriangles, upperRearLeftTriangles, upperRearRightTriangles;
+			std::vector<Triangle*> lowerFrontLeftTriangles, lowerFrontRightTriangles, lowerRearLeftTriangles, lowerRearRightTriangles;
+
+			//// upper front triangle contaienr
+			for (size_t i = 0; i < upperFrontTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = upperFrontTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, upperFrontRightTriangles, upperFrontLeftTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			upperFrontTriangles.clear();
+
+			////// insert coplanar triangles into upper front left triangle container
+			upperFrontLeftTriangles.insert(upperFrontLeftTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			//// upper rear triangle contaienr
+			for (size_t i = 0; i < upperRearTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = upperRearTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, upperRearRightTriangles, upperRearLeftTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			upperRearTriangles.clear();
+
+			////// insert coplanar triangles into upper rear left triangle container
+			upperRearLeftTriangles.insert(upperRearLeftTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			//// lower front triangle contaienr
+			for (size_t i = 0; i < lowerFrontTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = lowerFrontTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, lowerFrontRightTriangles, lowerFrontLeftTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			lowerFrontTriangles.clear();
+
+			////// insert coplanar triangles into lower front left triangle container
+			lowerFrontLeftTriangles.insert(lowerFrontLeftTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			//// lower rear triangle contaienr
+			for (size_t i = 0; i < lowerRearTriangles.size(); i++)
+			{
+				gaia3d::Triangle* triangle = lowerRearTriangles[i];
+				gaia3d::GeometryUtility::divideTriangleWithPlane(a, b, c, d, triangle, lowerRearRightTriangles, lowerRearLeftTriangles, coplanarTriangles, tolerance);
+				delete triangle;
+			}
+			lowerRearTriangles.clear();
+
+			////// insert coplanar triangles into lower front left triangle container
+			lowerRearLeftTriangles.insert(lowerRearLeftTriangles.end(), coplanarTriangles.begin(), coplanarTriangles.end());
+			coplanarTriangles.clear();
+
+			// distribute re-grouped triangles into 8 children
+			// Bottom                      Top
+			// +---------+---------+     +---------+---------+       rear
+			// |         |         |     |         |         |       Y
+			// |   3     |   2     |	 |   7     |   6     |       ^
+			// |         |         |     |         |         |       |
+			// |---------+---------|     |---------+---------|       |
+			// |         |         |     |         |         |       |
+			// |    0    |    1    |     |   4     |   5     |       |
+			// |         |         |     |         |         |       +----------------> X
+			// +---------+---------+     +---------+---------+       front
+
+			((gaia3d::SpatialOctreeBox*)children[0])->makeSkinMesh(lowerFrontLeftTriangles);
+			((gaia3d::SpatialOctreeBox*)children[1])->makeSkinMesh(lowerFrontRightTriangles);
+			((gaia3d::SpatialOctreeBox*)children[2])->makeSkinMesh(lowerRearRightTriangles);
+			((gaia3d::SpatialOctreeBox*)children[3])->makeSkinMesh(lowerRearLeftTriangles);
+			((gaia3d::SpatialOctreeBox*)children[4])->makeSkinMesh(upperFrontLeftTriangles);
+			((gaia3d::SpatialOctreeBox*)children[5])->makeSkinMesh(upperFrontLeftTriangles);
+			((gaia3d::SpatialOctreeBox*)children[6])->makeSkinMesh(upperRearRightTriangles);
+			((gaia3d::SpatialOctreeBox*)children[7])->makeSkinMesh(upperRearLeftTriangles);
 		}
 	}
 }

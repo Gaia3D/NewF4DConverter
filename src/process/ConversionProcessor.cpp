@@ -313,7 +313,8 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 	switch (settings.meshType)
 	{
 	case 0:
-		convertSemanticData(originalMeshes, originalTextureInfo);
+		//convertSemanticData(originalMeshes, originalTextureInfo);
+		convertTest(originalMeshes, originalTextureInfo);
 		return true;
 	case 1:
 		convertSingleRealisticMesh(originalMeshes, originalTextureInfo);
@@ -486,17 +487,134 @@ void ConversionProcessor::convertSplittedRealisticMesh(std::vector<gaia3d::Trian
 
 	{
 		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
-		int bpp = 4;
+		unsigned int bpp = 4;
 		for (; iter != resizedTextures.end(); iter++)
 		{
 			unsigned char* resizedImage = iter->second;
-			int widthResized = allTextureWidths[iter->first];
-			int heightResized = allTextureHeights[iter->first];
+			unsigned int widthResized = allTextureWidths[iter->first];
+			unsigned int heightResized = allTextureHeights[iter->first];
 
-			int lineSize = widthResized * bpp;
+			unsigned int lineSize = widthResized * bpp;
 			unsigned char* lineData = new unsigned char[lineSize];
 			memset(lineData, 0x00, sizeof(unsigned char) * lineSize);
-			for (int i = 0; i < heightResized / 2; i++)
+			for (unsigned int i = 0; i < heightResized / 2; i++)
+			{
+				unsigned char* upperLine = resizedImage + (lineSize * i);
+				unsigned char* lowerLine = resizedImage + (lineSize * (heightResized - i - 1));
+
+				memcpy(lineData, upperLine, sizeof(unsigned char) * lineSize);
+				memcpy(upperLine, lowerLine, sizeof(unsigned char) * lineSize);
+				memcpy(lowerLine, lineData, sizeof(unsigned char) * lineSize);
+			}
+
+			delete[] lineData;
+		}
+	}
+}
+
+void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+	std::map<std::string, std::string>& originalTextureInfo)
+{
+	if (settings.nsmSettings.empty())
+		settings.fillNsmSettings(settings.netSurfaceMeshSettingIndex);
+
+	// copy data from original to this container
+	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
+
+	// copy texture info
+	if (!originalTextureInfo.empty())
+		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
+
+	// calculate original bounding box
+	calculateBoundingBox(allMeshes, fullBbox);
+
+	// calculate plane normals and align them to their vertex normals
+	trimVertexNormals(allMeshes);
+	printf("[Info]Vertex trimming done.\n");
+
+	// determine  which surfaces are exterior
+	determineWhichSurfacesAreExterior(allMeshes, fullBbox);
+	printf("[Info]Exterior surface detection done.\n");
+
+	// determine which triangles are exterior
+	determineWhichTrianglesAreExterior(allMeshes, fullBbox);
+	printf("[Info]Exterior triangle detection done.\n");
+
+	// make model-reference relationship
+	determineModelAndReference(allMeshes);
+
+	size_t modelCount = 0;
+	size_t meshCount = allMeshes.size();
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		if (allMeshes[i]->getReferenceInfo().model == NULL)
+			modelCount++;
+	}
+	printf("[Info]Model/reference detection done. %zd models out of %zd meshes detected.\n", modelCount, allMeshes.size());
+
+	// make VBO
+	makeVboObjects(allMeshes);
+	printf("[Info]VBO of each mesh created.\n");
+
+	// make generic spatial octree
+	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, settings.leafSpatialOctreeSize);
+	printf("[Info]Mesh distribution on each octree done.\n");
+
+	// make visibility indices
+	if (settings.bOcclusionCulling)
+	{
+		// exterior extraction is necessary for occlusion culling
+		// so, if it is not done, do it before occlusion culling
+		if (!settings.bExtractExterior)
+			determineWhichSurfacesAreExterior(allMeshes, fullBbox);
+
+		std::vector<gaia3d::TrianglePolyhedron*> interiors, exteriors;
+		assignReferencesIntoExteriorAndInterior(allMeshes, interiors, exteriors);
+
+		gaia3d::BoundingBox interiorBbox, exteriorBbox;
+		calculateBoundingBox(interiors, interiorBbox);
+		calculateBoundingBox(exteriors, exteriorBbox);
+
+		// make occlusion culling information
+		gaia3d::VisionOctreeBox interiorOcclusionOctree(NULL), exteriorOcclusionOctree(NULL);
+		makeOcclusionInformation(allMeshes, interiorOcclusionOctree, exteriorOcclusionOctree, interiorBbox, exteriorBbox);
+
+		// finally, import these information into data groups and interior spatial octree boxes
+		applyOcclusionInformationOnSpatialOctree(thisSpatialOctree, interiorOcclusionOctree, exteriorOcclusionOctree);
+
+		printf("[Info]Visibility Indices created.\n");
+	}
+
+	bool bMakeTextureCoordinate = allTextureInfo.empty() ? false : true;
+	if (bMakeTextureCoordinate)
+	{
+		// rebuild original texture
+		normalizeTextures(allTextureInfo);
+		printf("[Info]Original textures are normalized.\n");
+		if (resizedTextures.empty())
+		{
+			printf("[Error]No Texture Normalized!!!\n\n");
+		}
+	}
+
+	// make pretty lod data structure
+	makeSkinMeshes(fullBbox, allMeshes, thisSpatialOctree, resizedTextures, allTextureWidths, allTextureHeights);
+	printf("[Info]Net Surface Mesh created.\n");
+
+	// make textures upside-down
+	{
+		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
+		unsigned int bpp = 4;
+		for (; iter != resizedTextures.end(); iter++)
+		{
+			unsigned char* resizedImage = iter->second;
+			unsigned int widthResized = allTextureWidths[iter->first];
+			unsigned int heightResized = allTextureHeights[iter->first];
+
+			unsigned int lineSize = widthResized * bpp;
+			unsigned char* lineData = new unsigned char[lineSize];
+			memset(lineData, 0x00, sizeof(unsigned char) * lineSize);
+			for (unsigned int i = 0; i < heightResized / 2; i++)
 			{
 				unsigned char* upperLine = resizedImage + lineSize * i;
 				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
@@ -617,17 +735,17 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 	//if (!settings.bFlipTextureCoordinateV)
 	{
 		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
-		int bpp = 4;
+		unsigned int bpp = 4;
 		for (; iter != resizedTextures.end(); iter++)
 		{
 			unsigned char* resizedImage = iter->second;
-			int widthResized = allTextureWidths[iter->first];
-			int heightResized = allTextureHeights[iter->first];
+			unsigned int widthResized = allTextureWidths[iter->first];
+			unsigned int heightResized = allTextureHeights[iter->first];
 
-			int lineSize = widthResized * bpp;
+			unsigned int lineSize = widthResized * bpp;
 			unsigned char* lineData = new unsigned char[lineSize];
 			memset(lineData, 0x00, sizeof(unsigned char) * lineSize);
-			for (int i = 0; i < heightResized / 2; i++)
+			for (unsigned int i = 0; i < heightResized / 2; i++)
 			{
 				unsigned char* upperLine = resizedImage + lineSize * i;
 				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
@@ -988,11 +1106,76 @@ void ConversionProcessor::determineWhichSurfacesAreExterior(std::vector<gaia3d::
 		scv->m_zRot += 45.0;
 	}
 
-	scv->m_xRot = -120.0; scv->m_yRot = 0.0; scv->m_zRot = 22.5;
+	/*scv->m_xRot = -120.0; scv->m_yRot = 0.0; scv->m_zRot = 22.5;
 	for (int i = 0; i < 8; i++)
 	{
 		this->setupPerspectiveViewSetting(bbox);
 		this->checkIfEachSurfaceIsExterior(allSurfaces, allColors);
+		scv->m_zRot += 45.0;
+	}*/
+
+	scv->tp_projection = PROJECTION_PERSPECTIVE;
+	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
+}
+
+void ConversionProcessor::determineWhichTrianglesAreExterior(std::vector<gaia3d::TrianglePolyhedron*>& meshes, gaia3d::BoundingBox& bbox)
+{
+	std::vector<gaia3d::Surface*> surfaces;
+
+	size_t meshCount = meshes.size();
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		gaia3d::TrianglePolyhedron* mesh = meshes[i];
+		size_t surfaceCount = mesh->getSurfaces().size();
+		for (size_t j = 0; j < surfaceCount; j++)
+		{
+			gaia3d::Surface* surface = mesh->getSurfaces()[j];
+
+			if (surface->isExterior())
+				surfaces.push_back(surface);
+		}
+	}
+
+	if (surfaces.empty())
+		return;
+
+	std::vector<gaia3d::Triangle*> triangles;
+	std::vector<gaia3d::ColorU4> allColors;
+	size_t prevTriangleCount, addedTriangleCount;
+	size_t surfaceCount = surfaces.size();
+	for (size_t i = 0; i < surfaceCount; i++)
+	{
+		gaia3d::Surface* surface = surfaces[i];
+
+		prevTriangleCount = triangles.size();
+		addedTriangleCount = surface->getTriangles().size();
+		triangles.insert(triangles.end(), surface->getTriangles().begin(), surface->getTriangles().end());
+
+		for (size_t j = prevTriangleCount; j < prevTriangleCount + addedTriangleCount; j++)
+		{
+			allColors.push_back(MakeColorU4(GetRedValue(j), GetGreenValue(j), GetBlueValue(j)));
+		}
+	}
+
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_CULL_FACE);
+	scv->tp_projection = PROJECTION_ORTHO;
+
+	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
+
+	scv->m_xRot = -60.0; scv->m_yRot = 0.0; scv->m_zRot = 22.5;
+	for (int i = 0; i < 8; i++)
+	{
+		this->setupPerspectiveViewSetting(bbox);
+		this->checkIfEachTriangleIsExterior(triangles, allColors);
+		scv->m_zRot += 45.0;
+	}
+
+	scv->m_xRot = -90.0; scv->m_yRot = 0.0; scv->m_zRot = 22.5;
+	for (int i = 0; i < 8; i++)
+	{
+		this->setupPerspectiveViewSetting(bbox);
+		this->checkIfEachTriangleIsExterior(triangles, allColors);
 		scv->m_zRot += 45.0;
 	}
 
@@ -1041,7 +1224,7 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 					// before making newer vbo, have to insert index markers into current vbo with sorted index markers along triangle edge size.
 					for (size_t m = 0; m < TriangleSizeLevels; m++)
 					{
-						if (eachSizeStartingIndices[m] * 3 > vbo->indices.size())
+						if ((eachSizeStartingIndices[m] * 3) > vbo->indices.size())
 						{
 							for (size_t n = m; n < TriangleSizeLevels; n++)
 							{
@@ -1081,7 +1264,7 @@ void ConversionProcessor::makeVboObjects(std::vector<gaia3d::TrianglePolyhedron*
 			// have to insert index markers into the last created vbo
 			for (size_t m = 0; m < TriangleSizeLevels; m++)
 			{
-				if (eachSizeStartingIndices[m] * 3 > vbo->indices.size())
+				if ((eachSizeStartingIndices[m] * 3) > vbo->indices.size())
 				{
 					for (size_t n = m; n < TriangleSizeLevels; n++)
 					{
@@ -1332,8 +1515,8 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 			fileExt.compare("tif") != 0 && fileExt.compare("tiff") != 0)
 			continue;
 
-		unsigned char* pData;
-		unsigned char* pDest;
+		unsigned char* pData = NULL;
+		unsigned char* pDest = NULL;
 		int bmpWidth, bmpHeight, nrChannels;
 		unsigned int bmpWidthResized, bmpHeightResized;
 
@@ -1343,6 +1526,7 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 		nrChannels = 4;
 
 		if (bmpWidth == 0 || bmpHeight == 0)	continue;
+		if (pData == NULL)	continue;
 
 		bmpWidthResized = bmpWidth;
 		bmpHeightResized = bmpHeight;
@@ -1405,13 +1589,27 @@ void ConversionProcessor::calculateBoundingBox(gaia3d::TrianglePolyhedron* mesh)
 	if (mesh->getBoundingBox().isInitialized)
 		return;
 
-	std::vector<gaia3d::Vertex*>& vertices = mesh->getVertices();
-	size_t vertexCount = vertices.size();
-	for (size_t j = 0; j < vertexCount; j++)
+	size_t surfaceCount = mesh->getSurfaces().size();
+	for (size_t i = 0; i < surfaceCount; i++)
 	{
+		gaia3d::Surface* surface = mesh->getSurfaces()[i];
+		size_t triangleCount = surface->getTriangles().size();
+		for (size_t j = 0; j < triangleCount; j++)
+		{
+			gaia3d::Triangle* triangle = surface->getTriangles()[j];
+			gaia3d::Vertex** vertices = triangle->getVertices();
+			mesh->getBoundingBox().addPoint(vertices[0]->position.x, vertices[0]->position.y, vertices[0]->position.z);
+			mesh->getBoundingBox().addPoint(vertices[1]->position.x, vertices[1]->position.y, vertices[1]->position.z);
+			mesh->getBoundingBox().addPoint(vertices[2]->position.x, vertices[2]->position.y, vertices[2]->position.z);
+		}
+	}
 
-		mesh->getBoundingBox().addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
-		//bbox.addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
+	if (!mesh->getBoundingBox().isInitialized)
+	{
+		std::vector<gaia3d::Vertex*>& vertices = mesh->getVertices();
+		size_t vertexCount = vertices.size();
+		for (size_t j = 0; j < vertexCount; j++)
+			mesh->getBoundingBox().addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
 	}
 }
 
@@ -1580,6 +1778,85 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 	glEnable(GL_LIGHTING);
 }
 
+void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors)
+{
+	size_t last_idx_triangle = 4294967295;// Max value for an unsigned int.***
+
+	int data_size = scv->m_width * scv->m_height;
+	GLuint* data = NULL;
+
+	glDisable(GL_LIGHTING);
+
+	this->drawTrianglesWithIndexColor(triangles, colors);
+
+#if USE_NATIVE_OSMESA
+	glfwGetOSMesaColorBuffer(scv->m_window, &(scv->m_width), &(scv->m_height), NULL, (void**)&data);
+#else
+	data = (GLuint*)malloc(sizeof(GLuint) * data_size);
+	if (data)
+	{
+		glReadPixels(0, 0, scv->m_width, scv->m_height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+#endif
+
+	int pixels_count = data_size;
+	size_t triangleCount = triangles.size();
+
+	// Make a colors counter. if a triangle is visible by a little count of pixels, then, this object is not visible.***
+	std::map<gaia3d::Triangle*, int> map_triangle_pixelsCount;
+	std::map<gaia3d::Triangle*, int>::iterator it;
+	std::vector<unsigned int> idx;
+
+	for (int i = 0; i < pixels_count; i++)
+	{
+		unsigned int idx_triangle = (data[i] & 0x00ffffffU);// Original by Hak.***
+
+		if (idx_triangle < triangleCount)
+		{
+			gaia3d::Triangle* triangle = triangles[idx_triangle];
+
+			// now, search the triangle in the map.***
+			it = map_triangle_pixelsCount.find(triangle);
+			if (it != map_triangle_pixelsCount.end())
+			{
+				// found.***
+				int current_value = it->second;
+				map_triangle_pixelsCount[triangle] = current_value + 1;
+			}
+			else
+			{
+				// no found.***
+				map_triangle_pixelsCount[triangle] = 1;
+				idx.push_back(idx_triangle);
+			}
+		}
+	}
+
+	// Now, for each triangle in the map, set as visible if his value is bigger than minValue.***
+	for (std::map<gaia3d::Triangle*, int>::iterator itera = map_triangle_pixelsCount.begin(); itera != map_triangle_pixelsCount.end(); itera++)
+	{
+		gaia3d::Triangle* triangle = itera->first;
+		int pixels_counted = itera->second;
+
+		if (pixels_counted > ExteriorDetectionThreshold)
+		{
+			triangle->setIfExterior(true);
+			int index = idx[std::distance(map_triangle_pixelsCount.begin(), itera)];
+			colors[index] = MakeColorU4(255, 255, 255);
+		}
+	}
+
+#ifndef USE_NATIVE_OSMESA
+	//delete []data;
+	if (data != NULL)	free(data);
+#endif
+
+	glfwSwapBuffers(scv->m_window);
+	glfwPollEvents();
+
+	glEnable(GL_LIGHTING);
+}
+
 void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface*>& surfaces, std::vector<gaia3d::ColorU4>& colors)
 {
 	//glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
@@ -1637,6 +1914,54 @@ void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface
 
 	//glfwSwapBuffers(scv->m_window);
 	//glfwPollEvents();
+}
+
+void ConversionProcessor::drawTrianglesWithIndexColor(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors)
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Reset the model matrix
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glPushMatrix();
+
+	glRotatef((float)scv->m_xRot_aditional, 1.0f, 0.0f, 0.0f);
+	glRotatef((float)scv->m_yRot_aditional, 0.0f, 1.0f, 0.0f);
+	glRotatef((float)scv->m_zRot_aditional, 0.0f, 0.0f, 1.0f);
+
+	glRotatef((float)scv->m_xRot, 1.0f, 0.0f, 0.0f);
+	glRotatef((float)scv->m_yRot, 0.0f, 1.0f, 0.0f);
+	glRotatef((float)scv->m_zRot, 0.0f, 0.0f, 1.0f);
+
+	glTranslatef((float)scv->m_xPos, (float)scv->m_yPos, (float)scv->m_zPos);
+
+	size_t triangleCount = triangles.size();
+	GLubyte ubyte_r, ubyte_g, ubyte_b;
+
+	ubyte_r = 0;
+	ubyte_g = 0;
+	ubyte_b = 0;
+
+	glBegin(GL_TRIANGLES);
+	for (size_t i = 0; i < triangleCount; i++)
+	{
+		gaia3d::Triangle* triangle = triangles[i];
+
+		ubyte_r = GetRedValue(colors[i]);
+		ubyte_g = GetGreenValue(colors[i]);;
+		ubyte_b = GetBlueValue(colors[i]);;
+
+		glColor3ub(ubyte_r, ubyte_g, ubyte_b);
+
+		glVertex3f((float)triangle->getVertices()[0]->position.x, (float)triangle->getVertices()[0]->position.y, (float)triangle->getVertices()[0]->position.z);
+		glVertex3f((float)triangle->getVertices()[1]->position.x, (float)triangle->getVertices()[1]->position.y, (float)triangle->getVertices()[1]->position.z);
+		glVertex3f((float)triangle->getVertices()[2]->position.x, (float)triangle->getVertices()[2]->position.y, (float)triangle->getVertices()[2]->position.z);
+	}
+	glEnd();
+	//-----------------------------------------------------------------------------------
+
+	glPopMatrix();
+	glFlush();
 }
 
 void ConversionProcessor::makeVisibilityIndices(gaia3d::VisionOctreeBox& octree, std::vector<gaia3d::TrianglePolyhedron*>& meshes,
@@ -2750,6 +3075,164 @@ void ConversionProcessor::makeNetSurfaceMeshes(gaia3d::SpatialOctreeBox& octrees
 	normalizeMosiacTextures(netSurfaceTextures, netSurfaceTextureWidth, netSurfaceTextureHeight);
 }
 
+void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
+	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+	gaia3d::SpatialOctreeBox& octree,
+	std::map<std::string, unsigned char*>& textures,
+	std::map<std::string, unsigned int>& textureWidths,
+	std::map<std::string, unsigned int>& textureHeights)
+{
+	// extract and copy exterior triangles
+	std::vector<gaia3d::Triangle*> triangles;
+	extractExteriorTriangles(meshes, triangles, true);
+
+	if (triangles.empty())
+		return;
+
+	// distribute collected triangles into each leaf octrees
+	// and make pretty skin mesh for each octree
+	octree.makeSkinMesh(triangles);
+
+	// make textures for skin mesh in each octree
+	makeSkinTexturesAndThumbnail(bbox, meshes, octree, textures, textureWidths, textureHeights);
+}
+
+void ConversionProcessor::makeSkinTexturesAndThumbnail(
+	gaia3d::BoundingBox& bbox,
+	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+	gaia3d::SpatialOctreeBox& octree,
+	std::map<std::string, unsigned char*>& textures,
+	std::map<std::string, unsigned int>& textureWidths,
+	std::map<std::string, unsigned int>& textureHeights)
+{
+	// make texstures for pretty skin mesh(LOD2 and LOD3)
+	// also make textures for thumbnail
+
+	std::vector<gaia3d::OctreeBox*> container;
+	octree.getAllLeafBoxes(container, true);
+	if (container.empty())
+		return;
+
+	// make shader for drawing meshes
+	unsigned int shaderProgramTexture = makeShaders();
+	if (shaderProgramTexture == 0)
+		return;
+
+	// load and bind textures
+	std::map<std::string, unsigned int> bindingResult;
+	loadAndBindTextures(textures, textureWidths, textureHeights, bindingResult);
+
+	// make 6 textures on each leaf octree box(top, bottom, front, rear, left, right)
+	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>> sixTexturesOnEachBox;
+	int imageWidth = TextureWidthForSkinMesh, imageHeight = TextureHeightForSkinMesh;
+	for (size_t i = 0; i < container.size(); i++)
+	{
+		gaia3d::SpatialOctreeBox* leafOctree = (gaia3d::SpatialOctreeBox*)container[i];
+		gaia3d::BoundingBox bbox;
+		bbox.addPoint(leafOctree->minX, leafOctree->minY, leafOctree->minZ);
+		bbox.addPoint(leafOctree->maxX, leafOctree->maxY, leafOctree->maxZ);
+		std::vector<unsigned char*> output;
+		makeSixFaceTexturesOnBox(leafOctree->meshes, bbox, output, imageWidth, imageHeight, shaderProgramTexture, bindingResult);
+		sixTexturesOnEachBox[leafOctree] = output;
+	}
+
+	// merge each octree's texsture into single texture and make texture coordinates of skin mesh
+
+	// make thumbnail
+	unsigned char* thumbnail = NULL;
+	thumbnail =  makeFaceTextureOnBox(2, meshes, bbox, ThumbnailImageWidthHeight, ThumbnailImageWidthHeight, shaderProgramTexture, bindingResult);
+
+	// delete shader
+	deleteShaders(shaderProgramTexture);
+
+	// unbind textures
+	unbindTextures(bindingResult);
+
+	// restore rendering environment
+	defaultSpaceSetupForVisualization(scv->m_width, scv->m_height);
+}
+
+void ConversionProcessor::extractExteriorTriangles(
+	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+	std::vector<gaia3d::Triangle*> outputTriangles,
+	bool bCopy)
+{
+	// collect exterior surfaces
+	std::vector<gaia3d::Surface*> surfaces;
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		gaia3d::TrianglePolyhedron* mesh = meshes[i];
+		size_t surfaceCount = mesh->getSurfaces().size();
+		for (size_t j = 0; j < surfaceCount; j++)
+		{
+			gaia3d::Surface* surface = mesh->getSurfaces()[j];
+			if (surface->isExterior())
+				surfaces.push_back(surface);
+		}
+	}
+
+	// collect exterior triangles
+	std::vector<gaia3d::Triangle*> triangles;
+	double sizeThreshold = 0.5;
+	for (size_t i = 0; i < surfaces.size(); i++)
+	{
+		gaia3d::BoundingBox bbox;
+		size_t triangleCount = surfaces[i]->getTriangles().size();
+		for (size_t j = 0; j < triangleCount; j++)
+		{
+			gaia3d::Triangle* triangle = surfaces[i]->getTriangles()[j];
+			gaia3d::Vertex** vertices = triangle->getVertices();
+			bbox.addPoint(vertices[0]->position.x, vertices[0]->position.y, vertices[0]->position.z);
+			bbox.addPoint(vertices[1]->position.x, vertices[1]->position.y, vertices[1]->position.z);
+			bbox.addPoint(vertices[2]->position.x, vertices[2]->position.y, vertices[2]->position.z);
+		}
+
+		if (bbox.getMaxLength() < sizeThreshold)
+			continue;
+
+		if (bCopy)
+		{
+			for (size_t j = 0; j < triangleCount; j++)
+			{
+				gaia3d::Triangle* triangle = surfaces[i]->getTriangles()[j];
+				if (triangle->isExterior())
+				{
+					gaia3d::Vertex* copiedVertex0 = new gaia3d::Vertex;
+					copiedVertex0->position = triangle->getVertices()[0]->position;
+					copiedVertex0->normal = triangle->getVertices()[0]->normal;
+					copiedVertex0->color = triangle->getVertices()[0]->color;
+					memcpy(copiedVertex0->textureCoordinate, triangle->getVertices()[0]->textureCoordinate, sizeof(double) * 2);
+					gaia3d::Vertex* copiedVertex1 = new gaia3d::Vertex;
+					copiedVertex1->position = triangle->getVertices()[1]->position;
+					copiedVertex1->normal = triangle->getVertices()[1]->normal;
+					copiedVertex1->color = triangle->getVertices()[1]->color;
+					memcpy(copiedVertex1->textureCoordinate, triangle->getVertices()[1]->textureCoordinate, sizeof(double) * 2);
+					gaia3d::Vertex* copiedVertex2 = new gaia3d::Vertex;
+					copiedVertex2->position = triangle->getVertices()[2]->position;
+					copiedVertex2->normal = triangle->getVertices()[2]->normal;
+					copiedVertex2->color = triangle->getVertices()[2]->color;
+					memcpy(copiedVertex2->textureCoordinate, triangle->getVertices()[2]->textureCoordinate, sizeof(double) * 2);
+
+					gaia3d::Triangle* copiedTriangle = new gaia3d::Triangle;
+					copiedTriangle->setVertices(copiedVertex0, copiedVertex1, copiedVertex2);
+					copiedTriangle->setIfExterior(true);
+					copiedTriangle->setNormal(triangle->getNormal()->x, triangle->getNormal()->y, triangle->getNormal()->z);
+					outputTriangles.push_back(copiedTriangle);
+				}
+			}
+		}
+		else
+		{
+			for (size_t j = 0; j < triangleCount; j++)
+			{
+				gaia3d::Triangle* triangle = surfaces[i]->getTriangles()[j];
+				if (triangle->isExterior())
+					outputTriangles.push_back(triangle);
+			}
+		}
+	}
+}
+
 void ConversionProcessor::normalizeMosiacTextures(std::map<unsigned char, unsigned char*>& mosaicTextures,
 	std::map<unsigned char, unsigned int>& mosaicTextureWidth,
 	std::map<unsigned char, unsigned int>& mosaicTextureHeight)
@@ -3587,4 +4070,176 @@ void ConversionProcessor::reuseOriginalMeshForRougherLods(gaia3d::SpatialOctreeB
 		netSurfaceTextureHeight[i] = 1;
 	}
 
+}
+
+void ConversionProcessor::makeSixFaceTexturesOnBox(
+	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+	gaia3d::BoundingBox& bbox,
+	std::vector<unsigned char*>& output,
+	int textureWidth, int textureHeight,
+	unsigned int shaderProgram,
+	std::map<std::string, unsigned int>& bindingResult)
+{
+	double backupXRot = scv->m_xRot, backupYRot = scv->m_yRot, backupZRot = scv->m_zRot;
+	double backupXPos = scv->m_xPos, backupYPos = scv->m_yPos, backupZPos = scv->m_zPos;
+	float backupNRange = scv->m_nRange;
+
+	for (unsigned int i = 0; i < 6; i++)
+	{
+		unsigned char* imageBuffer = NULL;
+		imageBuffer = makeFaceTextureOnBox(i, meshes, bbox, textureWidth, textureHeight, shaderProgram, bindingResult);
+		output.push_back(imageBuffer);
+	}
+
+	scv->m_xRot = backupXRot; scv->m_yRot = backupYRot; scv->m_zRot = backupZRot;
+	scv->m_xPos = backupXPos; scv->m_yPos = backupYPos; scv->m_zPos = backupZPos;
+	scv->m_nRange = backupNRange;
+}
+unsigned char* ConversionProcessor::makeFaceTextureOnBox(
+	unsigned int faceType,
+	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
+	gaia3d::BoundingBox& bbox,
+	int textureWidth, int textureHeight,
+	unsigned int shaderProgram,
+	std::map<std::string, unsigned int>& bindingResult)
+{
+	// setup viewport
+	scv->tp_projection = PROJECTION_ORTHO;
+	glViewport(0, 0, textureWidth, textureHeight);
+
+	gaia3d::Point3D centerPoint; bbox.getCenterPoint(centerPoint.x, centerPoint.y, centerPoint.z);
+	float drawingBufferWidth = (float)textureWidth, drawingBufferHeight = (float)textureHeight;
+
+	int wa = textureWidth, ha = textureHeight;
+
+	// Mini define_space_of_visualitzation.***********************************************************************************************
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	// FaceType (0 = Top), (1 = Bottom), (2 = Front), (3 = Rear), (4 = Left), (5 = Right).***
+	float frustumNear;
+	float frustumFar;
+	float frustumTop, frustumBottom, frustumLeft, frustumRight;
+	switch (faceType)
+	{
+	case 0:
+	case 1:
+	{
+		frustumNear = (float)(-(bbox.getZLength() / 2.0));
+		frustumFar = (float)(bbox.getZLength() / 2.0);
+
+		frustumBottom = (float)(-(bbox.getYLength() / 2.0));
+		frustumTop = (float)(bbox.getYLength() / 2.0);
+
+		frustumLeft = (float)(-(bbox.getXLength() / 2.0));
+		frustumRight = (float)(bbox.getXLength() / 2.0);
+	}
+	break;
+	case 2:
+	case 3:
+	{
+		frustumNear = (float)(-(bbox.getYLength() / 2.0));
+		frustumFar = (float)(bbox.getYLength() / 2.0);
+
+		frustumBottom = (float)(-(bbox.getZLength() / 2.0));
+		frustumTop = (float)(bbox.getZLength() / 2.0);
+
+		frustumLeft = (float)(-(bbox.getXLength() / 2.0));
+		frustumRight = (float)(bbox.getXLength() / 2.0);
+	}
+	break;
+	case 4:
+	case 5:
+	{
+		frustumNear = (float)(-(bbox.getXLength() / 2.0));
+		frustumFar = (float)(bbox.getXLength() / 2.0);
+
+		frustumBottom = (float)(-(bbox.getZLength() / 2.0));
+		frustumTop = (float)(bbox.getZLength() / 2.0);
+
+		frustumLeft = (float)(-(bbox.getYLength() / 2.0));
+		frustumRight = (float)(bbox.getYLength() / 2.0);
+	}
+	break;
+	}
+
+	//wglMakeCurrent(scv->m_myhDC, scv->m_hRC);
+
+	glViewport(0, 0, (GLsizei)textureWidth, (GLsizei)textureHeight); // Set the viewport 
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//glOrtho(-scv->m_nRange*wa / ha, scv->m_nRange*wa / ha, -scv->m_nRange, scv->m_nRange, frustumNear, frustumFar); // Note that wa/ha = 1.***
+	glOrtho(frustumLeft * wa / ha, frustumRight * wa / ha, frustumBottom, frustumTop, frustumNear, frustumFar); // Note that wa/ha = 1.***
+	glMatrixMode(GL_MODELVIEW);
+	// End Mini define_space_of_visualitzation.--------------------------------------------------------------------------------------------
+
+	glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
+	// Clear the screen and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Reset the model matrix
+	//glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	// setup target position
+	double xRot = 0.0, yRot = 0.0, zRot = 0.0;
+	switch (faceType)
+	{
+	case 0:
+	{
+		xRot = 0.0; yRot = 0.0; zRot = 0.0;
+	}
+	break;
+	case 1:
+	{
+		xRot = 180.0; yRot = 0.0; zRot = 0.0;
+	}
+	break;
+	case 2:
+	{
+		xRot = -90.0; yRot = 0.0; zRot = 0.0;
+	}
+	break;
+	case 3:
+	{
+		xRot = 90.0; yRot = 0.0; zRot = 0.0;
+	}
+	break;
+	case 4:
+	{
+		xRot = 0.0; yRot = 90.0; zRot = 0.0;
+	}
+	break;
+	case 5:
+	{
+		xRot = 0.0; yRot = -90.0; zRot = 0.0;
+	}
+	break;
+	}
+	scv->m_xRot = xRot; scv->m_yRot = yRot; scv->m_zRot = zRot;
+	scv->m_xPos = -centerPoint.x;
+	scv->m_yPos = -centerPoint.y;
+	scv->m_zPos = -centerPoint.z;
+
+	glReadBuffer(GL_BACK);
+	glDrawBuffer(GL_BACK);
+	glDisable(GL_LIGHTING);
+
+	glRotatef((float)scv->m_xRot, 1.0f, 0.0f, 0.0f);
+	glRotatef((float)scv->m_yRot, 0.0f, 1.0f, 0.0f);
+	glRotatef((float)scv->m_zRot, 0.0f, 0.0f, 1.0f);
+
+	glTranslatef((float)scv->m_xPos, (float)scv->m_yPos, (float)scv->m_zPos);
+
+	// at this point, make netSurfacTexture
+	unsigned char* texture = new unsigned char[textureWidth * textureHeight * 4];
+	memset(texture, 0x00, textureWidth * textureHeight * 4);
+	drawMeshesWithTextures(meshes, bindingResult, shaderProgram);
+	//drawTrianglesForTexture(meshes, bindingResult);
+	glReadPixels(0, 0,textureWidth, textureHeight, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+
+	glEnable(GL_LIGHTING);
+	glPopMatrix();
+
+	return texture;
 }
