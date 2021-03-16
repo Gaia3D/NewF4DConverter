@@ -4258,5 +4258,4 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 
 	size_t expandedPixel = 3;
 	size_t mosaicTextureSize;
-	mosaicTextureSize = faceImageWidth * faceImageHeight;
 }
