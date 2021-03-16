@@ -3124,7 +3124,7 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 
 	// make 6 textures on each leaf octree box(top, bottom, front, rear, left, right)
 	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>> sixTexturesOnEachBox;
-	int imageWidth = TextureWidthForSkinMesh, imageHeight = TextureHeightForSkinMesh;
+	unsigned int imageWidth = TextureWidthForSkinMesh, imageHeight = TextureHeightForSkinMesh;
 	for (size_t i = 0; i < container.size(); i++)
 	{
 		gaia3d::SpatialOctreeBox* leafOctree = (gaia3d::SpatialOctreeBox*)container[i];
@@ -3137,6 +3137,7 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 	}
 
 	// merge each octree's texsture into single texture and make texture coordinates of skin mesh
+	mergeFaceTexsturesIntoSingleOne(sixTexturesOnEachBox, imageWidth, imageHeight);
 
 	// make thumbnail
 	unsigned char* thumbnail = NULL;
@@ -4076,7 +4077,7 @@ void ConversionProcessor::makeSixFaceTexturesOnBox(
 	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 	gaia3d::BoundingBox& bbox,
 	std::vector<unsigned char*>& output,
-	int textureWidth, int textureHeight,
+	unsigned int textureWidth, unsigned int textureHeight,
 	unsigned int shaderProgram,
 	std::map<std::string, unsigned int>& bindingResult)
 {
@@ -4099,7 +4100,7 @@ unsigned char* ConversionProcessor::makeFaceTextureOnBox(
 	unsigned int faceType,
 	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 	gaia3d::BoundingBox& bbox,
-	int textureWidth, int textureHeight,
+	unsigned int textureWidth, unsigned int textureHeight,
 	unsigned int shaderProgram,
 	std::map<std::string, unsigned int>& bindingResult)
 {
@@ -4110,16 +4111,16 @@ unsigned char* ConversionProcessor::makeFaceTextureOnBox(
 	gaia3d::Point3D centerPoint; bbox.getCenterPoint(centerPoint.x, centerPoint.y, centerPoint.z);
 	float drawingBufferWidth = (float)textureWidth, drawingBufferHeight = (float)textureHeight;
 
-	int wa = textureWidth, ha = textureHeight;
+	unsigned int wa = textureWidth, ha = textureHeight;
 
 	// Mini define_space_of_visualitzation.***********************************************************************************************
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
 	// FaceType (0 = Top), (1 = Bottom), (2 = Front), (3 = Rear), (4 = Left), (5 = Right).***
-	float frustumNear;
-	float frustumFar;
-	float frustumTop, frustumBottom, frustumLeft, frustumRight;
+	float frustumNear = 0.0f;
+	float frustumFar = 0.0f;
+	float frustumTop = 0.0f, frustumBottom = 0.0f, frustumLeft = 0.0f, frustumRight = 0.0f;
 	switch (faceType)
 	{
 	case 0:
@@ -4232,8 +4233,8 @@ unsigned char* ConversionProcessor::makeFaceTextureOnBox(
 	glTranslatef((float)scv->m_xPos, (float)scv->m_yPos, (float)scv->m_zPos);
 
 	// at this point, make netSurfacTexture
-	unsigned char* texture = new unsigned char[textureWidth * textureHeight * 4];
-	memset(texture, 0x00, textureWidth * textureHeight * 4);
+	unsigned char* texture = new unsigned char[(unsigned int)(textureWidth * textureHeight * 4)];
+	memset(texture, 0x00, (unsigned int)(textureWidth * textureHeight * 4));
 	drawMeshesWithTextures(meshes, bindingResult, shaderProgram);
 	//drawTrianglesForTexture(meshes, bindingResult);
 	glReadPixels(0, 0,textureWidth, textureHeight, GL_RGBA, GL_UNSIGNED_BYTE, texture);
@@ -4242,4 +4243,16 @@ unsigned char* ConversionProcessor::makeFaceTextureOnBox(
 	glPopMatrix();
 
 	return texture;
+}
+
+void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
+	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>& faceTextures,
+	unsigned int faceImageWidth, unsigned int faceImageHeight)
+{
+	size_t boxCount = faceTextures.size();
+
+	size_t totalFaceTextureCount = boxCount * 6;
+
+	size_t mosaicCol, mosaicRow;
+	mosaicCol = mosaicRow = ((size_t)sqrt(totalFaceTextureCount)) + 1;
 }
