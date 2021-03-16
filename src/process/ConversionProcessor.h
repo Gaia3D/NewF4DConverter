@@ -319,7 +319,7 @@ protected:
 		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 		gaia3d::BoundingBox& bbox,
 		std::vector<unsigned char*>& output,
-		int textureWidth, int textureHeight,
+		unsigned int textureWidth, unsigned int textureHeight,
 		unsigned int shaderProgram,
 		std::map<std::string, unsigned int>& bindingResult);
 
@@ -327,10 +327,16 @@ protected:
 		unsigned int faceType,
 		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
 		gaia3d::BoundingBox& bbox,
-		int textureWidth, int textureHeight,
+		unsigned int textureWidth, unsigned int textureHeight,
 		unsigned int shaderProgram,
 		std::map<std::string, unsigned int>& bindingResult);
 
+	void mergeFaceTexsturesIntoSingleOne(
+		std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>& faceTextures,
+		unsigned int faceImageWidth, unsigned int faceImageHeight);
+
 };
+
+
 
 #endif // _CONVERSIONPROCESSOR_H_
