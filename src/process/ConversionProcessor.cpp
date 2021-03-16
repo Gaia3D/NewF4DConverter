@@ -4257,4 +4257,5 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 	mosaicCol = mosaicRow = ((size_t)sqrt(totalFaceTextureCount)) + 1;
 
 	size_t expandedPixel = 3;
+	size_t mosaicTextureSize;
 }
