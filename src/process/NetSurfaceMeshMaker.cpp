@@ -2700,7 +2700,7 @@ void flipTextureCoordinateY(gaia3d::TrianglePolyhedron* polyhedron)
 
 void insertEachNetSurfaceTextureIntoMosaicTexture(unsigned char** mosaicTexture,
 												unsigned int mosaicNumCols,
-												unsigned mosaicNumRows,
+												unsigned int mosaicNumRows,
 												unsigned int insertCol,
 												unsigned int insertRow,
 												NetSurface* netSurface)

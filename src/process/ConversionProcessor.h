@@ -333,7 +333,27 @@ protected:
 
 	void mergeFaceTexsturesIntoSingleOne(
 		std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>& faceTextures,
-		unsigned int faceImageWidth, unsigned int faceImageHeight);
+		unsigned int faceImageWidth, unsigned int faceImageHeight,
+		unsigned char*& mosaicTexture,
+		unsigned int& mosaicWidth, unsigned int& mosaicHeight);
+
+	void insertSubTextureIntoMosaicTexture(unsigned char*& mosaicTexture,
+		unsigned int mosaicNumCols,
+		unsigned int mosaicNumRows,
+		unsigned int insertCol,
+		unsigned int insertRow,
+		unsigned char* subTexture,
+		unsigned int subTextureWidth,
+		unsigned int subTextureHeight,
+		unsigned int pixelMargin,
+		float textureCoordinate[]);
+
+	void calculateTextureCoordinates(gaia3d::TrianglePolyhedron* polyhedron,
+		unsigned int cubeface,
+		float minS, float maxS, float minT, float maxT,
+		float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
+
+	void flipTextureCoordinateY(gaia3d::TrianglePolyhedron* polyhedron)
 
 };
 

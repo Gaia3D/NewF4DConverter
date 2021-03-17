@@ -3137,7 +3137,9 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 	}
 
 	// merge each octree's texsture into single texture and make texture coordinates of skin mesh
-	mergeFaceTexsturesIntoSingleOne(sixTexturesOnEachBox, imageWidth, imageHeight);
+	unsigned char* mosaicTexture = NULL;
+	unsigned int mosaicWidth = 0, mosaicHeight = 0;
+	mergeFaceTexsturesIntoSingleOne(sixTexturesOnEachBox, imageWidth, imageHeight, mosaicTexture, mosaicWidth, mosaicHeight);
 
 	// make thumbnail
 	unsigned char* thumbnail = NULL;
@@ -4247,7 +4249,9 @@ unsigned char* ConversionProcessor::makeFaceTextureOnBox(
 
 void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>& faceTextures,
-	unsigned int faceImageWidth, unsigned int faceImageHeight)
+	unsigned int faceImageWidth, unsigned int faceImageHeight,
+	unsigned char*& mosaicTexture,
+	unsigned int& mosaicWidth, unsigned int& mosaicHeight)
 {
 	size_t boxCount = faceTextures.size();
 
@@ -4256,6 +4260,295 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 	size_t mosaicCol, mosaicRow;
 	mosaicCol = mosaicRow = ((size_t)sqrt(totalFaceTextureCount)) + 1;
 
-	size_t expandedPixel = 3;
-	size_t mosaicTextureSize;
+	size_t expandedPixel = (size_t)(mosaicWidth * 0.025);
+	mosaicWidth = (unsigned int)((faceImageWidth + expandedPixel * 2) * mosaicCol);
+	mosaicHeight = (unsigned int)((faceImageHeight + expandedPixel * 2) * mosaicRow);
+	size_t mosaicTextureSize = mosaicWidth * mosaicHeight * 4;
+	mosaicTexture = new unsigned char[mosaicTextureSize];
+	memset(mosaicTexture, 0x00, sizeof(unsigned char) * mosaicTextureSize);
+
+	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>::iterator itr = faceTextures.begin();
+	unsigned int currentCol = 0, currentRow = 0;
+	for (; itr != faceTextures.end(); itr++)
+	{
+		gaia3d::SpatialOctreeBox* octree = itr->first;
+		std::vector<unsigned char*>& subTextures = itr->second;
+
+		if (octree->prettySkinMesh == NULL)
+			continue;
+
+		float textureCoordinate[4];
+		for (size_t i = 0; i < subTextures.size(); i++)
+		{
+			memset(textureCoordinate, 0x00, sizeof(double) * 4);
+			insertSubTextureIntoMosaicTexture(
+				mosaicTexture,
+				mosaicCol, mosaicRow,
+				currentCol, currentRow,
+				subTextures[i],
+				faceImageWidth, faceImageHeight, expandedPixel,
+				(unsigned int)i,
+				textureCoordinate,
+				octree->minX, octree->minY, octree->minZ, octree-> maxX, octree->maxY, octree->maxZ);
+
+			calculateTextureCoordinates(octree->prettySkinMesh, (unsigned int)i,
+				textureCoordinate[0], textureCoordinate[2], textureCoordinate[1], textureCoordinate[3],
+				float(octree->minX), float(octree->maxX),
+				float(octree->minY), float(octree->maxY),
+				float(octree->minZ), float(octree->maxZ));
+
+			// after inserting data, increment currentCol.***
+			currentCol++;
+
+			if (currentCol >= mosaicCol)
+			{
+				currentCol = 0;
+				currentRow++;
+			}
+		}
+
+		octree->prettySkinMesh->setHasTextureCoordinates(true);
+		octree->prettySkinMesh->setHasNormals(true);
+		
+		flipTextureCoordinateY(octree->prettySkinMesh);
+	}
+}
+
+void ConversionProcessor::insertSubTextureIntoMosaicTexture(
+	unsigned char*& mosaicTexture,
+	unsigned int mosaicNumCols,
+	unsigned int mosaicNumRows,
+	unsigned int insertCol,
+	unsigned int insertRow,
+	unsigned char* subTexture,
+	unsigned int subTextureWidth,
+	unsigned int subTextureHeight,
+	unsigned int pixelMargin,
+	float textureCoordinate[])
+{
+	unsigned char* dataRGBA = subTexture;
+	unsigned int dataRGBA_width = subTextureWidth;
+	unsigned int dataRGBA_height = subTextureHeight;
+
+	unsigned int mosaicTexturePixelWidth = mosaicNumCols * (dataRGBA_width + pixelMargin*2);
+	unsigned int mosaicTexturePixelHeight = mosaicNumRows * (dataRGBA_height + pixelMargin*2);
+
+	// first, find the leftDownCornerPixelPosition of the dataRGBA into the mosaicTexture.***
+	unsigned int dataRGBA_leftDownPixelCol = insertCol * (dataRGBA_width + pixelMargin * 2);
+	unsigned int dataRGBA_leftDownPixelRow = insertRow * (dataRGBA_height + pixelMargin * 2);
+
+	unsigned int currentDataCol = 0;
+	unsigned int currentDataRow = 0;
+	unsigned int dataRGBA_size = dataRGBA_width * dataRGBA_height;
+	for (unsigned int i = 0; i < dataRGBA_size; i++)
+	{
+		//unsigned char* sourcePixel = dataRGBA + i * 4;
+		unsigned char r = dataRGBA[i * 4];
+		unsigned char g = dataRGBA[i * 4 + 1];
+		unsigned char b = dataRGBA[i * 4 + 2];
+		unsigned char a = dataRGBA[i * 4 + 3];
+
+		// must find the pixel position in mosaicTexture.***
+		unsigned int insertPixelCol = dataRGBA_leftDownPixelCol + currentDataCol + pixelMargin;
+		unsigned int insertPixelRow = dataRGBA_leftDownPixelRow + currentDataRow + pixelMargin;
+		unsigned int mosaicTexPixelIdx = insertPixelCol + insertPixelRow * mosaicTexturePixelWidth;
+
+		// change the mosaicTexture's pixel value.***
+		//unsigned char* targetPixel = (*mosaicTexture) + mosaicTexPixelIdx * 4;
+		//memcpy(targetPixel, sourcePixel, sizeof(unsigned char) * 4);
+		mosaicTexture[mosaicTexPixelIdx * 4] = r;
+		mosaicTexture[mosaicTexPixelIdx * 4 + 1] = g;
+		mosaicTexture[mosaicTexPixelIdx * 4 + 2] = b;
+		mosaicTexture[mosaicTexPixelIdx * 4 + 3] = a;
+
+		currentDataCol++;
+		if (currentDataCol == dataRGBA_width)
+		{
+			currentDataCol = 0;
+			currentDataRow++;
+		}
+	}
+
+	// calculate texture coordinates of net surface meshes for mosaic texture
+	int textoreCoord_offSet = 0;
+
+	float minS = (float)(dataRGBA_leftDownPixelCol + textoreCoord_offSet) / (float)mosaicTexturePixelWidth;
+	float maxS = (float)(dataRGBA_leftDownPixelCol + dataRGBA_width - textoreCoord_offSet) / (float)mosaicTexturePixelWidth;
+	float minT = (float)(dataRGBA_leftDownPixelRow + textoreCoord_offSet) / (float)mosaicTexturePixelHeight;
+	float maxT = (float)(dataRGBA_leftDownPixelRow + dataRGBA_height - textoreCoord_offSet) / (float)mosaicTexturePixelHeight;
+
+	float textMarginS = (maxS - minS) * 0.0464f;
+	float textMarginT = (maxT - minT) * 0.0464f;
+
+	textureCoordinate[0] = minS + textMarginS;
+	textureCoordinate[1] = minT + textMarginT;
+	textureCoordinate[2] = maxS - textMarginS;
+	textureCoordinate[3] = maxT - textMarginT;
+}
+
+void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron* polyhedron,
+	unsigned int cubeface,
+	float minS, float maxS, float minT, float maxT,
+	float minX, float maxX, float minY, float maxY, float minZ, float maxZ)
+{
+	float mosaic_sRange = maxS - minS;
+	float mosaic_tRange = maxT - minT;
+
+	size_t surfaceCount = polyhedron->getSurfaces().size();
+	for (size_t h = 0; h < surfaceCount; h++)
+	{
+		gaia3d::Surface* surface = polyhedron->getSurfaces()[h];
+		size_t triangleCount = surface->getTriangles().size();
+
+		for (size_t i = 0; i < triangleCount; i++)
+		{
+			gaia3d::Triangle* tri = surface->getTriangles()[i];
+
+			if (cubeface == 0)
+			{
+				float xRange = maxX - minX;
+				float yRange = maxY - minY;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double x = p->x;
+					double y = p->y;
+					double s = (x - minX) / xRange;
+					double t = (y - minY) / yRange;
+
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+			else if (cubeface == 1)
+			{
+				float xRange = maxX - minX;
+				float yRange = maxY - minY;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double x = p->x;
+					double y = p->y;
+					double s = (x - minX) / xRange;
+					double t = (y - minY) / yRange;
+					t = 1.0 - t;
+
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+			else if (cubeface == 2)
+			{
+				float xRange = maxX - minX;
+				float zRange = maxZ - minZ;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double x = p->x;
+					double z = p->z;
+					double s = (x - minX) / xRange;
+					double t = (z - minZ) / zRange;
+
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+			else if (cubeface == 3)
+			{
+				float xRange = maxX - minX;
+				float zRange = maxZ - minZ;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double x = p->x;
+					double z = p->z;
+					double s = (x - minX) / xRange;
+					double t = (z - minZ) / zRange;
+					t = 1.0 - t;
+
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+			else if (cubeface == 4)
+			{
+				float yRange = maxY - minY;
+				float zRange = maxZ - minZ;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double y = p->y;
+					double z = p->z;
+					double t = (y - minY) / yRange;
+					double s = (z - minZ) / zRange;
+
+					//s = 1.0 - s;
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+			else if (cubeface == 5)
+			{
+				float yRange = maxY - minY;
+				float zRange = maxZ - minZ;
+
+				for (int j = 0; j < 3; j++)
+				{
+					gaia3d::Vertex* vertex = tri->getVertices()[j];
+
+					gaia3d::Point3D* p = &(vertex->position);
+					double y = p->y;
+					double z = p->z;
+					double t = (y - minY) / yRange;
+					double s = (z - minZ) / zRange;
+					s = 1.0 - s;
+
+					// now correct s, t to put inside the mosaic.***
+					double mosaicS = minS + s * mosaic_sRange;
+					double mosaicT = minT + t * mosaic_tRange;
+
+					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
+				}
+			}
+		}
+	}
+}
+
+void ConversionProcessor::flipTextureCoordinateY(gaia3d::TrianglePolyhedron* polyhedron)
+{
+	size_t vertexCount = polyhedron->getVertices().size();
+	for (size_t i = 0; i < vertexCount; i++)
+	{
+		gaia3d::Vertex* vertex = polyhedron->getVertices()[i];
+		vertex->textureCoordinate[1] = 1.0 - vertex->textureCoordinate[1];
+	}
 }
