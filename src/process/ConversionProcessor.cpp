@@ -4369,6 +4369,104 @@ void ConversionProcessor::insertSubTextureIntoMosaicTexture(
 		}
 	}
 
+	// fill frame border pixels(each border edge 3pixels)
+	for (unsigned int i = 0; i < pixelMargin; i++)
+	{
+		unsigned char r1, r2;
+		unsigned char g1, g2;
+		unsigned char b1, b2;
+		unsigned char a1, a2;
+
+		// top&bottom border
+		for (unsigned int j = 0; j < mosaicTexturePixelWidth; j++)
+		{
+			if (j < pixelMargin)
+			{
+				// original left bottom corner pixel
+				r1 = dataRGBA[0];
+				g1 = dataRGBA[1];
+				b1 = dataRGBA[2];
+				a1 = dataRGBA[3];
+
+				// original left top corner pixel
+				r2 = dataRGBA[dataRGBA_width * (dataRGBA_height - 1) * 4];
+				g2 = dataRGBA[dataRGBA_width * (dataRGBA_height - 1) * 4 + 1];
+				b2 = dataRGBA[dataRGBA_width * (dataRGBA_height - 1) * 4 + 2];
+				a2 = dataRGBA[dataRGBA_width * (dataRGBA_height - 1) * 4 + 3];
+
+				
+			}
+			else if(j >= mosaicTexturePixelWidth - pixelMargin)
+			{
+				// original right bottom corner pixel
+				r1 = dataRGBA[(dataRGBA_width - 1) * 4];
+				g1 = dataRGBA[(dataRGBA_width - 1) * 4 + 1];
+				b1 = dataRGBA[(dataRGBA_width - 1) * 4 + 2];
+				a1 = dataRGBA[(dataRGBA_width - 1) * 4 + 3];
+
+				// original right top corner pixel
+				r2 = dataRGBA[(dataRGBA_size - 1) * 4];
+				g2 = dataRGBA[(dataRGBA_size - 1) * 4 + 1];
+				b2 = dataRGBA[(dataRGBA_size - 1) * 4 + 2];
+				a2 = dataRGBA[(dataRGBA_size - 1) * 4 + 3];
+			}
+			else
+			{
+				// original bottom edge pixel
+				r1 = dataRGBA[(j - pixelMargin) * 4];
+				g1 = dataRGBA[(j - pixelMargin) * 4 + 1];
+				b1 = dataRGBA[(j - pixelMargin) * 4 + 2];
+				a1 = dataRGBA[(j - pixelMargin) * 4 + 3];
+
+				// original top edge pixel
+				r2 = dataRGBA[(j - pixelMargin + dataRGBA_width * (dataRGBA_height - 1)) * 4];
+				g2 = dataRGBA[(j - pixelMargin + dataRGBA_width * (dataRGBA_height - 1)) * 4 + 1];
+				b2 = dataRGBA[(j - pixelMargin + dataRGBA_width * (dataRGBA_height - 1)) * 4 + 2];
+				a2 = dataRGBA[(j - pixelMargin + dataRGBA_width * (dataRGBA_height - 1)) * 4 + 3];
+			}
+
+			// fill border pixels of mosaic texture
+			// bottom
+			mosaicTexture[(j + mosaicTexturePixelWidth * i) * 4] = r1;
+			mosaicTexture[(j + mosaicTexturePixelWidth * i) * 4 + 1] = g1;
+			mosaicTexture[(j + mosaicTexturePixelWidth * i) * 4 + 2] = b1;
+			mosaicTexture[(j + mosaicTexturePixelWidth * i) * 4 + 3] = a1;
+			// top
+			mosaicTexture[(j + mosaicTexturePixelWidth * (mosaicTexturePixelHeight - i - 1)) * 4] = r2;
+			mosaicTexture[(j + mosaicTexturePixelWidth * (mosaicTexturePixelHeight - i - 1)) * 4 + 1] = g2;
+			mosaicTexture[(j + mosaicTexturePixelWidth * (mosaicTexturePixelHeight - i - 1)) * 4 + 2] = b2;
+			mosaicTexture[(j + mosaicTexturePixelWidth * (mosaicTexturePixelHeight - i - 1)) * 4 + 3] = a2;
+		}
+
+		// left&right border
+		for (unsigned int j = pixelMargin; j < mosaicTexturePixelHeight - pixelMargin; j++)
+		{
+			// original left edge pixel
+			r1 = dataRGBA[dataRGBA_width * (j - pixelMargin) * 4];
+			g1 = dataRGBA[dataRGBA_width * (j - pixelMargin) * 4 + 1];
+			b1 = dataRGBA[dataRGBA_width * (j - pixelMargin) * 4 + 2];
+			a1 = dataRGBA[dataRGBA_width * (j - pixelMargin) * 4 + 3];
+
+			// original right edge pixel
+			r2 = dataRGBA[(dataRGBA_width-1 + dataRGBA_width * (j - pixelMargin)) * 4];
+			g2 = dataRGBA[(dataRGBA_width - 1 + dataRGBA_width * (j - pixelMargin)) * 4 + 1];
+			b2 = dataRGBA[(dataRGBA_width - 1 + dataRGBA_width * (j - pixelMargin)) * 4 + 2];
+			a2 = dataRGBA[(dataRGBA_width - 1 + dataRGBA_width * (j - pixelMargin)) * 4 + 3];
+
+			// fill border pixels of mosaic texture
+			// left
+			mosaicTexture[(i + mosaicTexturePixelWidth * j) * 4] = r1;
+			mosaicTexture[(i + mosaicTexturePixelWidth * j) * 4 + 1] = g1;
+			mosaicTexture[(i + mosaicTexturePixelWidth * j) * 4 + 2] = b1;
+			mosaicTexture[(i + mosaicTexturePixelWidth * j) * 4 + 3] = a1;
+			// right
+			mosaicTexture[(mosaicTexturePixelWidth - i - 1 + mosaicTexturePixelWidth * j) * 4] = r2;
+			mosaicTexture[(mosaicTexturePixelWidth - i - 1 + mosaicTexturePixelWidth * j) * 4 + 1] = g2;
+			mosaicTexture[(mosaicTexturePixelWidth - i - 1 + mosaicTexturePixelWidth * j) * 4 + 2] = b2;
+			mosaicTexture[(mosaicTexturePixelWidth - i - 1 + mosaicTexturePixelWidth * j) * 4 + 3] = a2;
+		}
+	}
+
 	// calculate texture coordinates of net surface meshes for mosaic texture
 	int textoreCoord_offSet = 0;
 
