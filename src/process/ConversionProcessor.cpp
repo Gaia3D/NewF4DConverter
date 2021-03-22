@@ -4287,9 +4287,7 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 				currentCol, currentRow,
 				subTextures[i],
 				faceImageWidth, faceImageHeight, expandedPixel,
-				(unsigned int)i,
-				textureCoordinate,
-				octree->minX, octree->minY, octree->minZ, octree-> maxX, octree->maxY, octree->maxZ);
+				textureCoordinate);
 
 			calculateTextureCoordinates(octree->prettySkinMesh, (unsigned int)i,
 				textureCoordinate[0], textureCoordinate[2], textureCoordinate[1], textureCoordinate[3],
@@ -4502,7 +4500,44 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 		{
 			gaia3d::Triangle* tri = surface->getTriangles()[i];
 
-			if (cubeface == 0)
+			// which component of normal vector has the max magnitude
+			unsigned int triangleNormalMainComponent = 0;
+			gaia3d::Point3D* normal = tri->getNormal();
+			double nx = fabs(normal->x);
+			double ny = fabs(normal->y);
+			double nz = fabs(normal->z);
+			unsigned char mainComponent = (nx > ny) ? ((nx > nz) ? 0 : 2) : ((ny > nz) ? 1 : 2);
+			switch (mainComponent)
+			{
+			case 0: // x component
+			{
+				if (normal->x > 0.0) // toward right
+					triangleNormalMainComponent = 5;
+				else // toward left
+					triangleNormalMainComponent = 4;
+			}
+			break;
+			case 1: // y component
+			{
+				if (normal->y > 0.0) // toward rear
+					triangleNormalMainComponent = 3;
+				else // toward front
+					triangleNormalMainComponent = 2;
+			}
+			break;
+			default : // z component
+			{
+				if (normal->z > 0.0) // toward top
+					triangleNormalMainComponent = 0;
+				else // toward bottom
+					triangleNormalMainComponent = 1;
+			}
+			}
+
+			if (triangleNormalMainComponent != cubeface)
+				continue;
+
+			if (cubeface == 0) // top
 			{
 				float xRange = maxX - minX;
 				float yRange = maxY - minY;
@@ -4524,7 +4559,7 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
 				}
 			}
-			else if (cubeface == 1)
+			else if (cubeface == 1) // bottom
 			{
 				float xRange = maxX - minX;
 				float yRange = maxY - minY;
@@ -4546,7 +4581,7 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
 				}
 			}
-			else if (cubeface == 2)
+			else if (cubeface == 2) // front
 			{
 				float xRange = maxX - minX;
 				float zRange = maxZ - minZ;
@@ -4568,7 +4603,7 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
 				}
 			}
-			else if (cubeface == 3)
+			else if (cubeface == 3) // rear
 			{
 				float xRange = maxX - minX;
 				float zRange = maxZ - minZ;
@@ -4591,7 +4626,7 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
 				}
 			}
-			else if (cubeface == 4)
+			else if (cubeface == 4) // left
 			{
 				float yRange = maxY - minY;
 				float zRange = maxZ - minZ;
@@ -4614,7 +4649,7 @@ void ConversionProcessor::calculateTextureCoordinates(gaia3d::TrianglePolyhedron
 					vertex->textureCoordinate[0] = mosaicS; vertex->textureCoordinate[1] = mosaicT;
 				}
 			}
-			else if (cubeface == 5)
+			else if (cubeface == 5) // right
 			{
 				float yRange = maxY - minY;
 				float zRange = maxZ - minZ;

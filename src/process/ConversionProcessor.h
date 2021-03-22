@@ -353,7 +353,7 @@ protected:
 		float minS, float maxS, float minT, float maxT,
 		float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
 
-	void flipTextureCoordinateY(gaia3d::TrianglePolyhedron* polyhedron)
+	void flipTextureCoordinateY(gaia3d::TrianglePolyhedron* polyhedron);
 
 };
 
