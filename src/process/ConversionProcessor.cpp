@@ -56,6 +56,10 @@ ConversionProcessor::ConversionProcessor()
 	// Texture Filp Y
 	textureFlip[0] = false;
 	textureFlip[1] = false;
+
+	thumbnail = NULL;
+	thumbnailWidth = 0;
+	thumbnailHeight = 0;
 }
 
 ConversionProcessor::~ConversionProcessor()
@@ -293,6 +297,22 @@ void ConversionProcessor::clear()
 
 	netSurfaceTextureWidth.clear();
 	netSurfaceTextureHeight.clear();
+
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterSkinMeshes = skinMeshes.begin();
+	for (; iterSkinMeshes != skinMeshes.end(); iterSkinMeshes++)
+		delete iterSkinMeshes->second;
+	skinMeshes.clear();
+
+	std::map<unsigned char, unsigned char*>::iterator iterSkinMeshTextures = skinMeshTextures.begin();
+	for (; iterSkinMeshTextures != skinMeshTextures.end(); iterSkinMeshTextures++)
+		delete[] iterSkinMeshTextures->second;
+	skinMeshTextures.clear();
+
+	skinMeshTextureWidth.clear();
+	skinMeshTextureHeight.clear();
+
+	delete[] thumbnail;
+	thumbnail = NULL;
 
 	bResponsibleDisposingGeometries = false;
 }
@@ -3092,9 +3112,31 @@ void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
 	// distribute collected triangles into each leaf octrees
 	// and make pretty skin mesh for each octree
 	octree.makeSkinMesh(triangles);
+	triangles.clear();
 
-	// make textures for skin mesh in each octree
+	// merge skin meshes in each octree into single one for rougher lod
+	std::vector<gaia3d::OctreeBox*> container;
+	octree.getAllLeafBoxes(container, true);
+	for (size_t i = 0; i < container.size(); i++)
+	{
+		gaia3d::SpatialOctreeBox* leafOctree = (gaia3d::SpatialOctreeBox *)container[i];
+		gaia3d::TrianglePolyhedron* unitSkinMesh = leafOctree->prettySkinMesh;
+		for (size_t j = 0; j < unitSkinMesh->getSurfaces().size(); j++)
+		{
+			gaia3d::Surface* surface = unitSkinMesh->getSurfaces()[j];
+			for (size_t k = 0; k < surface->getTriangles().size(); k++)
+				triangles.push_back(surface->getTriangles()[k]);
+		}
+	}
+	gaia3d::TrianglePolyhedron* mergedSkinMesh = gaia3d::GeometryUtility::makeSingleMeshWithTriangles(triangles);
+	mergedSkinMesh->setHasNormals(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveNormals());
+	mergedSkinMesh->setHasTextureCoordinates(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveTextureCoordinates());
+	skinMeshes[3] = mergedSkinMesh;
+
+	// make textures for skin mesh in each octree and thumbnail
 	makeSkinTexturesAndThumbnail(bbox, meshes, octree, textures, textureWidths, textureHeights);
+
+	normalizeMosiacTextures(skinMeshTextures, skinMeshTextureWidth, skinMeshTextureHeight);
 }
 
 void ConversionProcessor::makeSkinTexturesAndThumbnail(
@@ -3140,10 +3182,24 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 	unsigned char* mosaicTexture = NULL;
 	unsigned int mosaicWidth = 0, mosaicHeight = 0;
 	mergeFaceTexsturesIntoSingleOne(sixTexturesOnEachBox, imageWidth, imageHeight, mosaicTexture, mosaicWidth, mosaicHeight);
+	skinMeshTextures[2] = mosaicTexture;
+	skinMeshTextureWidth[2] = mosaicWidth;
+	skinMeshTextureHeight[2] = mosaicHeight;
+
+	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>::iterator iterFaceTextures = sixTexturesOnEachBox.begin();
+	for (; iterFaceTextures != sixTexturesOnEachBox.end(); iterFaceTextures++)
+	{
+		size_t textureCount = (iterFaceTextures->second).size();
+		for (size_t i = 0; i < textureCount; i++)
+			delete[] (iterFaceTextures->second)[i];
+
+		(iterFaceTextures->second).clear();
+	}
+	sixTexturesOnEachBox.clear();
 
 	// make thumbnail
-	unsigned char* thumbnail = NULL;
 	thumbnail =  makeFaceTextureOnBox(2, meshes, bbox, ThumbnailImageWidthHeight, ThumbnailImageWidthHeight, shaderProgramTexture, bindingResult);
+	thumbnailWidth = thumbnailHeight = ThumbnailImageWidthHeight;
 
 	// delete shader
 	deleteShaders(shaderProgramTexture);
@@ -4280,7 +4336,7 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 		float textureCoordinate[4];
 		for (size_t i = 0; i < subTextures.size(); i++)
 		{
-			memset(textureCoordinate, 0x00, sizeof(double) * 4);
+			memset(textureCoordinate, 0x00, sizeof(float) * 4);
 			insertSubTextureIntoMosaicTexture(
 				mosaicTexture,
 				mosaicCol, mosaicRow,

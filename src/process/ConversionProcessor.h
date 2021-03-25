@@ -87,6 +87,11 @@ protected:
 	std::map<unsigned char, unsigned int> skinMeshTextureWidth;
 	std::map<unsigned char, unsigned int> skinMeshTextureHeight;
 
+	// for thumbnail
+	unsigned char* thumbnail;
+	unsigned int thumbnailWidth;
+	unsigned int thumbnailHeight;
+
 	bool textureFlip[2];
 
 	gaia3d::Matrix4 bboxCenterToLocalOrigin;
