@@ -166,8 +166,8 @@ bool F4DWriter::writeMeshes()
 		writeTextures(imagePath);
 	}
 
-	// net surface mesh lod 3~5
-	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMesh = processor->getNetSurfaceMeshes().begin();
+	// net surface mesh lod 3~5 - deprecated
+	/*std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterNetSurfaceMesh = processor->getNetSurfaceMeshes().begin();
 	for (; iterNetSurfaceMesh != processor->getNetSurfaceMeshes().end(); iterNetSurfaceMesh++)
 	{
 		unsigned char lod = iterNetSurfaceMesh->first;
@@ -176,10 +176,28 @@ bool F4DWriter::writeMeshes()
 		file = fopen(filePath.c_str(), "wb");
 		writeNetSurfaceMesh(netSurfaceMesh, file);
 		fclose(file);
+	}*/
+
+	// mosaic textures for net surface mesh lod 2 ~ 5 - deprecated
+	//writeNetSurfaceTextures(resultPath);
+
+	// pretty skin mesh lod3~5
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>::iterator iterskinMesh = processor->getSkinMeshes().begin();
+	for (; iterskinMesh != processor->getSkinMeshes().end(); iterskinMesh++)
+	{
+		unsigned char lod = iterskinMesh->first;
+		gaia3d::TrianglePolyhedron* skinMesh = iterskinMesh->second;
+		std::string filePath = resultPath + "/lod" + std::to_string(lod);
+		file = fopen(filePath.c_str(), "wb");
+		writeSkinMesh(skinMesh, file);
+		fclose(file);
 	}
 
-	// mosaic textures for net surface mesh lod 2 ~ 5
-	writeNetSurfaceTextures(resultPath);
+	// mosaic textures for skin mesh lod 2 ~ 5 
+	writeSkinMeshTextures(resultPath);
+
+	// thumbnail
+	writeThumbnail(resultPath);
 
 	return true;
 }
@@ -334,7 +352,11 @@ bool F4DWriter::writeHeader(FILE* f, std::map<std::string, size_t>& textureIndic
 		// merged lod data file name
 		if (lod > 2)
 		{
-			lodFileName = "lod" + std::to_string(lod);
+			if (processor->getSkinMeshes().find(lod) != processor->getSkinMeshes().end())
+				lodFileName = "lod" + std::to_string(lod);
+			else
+				lodFileName = "lod3";
+
 			lodFileNameLength = (unsigned char)lodFileName.length();
 			fwrite(&lodFileNameLength, sizeof(unsigned char), 1, f);
 			fwrite(lodFileName.c_str(), sizeof(char), lodFileNameLength, f);
@@ -1185,6 +1207,38 @@ void F4DWriter::writeNetSurfaceTextures(std::string resultPath)
 
 		stbi_write_jpg(filePath.c_str(), width, height, bpp, texture, 0);
 	}
+}
+
+void F4DWriter::writeSkinMesh(gaia3d::TrianglePolyhedron* mesh, FILE* f)
+{
+	writeNetSurfaceMesh(mesh, f);
+}
+
+void F4DWriter::writeSkinMeshTextures(std::string resultPath)
+{
+	std::map<unsigned char, unsigned char*>::iterator iterTexture = processor->getSkinMeshTextures().begin();
+	std::string filePath;
+	int bpp = 4;
+	for (; iterTexture != processor->getSkinMeshTextures().end(); iterTexture++)
+	{
+		unsigned char lod = iterTexture->first;
+		unsigned char* texture = iterTexture->second;
+		unsigned int width = processor->getSkinMeshTextureWidth()[lod];
+		unsigned int height = processor->getSkinMeshTextureHeight()[lod];
+		filePath = resultPath + "/mosaicTextureLod" + std::to_string(lod) + ".jpg";
+
+		stbi_write_jpg(filePath.c_str(), width, height, bpp, texture, 0);
+	}
+}
+
+void F4DWriter::writeThumbnail(std::string resultPath)
+{
+	std::string filePath = resultPath + std::string("/thumbnail.jpg");
+	unsigned char* thumbnail = processor->getThumbnail();
+	unsigned int width = processor->getThumbnailWidth();
+	unsigned int height = processor->getThumbnailHeight();
+
+	stbi_write_jpg(filePath.c_str(), width, height, 4, thumbnail, 0);
 }
 
 void F4DWriter::writePointPartition(gaia3d::OctreeBox* octree, std::string& referencePath, bool bShouldCompress)

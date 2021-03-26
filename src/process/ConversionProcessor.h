@@ -75,7 +75,7 @@ protected:
 
 	gaia3d::SpatialOctreeBox thisSpatialOctree;
 
-	// for net surface mesh
+	// for net surface mesh - will be deprecated soon
 	std::map<unsigned char, gaia3d::TrianglePolyhedron*> netSurfaceMeshes;
 	std::map<unsigned char, unsigned char*> netSurfaceTextures;
 	std::map<unsigned char, unsigned int> netSurfaceTextureWidth;
@@ -151,6 +151,15 @@ public:
 	std::map<unsigned char, unsigned char*>& getNetSurfaceTextures() { return netSurfaceTextures; }
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureWidth() { return netSurfaceTextureWidth; }
 	std::map<unsigned char, unsigned int>& getNetSurfaceTextureHeight() { return netSurfaceTextureHeight; }
+
+	std::map<unsigned char, gaia3d::TrianglePolyhedron*>& getSkinMeshes() { return skinMeshes; }
+	std::map<unsigned char, unsigned char*>& getSkinMeshTextures() { return skinMeshTextures; }
+	std::map<unsigned char, unsigned int>& getSkinMeshTextureWidth() { return skinMeshTextureWidth; }
+	std::map<unsigned char, unsigned int>& getSkinMeshTextureHeight() { return skinMeshTextureHeight; }
+
+	unsigned char* getThumbnail() { return thumbnail; }
+	unsigned int getThumbnailWidth() { return thumbnailWidth; }
+	unsigned int getThumbnailHeight() { return thumbnailHeight; }
 
 	void setResponsibilityForDisposing(bool bDispose) { bResponsibleDisposingGeometries = bDispose; }
 

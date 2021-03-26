@@ -3121,6 +3121,7 @@ void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
 	{
 		gaia3d::SpatialOctreeBox* leafOctree = (gaia3d::SpatialOctreeBox *)container[i];
 		gaia3d::TrianglePolyhedron* unitSkinMesh = leafOctree->prettySkinMesh;
+		
 		for (size_t j = 0; j < unitSkinMesh->getSurfaces().size(); j++)
 		{
 			gaia3d::Surface* surface = unitSkinMesh->getSurfaces()[j];
@@ -3129,6 +3130,7 @@ void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
 		}
 	}
 	gaia3d::TrianglePolyhedron* mergedSkinMesh = gaia3d::GeometryUtility::makeSingleMeshWithTriangles(triangles);
+	calculateBoundingBox(mergedSkinMesh);
 	mergedSkinMesh->setHasNormals(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveNormals());
 	mergedSkinMesh->setHasTextureCoordinates(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveTextureCoordinates());
 	skinMeshes[3] = mergedSkinMesh;
@@ -3185,6 +3187,21 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 	skinMeshTextures[2] = mosaicTexture;
 	skinMeshTextureWidth[2] = mosaicWidth;
 	skinMeshTextureHeight[2] = mosaicHeight;
+	mosaicTexture = new unsigned char[mosaicWidth * mosaicHeight * 4];
+	memcpy(mosaicTexture, skinMeshTextures[2], sizeof(unsigned char) * mosaicWidth * mosaicHeight * 4);
+	skinMeshTextures[3] = mosaicTexture;
+	skinMeshTextureWidth[3] = mosaicWidth;
+	skinMeshTextureHeight[3] = mosaicHeight;
+	mosaicTexture = new unsigned char[mosaicWidth * mosaicHeight * 4];
+	memcpy(mosaicTexture, skinMeshTextures[2], sizeof(unsigned char) * mosaicWidth * mosaicHeight * 4);
+	skinMeshTextures[4] = mosaicTexture;
+	skinMeshTextureWidth[4] = mosaicWidth;
+	skinMeshTextureHeight[4] = mosaicHeight;
+	mosaicTexture = new unsigned char[mosaicWidth * mosaicHeight * 4];
+	memcpy(mosaicTexture, skinMeshTextures[2], sizeof(unsigned char) * mosaicWidth * mosaicHeight * 4);
+	skinMeshTextures[5] = mosaicTexture;
+	skinMeshTextureWidth[5] = mosaicWidth;
+	skinMeshTextureHeight[5] = mosaicHeight;
 
 	std::map<gaia3d::SpatialOctreeBox*, std::vector<unsigned char*>>::iterator iterFaceTextures = sixTexturesOnEachBox.begin();
 	for (; iterFaceTextures != sixTexturesOnEachBox.end(); iterFaceTextures++)

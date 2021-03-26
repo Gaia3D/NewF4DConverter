@@ -767,6 +767,7 @@ namespace gaia3d
 		if (children.empty())
 		{
 			this->prettySkinMesh = GeometryUtility::makeSingleMeshWithTriangles(triangles, false);
+			calculateBoundingBox(prettySkinMesh);
 		}
 		else
 		{

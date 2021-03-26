@@ -66,6 +66,12 @@ protected:
 
 	void writeNetSurfaceTextures(std::string resultPath);
 
+	void writeSkinMesh(gaia3d::TrianglePolyhedron* mesh, FILE* f);
+
+	void writeSkinMeshTextures(std::string resultPath);
+
+	void writeThumbnail(std::string resultPath);
+
 	void writePointPartition(gaia3d::OctreeBox* octree, std::string& referencePath, bool bShouldCompress);
 };
 
