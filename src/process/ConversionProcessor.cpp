@@ -619,7 +619,7 @@ void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& 
 
 	// make pretty lod data structure
 	makeSkinMeshes(fullBbox, allMeshes, thisSpatialOctree, resizedTextures, allTextureWidths, allTextureHeights);
-	printf("[Info]Net Surface Mesh created.\n");
+	printf("[Info]LOD skin Mesh created.\n");
 
 	// make textures upside-down
 	{
@@ -3230,7 +3230,7 @@ void ConversionProcessor::makeSkinTexturesAndThumbnail(
 
 void ConversionProcessor::extractExteriorTriangles(
 	std::vector<gaia3d::TrianglePolyhedron*>& meshes,
-	std::vector<gaia3d::Triangle*> outputTriangles,
+	std::vector<gaia3d::Triangle*>& outputTriangles,
 	bool bCopy)
 {
 	// collect exterior surfaces

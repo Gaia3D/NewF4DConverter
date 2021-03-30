@@ -318,7 +318,7 @@ protected:
 
 	void extractExteriorTriangles(
 		std::vector<gaia3d::TrianglePolyhedron*>& meshes,
-		std::vector<gaia3d::Triangle*> outputTriangles,
+		std::vector<gaia3d::Triangle*>& outputTriangles,
 		bool bCopy);
 
 	void makeSkinTexturesAndThumbnail(
