@@ -33,7 +33,7 @@ RUN yum -y install wget centos-release-scl epel-release && \
 		libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel \
 		mesa-dri-drivers mesa-libGL-devel mesa-libGLU-devel \
 		xorg-x11-server-Xvfb xorg-x11-utils \
-		proj71-devel xerces-c-devel libgeotiff-devel gdal31-devel geos38 \
+		proj71-devel xerces-c-devel libgeotiff16-devel gdal31-devel geos38 \
 		openssl-devel curl-devel expat-devel zlib-devel gettext bzip2\
 		&& \
 	yum clean all && \
@@ -68,7 +68,7 @@ RUN wget http://download.osgeo.org/liblas/libLAS-${LIBLAS_VERSION}.tar.bz2 && \
 	tar xvf libLAS-${LIBLAS_VERSION}.tar.bz2 && \
 	cd libLAS-${LIBLAS_VERSION} && \
 	mkdir build && cd build && \
-	cmake .. -DGEOTIFF_INCLUDE_DIR="/usr/include/libgeotiff" && \
+	cmake .. -DGEOTIFF_INCLUDE_DIR=/usr/libgeotiff16/include -DGEOTIFF_LIBRARY=/usr/libgeotiff16/lib/libgeotiff.so && \
 	make -j$(grep -c processor /proc/cpuinfo) && \
 	make install && \
 	cd ../.. && rm -rf libLAS-${LIBLAS_VERSION}*
@@ -77,7 +77,7 @@ RUN git clone --recursive https://github.com/Gaia3D/NewF4DConverter.git && \
 	cd NewF4DConverter && \
 	mkdir build && cd build && \
 	source scl_source enable devtoolset-7 && \
-	cmake .. -DCMAKE_INSTALL_PREFIX=/opt/gaia3d/f4dconverter -DPROJ4_INCLUDE_DIRS=/usr/proj71/include -DPROJ4_INCLUDE_DIR=/usr/proj71/include -DPROJ4_LIBRARY=/usr/proj71/lib/libproj.so -DGDAL_CONFIG=/usr/gdal31/bin/gdal-config && \
+	cmake .. -DCMAKE_INSTALL_PREFIX=/opt/gaia3d/f4dconverter -DGEOTIFF_INCLUDE_DIR=/usr/libgeotiff16/include -DGEOTIFF_LIBRARY=/usr/libgeotiff16/lib/libgeotiff.so -DPROJ4_INCLUDE_DIRS=/usr/proj71/include -DPROJ4_INCLUDE_DIR=/usr/proj71/include -DPROJ4_LIBRARY=/usr/proj71/lib/libproj.so -DGDAL_CONFIG=/usr/gdal31/bin/gdal-config && \
 	make -j$(grep -c processor /proc/cpuinfo) && \
 	make install && \
 	cp -r /usr/proj71/share/proj /opt/gaia3d/f4dconverter/bin &&\
