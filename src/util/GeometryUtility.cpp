@@ -1787,6 +1787,8 @@ namespace gaia3d
 				singleMesh->getSurfaces()[0]->getTriangles().push_back(triangle);
 			}
 		}
+
+		return singleMesh;
 	}
 
 	int GeometryUtility::divideTriangleWithPlane(
@@ -2014,6 +2016,8 @@ namespace gaia3d
 			intersectionPoint.x = lineStart.x + u * (lineEnd.x - lineStart.x);
 			intersectionPoint.y = lineStart.y + u * (lineEnd.y - lineStart.y);
 			intersectionPoint.z = lineStart.z + u * (lineEnd.z - lineStart.z);
+
+			return true;
 		}
 		else
 			return false;

@@ -638,6 +638,9 @@ bool IfcppLoader::loadIfcFile(std::wstring& filePath)
 		}
 	}*/
 
+	geometry_converter->clearInputCache();
+	geometry_converter->resetModel();
+
 	return true;
 }
 

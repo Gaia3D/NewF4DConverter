@@ -558,7 +558,23 @@ void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& 
 
 	// determine which triangles are exterior
 	determineWhichTrianglesAreExterior(allMeshes, fullBbox);
-	printf("[Info]Exterior triangle detection done.\n");
+	size_t triangleCount = 0;
+	size_t exteriorTriangleCount = 0;
+	for (size_t i = 0; i < allMeshes.size(); i++)
+	{
+		size_t surfaceCount = allMeshes[i]->getSurfaces().size();
+		for (size_t j = 0; j < surfaceCount; j++)
+		{
+			gaia3d::Surface* surface = allMeshes[i]->getSurfaces()[j];
+			triangleCount += surface->getTriangles().size();
+			for (size_t k = 0; k < surface->getTriangles().size(); k++)
+			{
+				if (surface->getTriangles()[k]->isExterior())
+					exteriorTriangleCount++;
+			}
+		}
+	}
+	printf("[Info]Exterior triangle detection done. %zd of %zd triangles are exterior.\n", exteriorTriangleCount, triangleCount);
 
 	// make model-reference relationship
 	determineModelAndReference(allMeshes);
@@ -3121,6 +3137,9 @@ void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
 	{
 		gaia3d::SpatialOctreeBox* leafOctree = (gaia3d::SpatialOctreeBox *)container[i];
 		gaia3d::TrianglePolyhedron* unitSkinMesh = leafOctree->prettySkinMesh;
+
+		if (unitSkinMesh == NULL)
+			continue;
 		
 		for (size_t j = 0; j < unitSkinMesh->getSurfaces().size(); j++)
 		{
