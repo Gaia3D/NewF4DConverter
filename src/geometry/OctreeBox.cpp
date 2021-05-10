@@ -56,7 +56,6 @@ namespace gaia3d
 			}
 			else
 				container.push_back(this);
-
 		}
 	}
 
@@ -777,7 +776,7 @@ namespace gaia3d
 		{
 			double tolerance = 1E-7;
 			gaia3d::Point3D center;
-			center.set((maxX - minX) / 2.0, (maxY - minY) / 2.0, (maxZ - minZ) / 2.0);
+			center.set((maxX + minX) / 2.0, (maxY + minY) / 2.0, (maxZ + minZ) / 2.0);
 
 			// divide and group triangles along xy plane
 			double a = 0.0, b = 0.0, c = 1.0;

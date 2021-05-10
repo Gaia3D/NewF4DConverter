@@ -684,11 +684,19 @@ bool F4DWriter::writeReferencesAndModels(std::string& referencePath, std::string
 		fclose(file);
 
 		//--------- save lod 2 geometry of each spatial octree -----------
-		if (((gaia3d::SpatialOctreeBox*)leafBox)->netSurfaceMesh != NULL)
+		/*if (((gaia3d::SpatialOctreeBox*)leafBox)->netSurfaceMesh != NULL)
 		{
 			lod2FilePath = lod2Path + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + "_Brick";
 			file = fopen(lod2FilePath.c_str(), "wb");
 			writeNetSurfaceMesh(((gaia3d::SpatialOctreeBox*)leafBox)->netSurfaceMesh, file);
+			fclose(file);
+		}*/
+
+		if (((gaia3d::SpatialOctreeBox*)leafBox)->prettySkinMesh != NULL)
+		{
+			lod2FilePath = lod2Path + "/" + std::to_string((long long)((gaia3d::SpatialOctreeBox*)leafBoxes[i])->octreeId) + "_Brick";
+			file = fopen(lod2FilePath.c_str(), "wb");
+			writeSkinMesh(((gaia3d::SpatialOctreeBox*)leafBox)->prettySkinMesh, file);
 			fclose(file);
 		}
 
