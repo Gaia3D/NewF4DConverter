@@ -3148,16 +3148,18 @@ void ConversionProcessor::makeSkinMeshes(gaia3d::BoundingBox& bbox,
 				triangles.push_back(surface->getTriangles()[k]);
 		}
 	}
-	gaia3d::TrianglePolyhedron* mergedSkinMesh = gaia3d::GeometryUtility::makeSingleMeshWithTriangles(triangles);
-	calculateBoundingBox(mergedSkinMesh);
-	mergedSkinMesh->setHasNormals(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveNormals());
-	mergedSkinMesh->setHasTextureCoordinates(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveTextureCoordinates());
-	skinMeshes[3] = mergedSkinMesh;
 
 	// make textures for skin mesh in each octree and thumbnail
 	makeSkinTexturesAndThumbnail(bbox, meshes, octree, textures, textureWidths, textureHeights);
 
 	normalizeMosiacTextures(skinMeshTextures, skinMeshTextureWidth, skinMeshTextureHeight);
+
+	// merge pretty lod meshes in each leaf octree into single one for lod 3 or higher
+	gaia3d::TrianglePolyhedron* mergedSkinMesh = gaia3d::GeometryUtility::makeSingleMeshWithTriangles(triangles);
+	calculateBoundingBox(mergedSkinMesh);
+	mergedSkinMesh->setHasNormals(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveNormals());
+	mergedSkinMesh->setHasTextureCoordinates(((gaia3d::SpatialOctreeBox*)container[0])->prettySkinMesh->doesThisHaveTextureCoordinates());
+	skinMeshes[3] = mergedSkinMesh;
 }
 
 void ConversionProcessor::makeSkinTexturesAndThumbnail(

@@ -1860,6 +1860,12 @@ namespace gaia3d
 
 			triangle0 = new gaia3d::Triangle;
 			triangle0->setVertices(vertex0, vertex1, vertex2);
+			calculatePlaneNormal(
+				vertex0->position.x, vertex0->position.y, vertex0->position.z,
+				vertex1->position.x, vertex1->position.y, vertex1->position.z,
+				vertex2->position.x, vertex2->position.y, vertex2->position.z,
+				triangle0->getNormal()->x, triangle0->getNormal()->y, triangle0->getNormal()->z,
+				true);
 			triangle0->alignVertexNormalsToPlaneNormal();
 
 			// triangle 1
@@ -1873,6 +1879,12 @@ namespace gaia3d
 
 			triangle1 = new gaia3d::Triangle;
 			triangle1->setVertices(vertex0, vertex1, vertex2);
+			calculatePlaneNormal(
+				vertex0->position.x, vertex0->position.y, vertex0->position.z,
+				vertex1->position.x, vertex1->position.y, vertex1->position.z,
+				vertex2->position.x, vertex2->position.y, vertex2->position.z,
+				triangle1->getNormal()->x, triangle1->getNormal()->y, triangle1->getNormal()->z,
+				true);
 			triangle1->alignVertexNormalsToPlaneNormal();
 
 			// triangle 2
@@ -1890,6 +1902,12 @@ namespace gaia3d
 
 			triangle2 = new gaia3d::Triangle;
 			triangle2->setVertices(vertex0, vertex1, vertex2);
+			calculatePlaneNormal(
+				vertex0->position.x, vertex0->position.y, vertex0->position.z,
+				vertex1->position.x, vertex1->position.y, vertex1->position.z,
+				vertex2->position.x, vertex2->position.y, vertex2->position.z,
+				triangle2->getNormal()->x, triangle2->getNormal()->y, triangle2->getNormal()->z,
+				true);
 			triangle2->alignVertexNormalsToPlaneNormal();
 
 			if (frontVertices.size() < rearVertices.size())
@@ -1937,6 +1955,12 @@ namespace gaia3d
 
 			triangle0 = new gaia3d::Triangle;
 			triangle0->setVertices(vertex0, vertex1, vertex2);
+			calculatePlaneNormal(
+				vertex0->position.x, vertex0->position.y, vertex0->position.z,
+				vertex1->position.x, vertex1->position.y, vertex1->position.z,
+				vertex2->position.x, vertex2->position.y, vertex2->position.z,
+				triangle0->getNormal()->x, triangle0->getNormal()->y, triangle0->getNormal()->z,
+				true);
 			triangle0->alignVertexNormalsToPlaneNormal();
 
 			// triangle 1
@@ -1952,6 +1976,12 @@ namespace gaia3d
 
 			triangle1 = new gaia3d::Triangle;
 			triangle1->setVertices(vertex0, vertex1, vertex2);
+			calculatePlaneNormal(
+				vertex0->position.x, vertex0->position.y, vertex0->position.z,
+				vertex1->position.x, vertex1->position.y, vertex1->position.z,
+				vertex2->position.x, vertex2->position.y, vertex2->position.z,
+				triangle1->getNormal()->x, triangle1->getNormal()->y, triangle1->getNormal()->z,
+				true);
 			triangle1->alignVertexNormalsToPlaneNormal();
 
 			if ((coplanarVertices[0] + 1) % 3 == frontVertices[0])
