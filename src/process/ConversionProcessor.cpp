@@ -593,7 +593,8 @@ void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& 
 	printf("[Info]VBO of each mesh created.\n");
 
 	// make generic spatial octree
-	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, settings.leafSpatialOctreeSize);
+	//assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, settings.leafSpatialOctreeSize);
+	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, fullBbox.getMaxLength());
 	printf("[Info]Mesh distribution on each octree done.\n");
 
 	// make visibility indices
@@ -1028,34 +1029,45 @@ void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedr
 						planeNormal.x, planeNormal.y, planeNormal.z,
 						true);
 
-					anglePNormalAndVNormal0 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[0]->normal.x,
-						triangle->getVertices()[0]->normal.y,
-						triangle->getVertices()[0]->normal.z);
-					anglePNormalAndVNormal1 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[1]->normal.x,
-						triangle->getVertices()[1]->normal.y,
-						triangle->getVertices()[1]->normal.z);
-					anglePNormalAndVNormal2 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
-						triangle->getVertices()[2]->normal.x,
-						triangle->getVertices()[2]->normal.y,
-						triangle->getVertices()[2]->normal.z);
-
-
-					if (anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal0 > 90.0)
+					if (triangle->getVertices()[0]->normal.magnitude() < 1E-6 ||
+						triangle->getVertices()[1]->normal.magnitude() < 1E-6 ||
+						triangle->getVertices()[2]->normal.magnitude() < 1E-6)
 					{
-						size_t tempIndex = triangle->getVertexIndices()[0];
-						triangle->getVertexIndices()[0] = triangle->getVertexIndices()[1];
-						triangle->getVertexIndices()[1] = tempIndex;
+						*(triangle->getNormal()) = planeNormal;
 
-						gaia3d::Vertex* tempVertex = triangle->getVertices()[0];
-						triangle->getVertices()[0] = triangle->getVertices()[1];
-						triangle->getVertices()[1] = tempVertex;
-
-						triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);
+						triangle->alignVertexNormalsToPlaneNormal();
 					}
 					else
-						*(triangle->getNormal()) = planeNormal;
+					{
+						anglePNormalAndVNormal0 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+							triangle->getVertices()[0]->normal.x,
+							triangle->getVertices()[0]->normal.y,
+							triangle->getVertices()[0]->normal.z);
+						anglePNormalAndVNormal1 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+							triangle->getVertices()[1]->normal.x,
+							triangle->getVertices()[1]->normal.y,
+							triangle->getVertices()[1]->normal.z);
+						anglePNormalAndVNormal2 = 180.0 / M_PI * gaia3d::GeometryUtility::angleBetweenTwoVectors(planeNormal.x, planeNormal.y, planeNormal.z,
+							triangle->getVertices()[2]->normal.x,
+							triangle->getVertices()[2]->normal.y,
+							triangle->getVertices()[2]->normal.z);
+
+
+						if (anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal1 > 90.0 || anglePNormalAndVNormal2 > 90.0)
+						{
+							size_t tempIndex = triangle->getVertexIndices()[0];
+							triangle->getVertexIndices()[0] = triangle->getVertexIndices()[1];
+							triangle->getVertexIndices()[1] = tempIndex;
+
+							gaia3d::Vertex* tempVertex = triangle->getVertices()[0];
+							triangle->getVertices()[0] = triangle->getVertices()[1];
+							triangle->getVertices()[1] = tempVertex;
+
+							triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);
+						}
+						else
+							*(triangle->getNormal()) = planeNormal;
+					}
 				}
 			}
 		}
@@ -1814,6 +1826,9 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 	glEnable(GL_LIGHTING);
 }
 
+unsigned char counter = 0;
+#include "stb_image_write.h"
+
 void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors)
 {
 	size_t last_idx_triangle = 4294967295;// Max value for an unsigned int.***
@@ -1834,6 +1849,9 @@ void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Tria
 		glReadPixels(0, 0, scv->m_width, scv->m_height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	}
 #endif
+
+	std::string testPath = std::string("C:/work/products/mago3d/data/test/output4/snapshot") + std::to_string(counter) + std::string(".png");
+	stbi_write_png(testPath.c_str(), scv->m_width, scv->m_height, 4, data, 0);
 
 	int pixels_count = data_size;
 	size_t triangleCount = triangles.size();
@@ -1891,6 +1909,8 @@ void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Tria
 	glfwPollEvents();
 
 	glEnable(GL_LIGHTING);
+
+	counter++;
 }
 
 void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface*>& surfaces, std::vector<gaia3d::ColorU4>& colors)

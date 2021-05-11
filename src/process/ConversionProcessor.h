@@ -33,7 +33,6 @@
 #include "../geometry/PointDistributionOctree.h"
 #include "ProcessSetting.h"
 
-
 class SceneControlVariables;
 
 class ConversionProcessor
