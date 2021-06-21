@@ -1772,8 +1772,8 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 	size_t triSurfaces_count = surfaces.size();
 
 	// Make a colors counter. if an objects is visible by a little count of pixels, then, this object is not visible.***
-	std::map<gaia3d::Surface*, int> map_triSurf_pixelsCount;
-	std::map<gaia3d::Surface*, int>::iterator it;
+	std::map<unsigned int, int> map_triSurf_pixelsCount;
+	std::map<unsigned int, int>::iterator it;
 	std::vector<unsigned int> idx;
 
 	for (int i = 0; i < pixels_count; i++)
@@ -1782,36 +1782,32 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 
 		if (idx_triSurf < triSurfaces_count)
 		{
-			gaia3d::Surface* triSurf = surfaces[idx_triSurf];
-
 			// now, search the triSurf inside of the map.***
-			it = map_triSurf_pixelsCount.find(triSurf);
+			it = map_triSurf_pixelsCount.find(idx_triSurf);
 			if (it != map_triSurf_pixelsCount.end())
 			{
 				// found.***
 				int current_value = it->second;
-				map_triSurf_pixelsCount[triSurf] = current_value + 1;
+				map_triSurf_pixelsCount[idx_triSurf] = current_value + 1;
 			}
 			else
 			{
 				// no found.***
-				map_triSurf_pixelsCount[triSurf] = 1;
-				idx.push_back(idx_triSurf);
+				map_triSurf_pixelsCount[idx_triSurf] = 1;
 			}
 		}
 	}
 
 	// Now, for each triSurf in the map, set as visible if his value is bigger than minValue.***
-	for (std::map<gaia3d::Surface*, int>::iterator itera = map_triSurf_pixelsCount.begin(); itera != map_triSurf_pixelsCount.end(); itera++)
+	for (std::map<unsigned int, int>::iterator itera = map_triSurf_pixelsCount.begin(); itera != map_triSurf_pixelsCount.end(); itera++)
 	{
-		gaia3d::Surface* triSurf = itera->first;
+		gaia3d::Surface* triSurf = surfaces[itera->first];
 		int pixels_counted = itera->second;
 
 		if (pixels_counted > ExteriorDetectionThreshold)
 		{
 			triSurf->setIsExterior(true);
-			int index = idx[std::distance(map_triSurf_pixelsCount.begin(), itera)];
-			colors[index] = MakeColorU4(255, 255, 255);
+			colors[itera->first] = MakeColorU4(255, 255, 255);
 		}
 	}
 
@@ -1825,9 +1821,6 @@ void ConversionProcessor::checkIfEachSurfaceIsExterior(std::vector<gaia3d::Surfa
 
 	glEnable(GL_LIGHTING);
 }
-
-unsigned char counter = 0;
-#include "stb_image_write.h"
 
 void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Triangle*>& triangles, std::vector<gaia3d::ColorU4>& colors)
 {
@@ -1850,16 +1843,12 @@ void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Tria
 	}
 #endif
 
-	std::string testPath = std::string("C:/work/products/mago3d/data/test/output4/snapshot") + std::to_string(counter) + std::string(".png");
-	stbi_write_png(testPath.c_str(), scv->m_width, scv->m_height, 4, data, 0);
-
 	int pixels_count = data_size;
 	size_t triangleCount = triangles.size();
 
 	// Make a colors counter. if a triangle is visible by a little count of pixels, then, this object is not visible.***
-	std::map<gaia3d::Triangle*, int> map_triangle_pixelsCount;
-	std::map<gaia3d::Triangle*, int>::iterator it;
-	std::vector<unsigned int> idx;
+	std::map<unsigned int, int> map_triangle_pixelsCount;
+	std::map<unsigned int, int>::iterator it;
 
 	for (int i = 0; i < pixels_count; i++)
 	{
@@ -1867,36 +1856,32 @@ void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Tria
 
 		if (idx_triangle < triangleCount)
 		{
-			gaia3d::Triangle* triangle = triangles[idx_triangle];
-
 			// now, search the triangle in the map.***
-			it = map_triangle_pixelsCount.find(triangle);
+			it = map_triangle_pixelsCount.find(idx_triangle);
 			if (it != map_triangle_pixelsCount.end())
 			{
 				// found.***
 				int current_value = it->second;
-				map_triangle_pixelsCount[triangle] = current_value + 1;
+				map_triangle_pixelsCount[idx_triangle] = current_value + 1;
 			}
 			else
 			{
 				// no found.***
-				map_triangle_pixelsCount[triangle] = 1;
-				idx.push_back(idx_triangle);
+				map_triangle_pixelsCount[idx_triangle] = 1;
 			}
 		}
 	}
 
 	// Now, for each triangle in the map, set as visible if his value is bigger than minValue.***
-	for (std::map<gaia3d::Triangle*, int>::iterator itera = map_triangle_pixelsCount.begin(); itera != map_triangle_pixelsCount.end(); itera++)
+	for (std::map<unsigned int, int>::iterator itera = map_triangle_pixelsCount.begin(); itera != map_triangle_pixelsCount.end(); itera++)
 	{
-		gaia3d::Triangle* triangle = itera->first;
+		gaia3d::Triangle* triangle = triangles[itera->first];
 		int pixels_counted = itera->second;
 
 		if (pixels_counted > ExteriorDetectionThreshold)
 		{
 			triangle->setIfExterior(true);
-			int index = idx[std::distance(map_triangle_pixelsCount.begin(), itera)];
-			colors[index] = MakeColorU4(255, 255, 255);
+			colors[itera->first] = MakeColorU4(255, 255, 255);
 		}
 	}
 
@@ -1909,8 +1894,6 @@ void ConversionProcessor::checkIfEachTriangleIsExterior(std::vector<gaia3d::Tria
 	glfwPollEvents();
 
 	glEnable(GL_LIGHTING);
-
-	counter++;
 }
 
 void ConversionProcessor::drawSurfacesWithIndexColor(std::vector<gaia3d::Surface*>& surfaces, std::vector<gaia3d::ColorU4>& colors)
@@ -2004,8 +1987,8 @@ void ConversionProcessor::drawTrianglesWithIndexColor(std::vector<gaia3d::Triang
 		gaia3d::Triangle* triangle = triangles[i];
 
 		ubyte_r = GetRedValue(colors[i]);
-		ubyte_g = GetGreenValue(colors[i]);;
-		ubyte_b = GetBlueValue(colors[i]);;
+		ubyte_g = GetGreenValue(colors[i]);
+		ubyte_b = GetBlueValue(colors[i]);
 
 		glColor3ub(ubyte_r, ubyte_g, ubyte_b);
 
