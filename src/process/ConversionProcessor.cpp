@@ -333,8 +333,7 @@ bool ConversionProcessor::proceedConversion(std::vector<gaia3d::TrianglePolyhedr
 	switch (settings.meshType)
 	{
 	case 0:
-		//convertSemanticData(originalMeshes, originalTextureInfo);
-		convertTest(originalMeshes, originalTextureInfo);
+		convertSemanticData(originalMeshes, originalTextureInfo);
 		return true;
 	case 1:
 		convertSingleRealisticMesh(originalMeshes, originalTextureInfo);
@@ -532,7 +531,7 @@ void ConversionProcessor::convertSplittedRealisticMesh(std::vector<gaia3d::Trian
 	}
 }
 
-void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 	std::map<std::string, std::string>& originalTextureInfo)
 {
 	if (settings.nsmSettings.empty())
@@ -666,137 +665,137 @@ void ConversionProcessor::convertTest(std::vector<gaia3d::TrianglePolyhedron*>& 
 	}
 }
 
-void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
-	std::map<std::string, std::string>& originalTextureInfo)
-{
-	if (settings.nsmSettings.empty())
-		settings.fillNsmSettings(settings.netSurfaceMeshSettingIndex);
-
-	// copy data from original to this container
-	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
-
-	// copy texture info
-	if (!originalTextureInfo.empty())
-		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
-
-	// calculate original bounding box
-	calculateBoundingBox(allMeshes, fullBbox);
-
-	// change x and y value of all vertex positions such that their origin coincides with the center of bounding box footprint 
-	if (settings.bAlignPositionToCenter)
-	{
-		changeXYPlaneCoordinateToRelativeCoordinateToBoundingBoxFootprintCenter(allMeshes, fullBbox);
-		printf("[Info]Original coordinate is changed to a coordinate relative to the center of XY-plane projection of bounding box.\n");
-	}
-
-	// calculate plane normals and align them to their vertex normals
-	trimVertexNormals(allMeshes);
-	printf("[Info]Vertex trimming done.\n");
-
-	// determine  which surfaces are exteriors
-	if (settings.bExtractExterior)
-	{
-		determineWhichSurfacesAreExterior(allMeshes, fullBbox);
-		printf("[Info]Exterior detection done.\n");
-	}
-
-	// make model-reference relationship
-	determineModelAndReference(allMeshes);
-
-	size_t modelCount = 0;
-	size_t meshCount = allMeshes.size();
-	for (size_t i = 0; i < meshCount; i++)
-	{
-		if (allMeshes[i]->getReferenceInfo().model == NULL)
-			modelCount++;
-	}
-	printf("[Info]Model/reference detection done. %zd models out of %zd meshes detected.\n", modelCount, allMeshes.size());
-
-	// make VBO
-	makeVboObjects(allMeshes);
-	printf("[Info]VBO of each mesh created.\n");
-
-	// make generic spatial octree
-	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, settings.leafSpatialOctreeSize);
-	printf("[Info]Mesh distribution on each octree done.\n");
-
-	// make visibility indices
-	if (settings.bOcclusionCulling)
-	{
-		// exterior extraction is necessary for occlusion culling
-		// so, if it is not done, do it before occlusion culling
-		if (!settings.bExtractExterior)
-			determineWhichSurfacesAreExterior(allMeshes, fullBbox);
-
-		std::vector<gaia3d::TrianglePolyhedron*> interiors, exteriors;
-		assignReferencesIntoExteriorAndInterior(allMeshes, interiors, exteriors);
-
-		gaia3d::BoundingBox interiorBbox, exteriorBbox;
-		calculateBoundingBox(interiors, interiorBbox);
-		calculateBoundingBox(exteriors, exteriorBbox);
-
-		// make occlusion culling information
-		gaia3d::VisionOctreeBox interiorOcclusionOctree(NULL), exteriorOcclusionOctree(NULL);
-		makeOcclusionInformation(allMeshes, interiorOcclusionOctree, exteriorOcclusionOctree, interiorBbox, exteriorBbox);
-
-		// finally, import these information into data groups and interior spatial octree boxes
-		applyOcclusionInformationOnSpatialOctree(thisSpatialOctree, interiorOcclusionOctree, exteriorOcclusionOctree);
-
-		printf("[Info]Visibility Indices created.\n");
-	}
-
-	bool bMakeTextureCoordinate = allTextureInfo.empty() ? false : true;
-	if (bMakeTextureCoordinate)
-	{
-		// rebuild original texture
-		normalizeTextures(allTextureInfo);
-		printf("[Info]Original textures are normalized.\n");
-		if (resizedTextures.empty())
-		{
-			printf("[Error]No Texture Normalized!!!\n\n");
-		}
-	}
-
-	if (settings.bUseNsm)
-	{
-		std::map<unsigned char, unsigned char> dummy;
-		makeNetSurfaceMeshes(thisSpatialOctree, resizedTextures, allTextureWidths, allTextureHeights, dummy);
-		printf("[Info]Net Surface Mesh created.\n");
-	}
-	else
-	{
-		reuseOriginalMeshForRougherLods(thisSpatialOctree);
-		printf("[Info]Rougher LOD created.\n");
-	}
-
-	//if (!settings.bFlipTextureCoordinateV)
-	{
-		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
-		unsigned int bpp = 4;
-		for (; iter != resizedTextures.end(); iter++)
-		{
-			unsigned char* resizedImage = iter->second;
-			unsigned int widthResized = allTextureWidths[iter->first];
-			unsigned int heightResized = allTextureHeights[iter->first];
-
-			unsigned int lineSize = widthResized * bpp;
-			unsigned char* lineData = new unsigned char[lineSize];
-			memset(lineData, 0x00, sizeof(unsigned char) * lineSize);
-			for (unsigned int i = 0; i < heightResized / 2; i++)
-			{
-				unsigned char* upperLine = resizedImage + lineSize * i;
-				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
-
-				memcpy(lineData, upperLine, sizeof(unsigned char) * lineSize);
-				memcpy(upperLine, lowerLine, sizeof(unsigned char) * lineSize);
-				memcpy(lowerLine, lineData, sizeof(unsigned char) * lineSize);
-			}
-
-			delete[] lineData;
-		}
-	}
-	//system("pause");
-}
+//void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
+//	std::map<std::string, std::string>& originalTextureInfo)
+//{
+//	if (settings.nsmSettings.empty())
+//		settings.fillNsmSettings(settings.netSurfaceMeshSettingIndex);
+//
+//	// copy data from original to this container
+//	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
+//
+//	// copy texture info
+//	if (!originalTextureInfo.empty())
+//		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
+//
+//	// calculate original bounding box
+//	calculateBoundingBox(allMeshes, fullBbox);
+//
+//	// change x and y value of all vertex positions such that their origin coincides with the center of bounding box footprint 
+//	if (settings.bAlignPositionToCenter)
+//	{
+//		changeXYPlaneCoordinateToRelativeCoordinateToBoundingBoxFootprintCenter(allMeshes, fullBbox);
+//		printf("[Info]Original coordinate is changed to a coordinate relative to the center of XY-plane projection of bounding box.\n");
+//	}
+//
+//	// calculate plane normals and align them to their vertex normals
+//	trimVertexNormals(allMeshes);
+//	printf("[Info]Vertex trimming done.\n");
+//
+//	// determine  which surfaces are exteriors
+//	if (settings.bExtractExterior)
+//	{
+//		determineWhichSurfacesAreExterior(allMeshes, fullBbox);
+//		printf("[Info]Exterior detection done.\n");
+//	}
+//
+//	// make model-reference relationship
+//	determineModelAndReference(allMeshes);
+//
+//	size_t modelCount = 0;
+//	size_t meshCount = allMeshes.size();
+//	for (size_t i = 0; i < meshCount; i++)
+//	{
+//		if (allMeshes[i]->getReferenceInfo().model == NULL)
+//			modelCount++;
+//	}
+//	printf("[Info]Model/reference detection done. %zd models out of %zd meshes detected.\n", modelCount, allMeshes.size());
+//
+//	// make VBO
+//	makeVboObjects(allMeshes);
+//	printf("[Info]VBO of each mesh created.\n");
+//
+//	// make generic spatial octree
+//	assignReferencesIntoEachSpatialOctrees(thisSpatialOctree, allMeshes, fullBbox, false, settings.leafSpatialOctreeSize);
+//	printf("[Info]Mesh distribution on each octree done.\n");
+//
+//	// make visibility indices
+//	if (settings.bOcclusionCulling)
+//	{
+//		// exterior extraction is necessary for occlusion culling
+//		// so, if it is not done, do it before occlusion culling
+//		if (!settings.bExtractExterior)
+//			determineWhichSurfacesAreExterior(allMeshes, fullBbox);
+//
+//		std::vector<gaia3d::TrianglePolyhedron*> interiors, exteriors;
+//		assignReferencesIntoExteriorAndInterior(allMeshes, interiors, exteriors);
+//
+//		gaia3d::BoundingBox interiorBbox, exteriorBbox;
+//		calculateBoundingBox(interiors, interiorBbox);
+//		calculateBoundingBox(exteriors, exteriorBbox);
+//
+//		// make occlusion culling information
+//		gaia3d::VisionOctreeBox interiorOcclusionOctree(NULL), exteriorOcclusionOctree(NULL);
+//		makeOcclusionInformation(allMeshes, interiorOcclusionOctree, exteriorOcclusionOctree, interiorBbox, exteriorBbox);
+//
+//		// finally, import these information into data groups and interior spatial octree boxes
+//		applyOcclusionInformationOnSpatialOctree(thisSpatialOctree, interiorOcclusionOctree, exteriorOcclusionOctree);
+//
+//		printf("[Info]Visibility Indices created.\n");
+//	}
+//
+//	bool bMakeTextureCoordinate = allTextureInfo.empty() ? false : true;
+//	if (bMakeTextureCoordinate)
+//	{
+//		// rebuild original texture
+//		normalizeTextures(allTextureInfo);
+//		printf("[Info]Original textures are normalized.\n");
+//		if (resizedTextures.empty())
+//		{
+//			printf("[Error]No Texture Normalized!!!\n\n");
+//		}
+//	}
+//
+//	if (settings.bUseNsm)
+//	{
+//		std::map<unsigned char, unsigned char> dummy;
+//		makeNetSurfaceMeshes(thisSpatialOctree, resizedTextures, allTextureWidths, allTextureHeights, dummy);
+//		printf("[Info]Net Surface Mesh created.\n");
+//	}
+//	else
+//	{
+//		reuseOriginalMeshForRougherLods(thisSpatialOctree);
+//		printf("[Info]Rougher LOD created.\n");
+//	}
+//
+//	//if (!settings.bFlipTextureCoordinateV)
+//	{
+//		std::map<std::string, unsigned char*>::iterator iter = resizedTextures.begin();
+//		unsigned int bpp = 4;
+//		for (; iter != resizedTextures.end(); iter++)
+//		{
+//			unsigned char* resizedImage = iter->second;
+//			unsigned int widthResized = allTextureWidths[iter->first];
+//			unsigned int heightResized = allTextureHeights[iter->first];
+//
+//			unsigned int lineSize = widthResized * bpp;
+//			unsigned char* lineData = new unsigned char[lineSize];
+//			memset(lineData, 0x00, sizeof(unsigned char) * lineSize);
+//			for (unsigned int i = 0; i < heightResized / 2; i++)
+//			{
+//				unsigned char* upperLine = resizedImage + lineSize * i;
+//				unsigned char* lowerLine = resizedImage + lineSize * (heightResized - i - 1);
+//
+//				memcpy(lineData, upperLine, sizeof(unsigned char) * lineSize);
+//				memcpy(upperLine, lowerLine, sizeof(unsigned char) * lineSize);
+//				memcpy(lowerLine, lineData, sizeof(unsigned char) * lineSize);
+//			}
+//
+//			delete[] lineData;
+//		}
+//	}
+//	//system("pause");
+//}
 
 void ConversionProcessor::convertSingleRealisticMesh(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 	std::map<std::string, std::string>& originalTextureInfo)
@@ -4357,7 +4356,7 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 	size_t mosaicCol, mosaicRow;
 	mosaicCol = mosaicRow = ((size_t)sqrt(totalFaceTextureCount)) + 1;
 
-	size_t expandedPixel = (size_t)(mosaicWidth * 0.025);
+	size_t expandedPixel = (size_t)(faceImageWidth * 0.025);
 	mosaicWidth = (unsigned int)((faceImageWidth + expandedPixel * 2) * mosaicCol);
 	mosaicHeight = (unsigned int)((faceImageHeight + expandedPixel * 2) * mosaicRow);
 	size_t mosaicTextureSize = mosaicWidth * mosaicHeight * 4;
