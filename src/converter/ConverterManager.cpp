@@ -1031,6 +1031,7 @@ void ConverterManager::writeRepresentativeLonLatOfEachData(std::map<std::string,
 		// longitude and latitude
 		f4d["longitude"] = iter->second;
 		f4d["latitude"] = posYs[iter->first];
+		f4d["height"] = 0.0;
 
 		Json::StyledWriter writer;
 		std::string documentContent = writer.write(f4d);
