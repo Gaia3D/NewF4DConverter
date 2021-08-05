@@ -1539,6 +1539,8 @@ void ConversionProcessor::applyOcclusionInformationOnSpatialOctree(gaia3d::Spati
  */
 void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& textureInfo)
 {
+	printf("[DEBUG] total texture infor count : %zd\n", textureInfo.size());
+
 	std::map<std::string, std::string>::iterator itr = textureInfo.begin();
 	std::string fileExt;
 	std::string fileName, fullPath;
@@ -1560,11 +1562,15 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 		if (fileExt.compare("jpg") != 0 && fileExt.compare("jpeg") != 0 && fileExt.compare("jpe") != 0 &&
 			fileExt.compare("png") != 0 && fileExt.compare("gif") != 0 && fileExt.compare("bmp") != 0 &&
 			fileExt.compare("tif") != 0 && fileExt.compare("tiff") != 0)
+		{
+			printf("[DEBUG][ERROR] unsupported image format : %s\n", singleFullPath.c_str());
 			continue;
+		}
+			
 
 		unsigned char* pData = NULL;
 		unsigned char* pDest = NULL;
-		int bmpWidth, bmpHeight, nrChannels;
+		int bmpWidth = -1, bmpHeight = -1, nrChannels;
 		unsigned int bmpWidthResized, bmpHeightResized;
 
 		// loading
@@ -1572,8 +1578,18 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 		pData = stbi_load(singleFullPath.c_str(), &bmpWidth, &bmpHeight, &nrChannels, 4);
 		nrChannels = 4;
 
-		if (bmpWidth == 0 || bmpHeight == 0)	continue;
-		if (pData == NULL)	continue;
+		if (bmpWidth <= 0 || bmpHeight <= 0)
+		{
+			printf("[DEBUG][ERROR] zero width or height : %s\n", singleFullPath.c_str());
+			continue;
+		}
+			
+		if (pData == NULL)
+		{
+			printf("[DEBUG][ERROR] no memory allocated for image : %s\n", singleFullPath.c_str());
+			continue;
+		}
+			
 
 		bmpWidthResized = bmpWidth;
 		bmpHeightResized = bmpHeight;
