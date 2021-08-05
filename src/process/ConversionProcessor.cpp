@@ -1539,8 +1539,6 @@ void ConversionProcessor::applyOcclusionInformationOnSpatialOctree(gaia3d::Spati
  */
 void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& textureInfo)
 {
-	printf("[DEBUG] total texture infor count : %zd\n", textureInfo.size());
-
 	std::map<std::string, std::string>::iterator itr = textureInfo.begin();
 	std::string fileExt;
 	std::string fileName, fullPath;
@@ -1563,7 +1561,7 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 			fileExt.compare("png") != 0 && fileExt.compare("gif") != 0 && fileExt.compare("bmp") != 0 &&
 			fileExt.compare("tif") != 0 && fileExt.compare("tiff") != 0)
 		{
-			printf("[DEBUG][ERROR] unsupported image format : %s\n", singleFullPath.c_str());
+			printf("[WARNING] unsupported image format : %s\n", singleFullPath.c_str());
 			continue;
 		}
 			
@@ -1580,13 +1578,13 @@ void ConversionProcessor::normalizeTextures(std::map<std::string, std::string>& 
 
 		if (bmpWidth <= 0 || bmpHeight <= 0)
 		{
-			printf("[DEBUG][ERROR] zero width or height : %s\n", singleFullPath.c_str());
+			printf("[ERROR] zero width or height : %s\n", singleFullPath.c_str());
 			continue;
 		}
 			
 		if (pData == NULL)
 		{
-			printf("[DEBUG][ERROR] no memory allocated for image : %s\n", singleFullPath.c_str());
+			printf("[ERROR] no memory allocated for image : %s\n", singleFullPath.c_str());
 			continue;
 		}
 			
