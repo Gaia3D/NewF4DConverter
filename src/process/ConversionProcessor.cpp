@@ -4478,6 +4478,7 @@ void ConversionProcessor::insertSubTextureIntoMosaicTexture(
 	}
 
 	// fill border pixels of this sub texture frame(each border edge thickness : pixelMargin)
+	// push test
 	for (unsigned int i = 0; i < pixelMargin; i++)
 	{
 		unsigned char r1, r2;
