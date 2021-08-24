@@ -544,6 +544,8 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 	if (!originalTextureInfo.empty())
 		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
 
+	// check if all texture files are available or not
+
 	// calculate original bounding box
 	calculateBoundingBox(allMeshes, fullBbox);
 
@@ -4798,3 +4800,4 @@ void ConversionProcessor::flipTextureCoordinateY(gaia3d::TrianglePolyhedron* pol
 		vertex->textureCoordinate[1] = 1.0 - vertex->textureCoordinate[1];
 	}
 }
+

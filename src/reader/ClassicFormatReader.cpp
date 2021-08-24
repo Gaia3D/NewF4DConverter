@@ -37,9 +37,6 @@ bool proceedMesh(aiMesh* mesh,
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 	if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0 && mesh->mTextureCoords[0] != NULL)
 	{
-		textureExistsForMesh = true;
-		polyhedron->setHasTextureCoordinates(true);
-
 		// collect texture info
 		aiString texturePath;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
@@ -56,12 +53,32 @@ bool proceedMesh(aiMesh* mesh,
 			fileName = fullPath.substr(lastSlashIndex + 1, fileNameLength);
 		}
 
-		if (textureContainer.find(fileName) == textureContainer.end())
-		{
-			textureContainer.insert(std::map<std::string, std::string>::value_type(fileName, fullPath));
-		}
+		// check if this texture file exists really
+		bool thisTextureFileAvailable = true;
+		FILE* file = NULL;
+		file = fopen(fullPath.c_str(), "rb");
+		if (file == NULL)
+			thisTextureFileAvailable = false;
+		else
+			fclose(file);
 
-		polyhedron->addStringAttribute(std::string(TextureName), fileName);
+		if (thisTextureFileAvailable)
+		{
+			if (textureContainer.find(fileName) == textureContainer.end())
+			{
+				textureContainer.insert(std::map<std::string, std::string>::value_type(fileName, fullPath));
+			}
+
+			polyhedron->addStringAttribute(std::string(TextureName), fileName);
+			textureExistsForMesh = true;
+			polyhedron->setHasTextureCoordinates(true);
+		}
+		else
+		{
+			printf("[WARNING]file not found : %s\n", fullPath.c_str());
+			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
+			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(" proceedMesh : texture file not found("+fullPath+")");
+		}
 	}
 
 	// check if color info exists.
