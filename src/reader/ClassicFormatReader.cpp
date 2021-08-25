@@ -75,6 +75,8 @@ bool proceedMesh(aiMesh* mesh,
 		}
 		else
 		{
+			polyhedron->setColorMode(gaia3d::SingleColor);
+
 			printf("[WARNING]file not found : %s\n", fullPath.c_str());
 			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
 			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(" proceedMesh : texture file not found("+fullPath+")");
