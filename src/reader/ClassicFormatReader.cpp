@@ -80,8 +80,6 @@ bool proceedMesh(aiMesh* mesh,
 			printf("[WARNING]file not found : %s\n", fullPath.c_str());
 			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
 			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(" proceedMesh : texture file not found("+fullPath+")");
-
-			// git commit test 2
 		}
 	}
 
