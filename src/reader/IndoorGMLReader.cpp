@@ -1222,7 +1222,7 @@ void putGeometryIntoFloorList
 		}
 	}
 }
-GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string filePath) {
+GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string filePath, bool& bResult) {
 	
 	ParserUtil* parseHelper = new ParserUtil();
 	GeometryParser* gmp = new GeometryParser();
@@ -1372,9 +1372,53 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 				if (tempStates.size() != 0) {
 					nextTag = frontTag + "State";
 					for (int j = 0; j < tempStates.size(); j++) {
+
+						/*DOMNode* thisStateMember = tempStates.at(j);
+						const XMLCh* stateMemberNodeName = thisStateMember->getNodeName();
+						DOMNodeList* stateMemberChildren = tempStates.at(j)->getChildNodes();
+						size_t stateMemberChildrenCount = stateMemberChildren->getLength();
+						bool thisStateMemberHasState = false;
+						for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
+						{
+							DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
+							const XMLCh* childNodeName = stateMemberChild->getNodeName();
+							std::u16string translatedChildNodeName(childNodeName);
+							if (translatedChildNodeName == std::u16string(u"core:State"))
+							{
+								thisStateMemberHasState = true;
+								break;
+							}
+						}
+
+						if (!thisStateMemberHasState)
+						{
+							for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
+							{
+								DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
+								const XMLCh* childNodeName = stateMemberChild->getNodeName();
+								std::u16string translatedChildNodeName(childNodeName);
+
+								int test = 0;
+							}
+						}*/
+
 						DOMNode* state = parseHelper->getNamedNode(tempStates.at(j)->getChildNodes(), nextTag);
+						if (state == NULL)
+						{
+							LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+							LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : stateMember has no State"));
+							bResult = false;
+							return geomManager;
+						}
+
 						DOMNode* stateGeometry = 0;
 						stateGeometry = parseHelper->getNamedNode(state->getChildNodes(), frontTag + "geometry");
+						{
+							LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+							LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : Sate has no geometry"));
+							bResult = false;
+							return geomManager;
+						}
 						gaia3d::Point3D stateGeometryPoint;
 						stateGeometryPoint.set(0,0,0);
 						if (stateGeometry != 0) {
@@ -1616,26 +1660,53 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 		char* message = XMLString::transcode(toCatch.getMessage());
 		std::cout << "Exception message is: \n" << message << "\n";
 		XMLString::release(&message);
+
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : ") + std::string(message));
+		bResult = false;
+		return geomManager;
 	}
 	catch (const DOMException& toCatch) {
 		char* message = XMLString::transcode(toCatch.msg);
 		std::cout << "Exception message is: \n" << message << "\n";
 		XMLString::release(&message);
+
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : ") + std::string(message));
+		bResult = false;
+		return geomManager;
 	}
 	catch (const SAXParseException& ex) {
 		std::cout << XMLString::transcode(ex.getMessage()) << endl;
 
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : ") + std::string(XMLString::transcode(ex.getMessage())));
+		bResult = false;
+		return geomManager;
 	}
 	catch (...) {
 		std::cout << "Unexpected Exception \n";
+
+		LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+		LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : Unexpected error."));
+		bResult = false;
+		return geomManager;
 	}
 
+	bResult = true;
 	return geomManager;
 }
 
 bool IndoorGMLReader::readIndoorGML(DOMDocument* dom, string filePath, std::map<std::string, bool> splitFilter, std::vector<gaia3d::TrianglePolyhedron*>& container, double& lon, double& lat) {
 
-	GeometryManager geomManager = parseIndoorGeometry(dom , filePath);
+	bool bResult = true;
+	GeometryManager geomManager = parseIndoorGeometry(dom , filePath, bResult);
+	if (!bResult)
+	{
+		printf("[ERROR][proj4]CANNOT parse this file\n");
+		return false;
+	}
+		
 	//cout << "start read IndoorGML data" << endl;
 
 	//gaia3d::Matrix4* mat;
