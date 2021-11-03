@@ -14,14 +14,14 @@
 #define MemoryDeviceContextEdgeLength 512
 
 ///< texture demension for skin mesh
-#define TextureWidthForSkinMesh 128
-#define TextureHeightForSkinMesh 128
+#define TextureWidthForSkinMesh 1024
+#define TextureHeightForSkinMesh 1024
 
 ///< thumbnail image dimension
 #define ThumbnailImageWidthHeight 128
 
 ///< Deffered rendering시 해당 픽셀 이상 외부(Exterior)에 노출되어 있으면 이는 외부에 있는 객체라고 할 수 있다.
-#define ExteriorDetectionThreshold 6
+#define ExteriorDetectionThreshold 1
 
 #define DisplayListIdForOcclusionCulling 1
 ///< Occlusion Culling 시 찍는 이미지의 가로 세로 사이즈(px)

@@ -1233,9 +1233,25 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 	std::string subFileNamePrefix = filePath.substr(slashPosition + 1, dotPosition - slashPosition - 1);
 
 	try {
-		DOMElement* rootNode = dom->getDocumentElement();
+		DOMElement* rootNode = 0;
+		rootNode = dom->getDocumentElement();
+		if (rootNode == 0)
+		{
+			bResult = false;
+			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : No root node"));
+			return geomManager;
+		}
 		//cout << XMLString::transcode(rootNode->getTagName()) << endl;
-		DOMNodeList* rootChild = rootNode->getChildNodes();
+		DOMNodeList* rootChild = 0;
+		rootChild = rootNode->getChildNodes();
+		if (rootChild == 0)
+		{
+			bResult = false;
+			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
+			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : No child node of root"));
+			return geomManager;
+		}
 
 		DOMNode* primalSpaceFeatures = 0;
 		DOMNode* PrimalSpaceFeatures = 0;
@@ -1258,6 +1274,8 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 		string frontTag = "core:";
 		string nextTag;
 		//primalSpaceFeatures -> PrimalSpaceFeatures
+
+
 		primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "core:primalSpaceFeatures");
 		if (primalSpaceFeatures == 0) {
 			primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "primalSpaceFeatures");
@@ -1265,19 +1283,15 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 			if (primalSpaceFeatures == 0) {
 				primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "indoor:primalSpaceFeatures");
 				frontTag = "indoor:";
+				if (primalSpaceFeatures == 0) {
+					primalSpaceFeatures = parseHelper->getNamedNode(rootChild, "ns5:primalSpaceFeatures");
+					frontTag = "ns5:";
+				}
 			}
 		}
-		nextTag = frontTag + "PrimalSpaceFeatures";	
+
+		nextTag = frontTag + "PrimalSpaceFeatures";
 		primalSpaceFeatures = parseHelper->getNamedNode(primalSpaceFeatures->getChildNodes(), nextTag);
-
-		//multiLayeredGraph -> MultiLayeredGraph
-		nextTag = frontTag + "multiLayeredGraph";
-
-		multiLayeredGraph = parseHelper->getNamedNode(rootChild, nextTag);
-		nextTag = frontTag + "MultiLayeredGraph";
-
-		multiLayeredGraph = parseHelper->getNamedNode(multiLayeredGraph->getChildNodes(), nextTag);
-
 
 		vector<DOMNode*>cellspacelist;
 		vector<DOMNode*>cellspaceboundarylist;
@@ -1303,176 +1317,200 @@ GeometryManager IndoorGMLReader::parseIndoorGeometry(DOMDocument* dom, string fi
 		parseCellSpaceBoundary(primalSpaceFeatures, parseHelper, gmp, geomManager, frontTag, b);
 	
 		getFloorList(lowerBoundingBoxPoint, upperBoundingBoxPoint, minimumGapHeight, floorList, floorListInfoMap);
+
 		
-		nextTag = frontTag + "spaceLayers";
 
-		spaceLayers = parseHelper->getNamedNode(multiLayeredGraph -> getChildNodes(), nextTag);
+		//multiLayeredGraph -> MultiLayeredGraph
+		nextTag = frontTag + "multiLayeredGraph";
 
-		nextTag = frontTag + "spaceLayerMember";
+		multiLayeredGraph = parseHelper->getNamedNode(rootChild, nextTag);
+		if (multiLayeredGraph != NULL)
+		{
+			nextTag = frontTag + "MultiLayeredGraph";
 
-		spaceLayerMember = parseHelper->getNamedNodes(spaceLayers->getChildNodes(), nextTag);
+			multiLayeredGraph = parseHelper->getNamedNode(multiLayeredGraph->getChildNodes(), nextTag);
 
+			if (multiLayeredGraph != NULL)
+			{
+				nextTag = frontTag + "spaceLayers";
 
-		for (int i = 0; i < spaceLayerMember.size(); i++) {
-			nextTag = frontTag + "SpaceLayer";
-			DOMNode* spaceLayer = 0;
-			spaceLayer = parseHelper->getNamedNode(spaceLayerMember.at(i)->getChildNodes(), nextTag);
-			
-			DOMNode* edges = 0;
-			nextTag = frontTag + "edges";
-			edges = parseHelper->getNamedNode(spaceLayer->getChildNodes(), nextTag);
-			if (edges != 0) {
-				nextTag = frontTag + "transitionMember";
-				vector<DOMNode*>tempTransitions = parseHelper->getNamedNodes(edges->getChildNodes(), nextTag);
-				if (tempTransitions.size() != 0) {
-					nextTag = frontTag + "Transition";
-					for (int j = 0; j < tempTransitions.size(); j++) {
-						IndoorGMLTransition transitionInstance;
-						DOMNode* transition = parseHelper->getNamedNode(tempTransitions.at(j)->getChildNodes(), nextTag);
-						DOMNode* transitionGeometry = 0;
-						if (transition == NULL)
-							continue;
-						transitionGeometry = parseHelper->getNamedNode(transition->getChildNodes(), frontTag + "geometry");
-						if (transitionGeometry != 0) {
-							DOMNode* linestring = transitionGeometry->getChildNodes()->item(1);
-							shared_ptr<IndoorGMLLineString>parsedLineString = gmp->parseIndoorGMLLineString(linestring,b);
-							transitionInstance.setGeometry(parsedLineString);
-						}
+				spaceLayers = parseHelper->getNamedNode(multiLayeredGraph->getChildNodes(), nextTag);
 
-						string transitionId = parseHelper->getNamedAttribute(transition->getAttributes(), "gml:id");
-						transitionInstance.setId(transitionId);
-						
-						vector<DOMNode*>connects;
-						connects = parseHelper->getNamedNodes(transition->getChildNodes(), frontTag + "connects");
+				if (spaceLayers != NULL)
+				{
+					nextTag = frontTag + "spaceLayerMember";
 
-						if (connects.size() != 0) {
-							vector<string>connectsIds;
-							for (int k = 0; k < connects.size(); k++) {
-								DOMNode* connect = connects.at(k);
-								string connectId = parseHelper->getNamedAttribute(connect->getAttributes(), "xlink:href");
-								size_t pos;
-								if ((pos = connectId.find("#")) != string::npos) {
-									connectId = connectId.substr(1);
-								}
-								connectsIds.push_back(connectId);
-							}
-							transitionInstance.setConnects(connectsIds);
-						}
-						transitionList.push_back(transitionInstance);
-					}
-				}
-			}
+					spaceLayerMember = parseHelper->getNamedNodes(spaceLayers->getChildNodes(), nextTag);
 
-			DOMNode* nodes = 0;
-			nextTag = frontTag + "nodes";
-			nodes = parseHelper->getNamedNode(spaceLayer->getChildNodes(), nextTag);
-			if (nodes != 0) {
-				nextTag = frontTag + "stateMember";
-				vector<DOMNode*>tempStates = parseHelper->getNamedNodes(nodes->getChildNodes(), nextTag);
-				if (tempStates.size() != 0) {
-					nextTag = frontTag + "State";
-					for (int j = 0; j < tempStates.size(); j++) {
+					for (int i = 0; i < spaceLayerMember.size(); i++) {
+						nextTag = frontTag + "SpaceLayer";
+						DOMNode* spaceLayer = 0;
+						spaceLayer = parseHelper->getNamedNode(spaceLayerMember.at(i)->getChildNodes(), nextTag);
 
-						/*DOMNode* thisStateMember = tempStates.at(j);
-						const XMLCh* stateMemberNodeName = thisStateMember->getNodeName();
-						DOMNodeList* stateMemberChildren = tempStates.at(j)->getChildNodes();
-						size_t stateMemberChildrenCount = stateMemberChildren->getLength();
-						bool thisStateMemberHasState = false;
-						for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
-						{
-							DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
-							const XMLCh* childNodeName = stateMemberChild->getNodeName();
-							std::u16string translatedChildNodeName(childNodeName);
-							if (translatedChildNodeName == std::u16string(u"core:State"))
-							{
-								thisStateMemberHasState = true;
-								break;
-							}
-						}
+						DOMNode* edges = 0;
+						nextTag = frontTag + "edges";
+						edges = parseHelper->getNamedNode(spaceLayer->getChildNodes(), nextTag);
+						if (edges != 0) {
+							nextTag = frontTag + "transitionMember";
+							vector<DOMNode*>tempTransitions = parseHelper->getNamedNodes(edges->getChildNodes(), nextTag);
+							if (tempTransitions.size() != 0) {
+								nextTag = frontTag + "Transition";
+								for (int j = 0; j < tempTransitions.size(); j++) {
+									IndoorGMLTransition transitionInstance;
+									DOMNode* transition = parseHelper->getNamedNode(tempTransitions.at(j)->getChildNodes(), nextTag);
+									DOMNode* transitionGeometry = 0;
+									if (transition == NULL)
+										continue;
+									transitionGeometry = parseHelper->getNamedNode(transition->getChildNodes(), frontTag + "geometry");
+									if (transitionGeometry != 0) {
+										DOMNode* linestring = transitionGeometry->getChildNodes()->item(1);
+										shared_ptr<IndoorGMLLineString>parsedLineString = gmp->parseIndoorGMLLineString(linestring, b);
+										transitionInstance.setGeometry(parsedLineString);
+									}
 
-						if (!thisStateMemberHasState)
-						{
-							for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
-							{
-								DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
-								const XMLCh* childNodeName = stateMemberChild->getNodeName();
-								std::u16string translatedChildNodeName(childNodeName);
+									string transitionId = parseHelper->getNamedAttribute(transition->getAttributes(), "gml:id");
+									transitionInstance.setId(transitionId);
 
-								int test = 0;
-							}
-						}*/
+									vector<DOMNode*>connects;
+									connects = parseHelper->getNamedNodes(transition->getChildNodes(), frontTag + "connects");
 
-						DOMNode* state = parseHelper->getNamedNode(tempStates.at(j)->getChildNodes(), nextTag);
-						if (state == NULL)
-						{
-							LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
-							LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : stateMember has no State"));
-							bResult = false;
-							return geomManager;
-						}
-
-						DOMNode* stateGeometry = 0;
-						stateGeometry = parseHelper->getNamedNode(state->getChildNodes(), frontTag + "geometry");
-						{
-							LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::failure);
-							LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : Sate has no geometry"));
-							bResult = false;
-							return geomManager;
-						}
-						gaia3d::Point3D stateGeometryPoint;
-						stateGeometryPoint.set(0,0,0);
-						if (stateGeometry != 0) {
-							DOMNode* point = stateGeometry->getChildNodes()->item(1);
-							for (int k = 0; k < point->getChildNodes()->getLength(); k++) {
-								if (!parseHelper->isTextNode(point->getChildNodes()->item(k))) {
-									double arr[3];
-									string pointvalue = parseHelper->changeXMLCh2str(point->getChildNodes()->item(k)->getTextContent());
-									stringstream ss(pointvalue);
-									ss >> arr[0] >> arr[1] >> arr[2];
-									stateGeometryPoint.set(arr[0],arr[1], arr[2]);
-									break;
+									if (connects.size() != 0) {
+										vector<string>connectsIds;
+										for (int k = 0; k < connects.size(); k++) {
+											DOMNode* connect = connects.at(k);
+											string connectId = parseHelper->getNamedAttribute(connect->getAttributes(), "xlink:href");
+											size_t pos;
+											if ((pos = connectId.find("#")) != string::npos) {
+												connectId = connectId.substr(1);
+											}
+											connectsIds.push_back(connectId);
+										}
+										transitionInstance.setConnects(connectsIds);
+									}
+									transitionList.push_back(transitionInstance);
 								}
 							}
 						}
-						//get the information of the state
-						IndoorGMLState stateInstance;
-						string stateId = parseHelper->getNamedAttribute(state->getAttributes(), "gml:id");
-						stateInstance.setId(stateId);
 
-						//get the duality information of state
-						DOMNode* duality = 0;
-						duality = parseHelper->getNamedNode(state->getChildNodes(), frontTag + "duality");
-						if (duality != 0){
-							string dualityId = parseHelper->getNamedAttribute(duality->getAttributes(), "xlink:href");
-							dualityId = dualityId.substr(1,dualityId.length());
-							stateInstance.setDuality(dualityId);
-						}
+						DOMNode* nodes = 0;
+						nextTag = frontTag + "nodes";
+						nodes = parseHelper->getNamedNode(spaceLayer->getChildNodes(), nextTag);
+						if (nodes != 0) {
+							nextTag = frontTag + "stateMember";
+							vector<DOMNode*>tempStates = parseHelper->getNamedNodes(nodes->getChildNodes(), nextTag);
+							if (tempStates.size() != 0) {
+								nextTag = frontTag + "State";
+								for (int j = 0; j < tempStates.size(); j++) {
 
-						//get the connects information of state
-						vector<DOMNode*>connects;
-						connects = parseHelper->getNamedNodes(state->getChildNodes(), frontTag + "connects");
-						
-						if (connects.size() != 0) {
-							vector<string>connectsIds;
-							for (int k = 0; k < connects.size(); k++) {
-								DOMNode* connect = connects.at(k);
-								string connectId = parseHelper->getNamedAttribute(connect->getAttributes(),"xlink:href");
-								size_t pos;
-								if ((pos = connectId.find("#")) != string::npos) {
-									connectId = connectId.substr(1);
+									/*DOMNode* thisStateMember = tempStates.at(j);
+									const XMLCh* stateMemberNodeName = thisStateMember->getNodeName();
+									DOMNodeList* stateMemberChildren = tempStates.at(j)->getChildNodes();
+									size_t stateMemberChildrenCount = stateMemberChildren->getLength();
+									bool thisStateMemberHasState = false;
+									for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
+									{
+										DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
+										const XMLCh* childNodeName = stateMemberChild->getNodeName();
+										std::u16string translatedChildNodeName(childNodeName);
+										if (translatedChildNodeName == std::u16string(u"core:State"))
+										{
+											thisStateMemberHasState = true;
+											break;
+										}
+									}
+
+									if (!thisStateMemberHasState)
+									{
+										for (size_t childIndex = 0; childIndex < stateMemberChildrenCount; childIndex++)
+										{
+											DOMNode* stateMemberChild = stateMemberChildren->item(childIndex);
+											const XMLCh* childNodeName = stateMemberChild->getNodeName();
+											std::u16string translatedChildNodeName(childNodeName);
+
+											int test = 0;
+										}
+									}*/
+
+									DOMNode* state = parseHelper->getNamedNode(tempStates.at(j)->getChildNodes(), nextTag);
+									if (state == NULL)
+									{
+										LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
+										LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : stateMember has no State"));
+										//bResult = false;
+										//return geomManager;
+
+										continue;
+									}
+
+									DOMNode* stateGeometry = 0;
+									stateGeometry = parseHelper->getNamedNode(state->getChildNodes(), frontTag + "geometry");
+									{
+										LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
+										LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(std::string("IndoorGMLReader::readIndoorGML : State has no geometry"));
+										//bResult = false;
+										//return geomManager;
+
+										continue;
+									}
+									gaia3d::Point3D stateGeometryPoint;
+									stateGeometryPoint.set(0, 0, 0);
+									if (stateGeometry != 0) {
+										DOMNode* point = stateGeometry->getChildNodes()->item(1);
+										for (int k = 0; k < point->getChildNodes()->getLength(); k++) {
+											if (!parseHelper->isTextNode(point->getChildNodes()->item(k))) {
+												double arr[3];
+												string pointvalue = parseHelper->changeXMLCh2str(point->getChildNodes()->item(k)->getTextContent());
+												stringstream ss(pointvalue);
+												ss >> arr[0] >> arr[1] >> arr[2];
+												stateGeometryPoint.set(arr[0], arr[1], arr[2]);
+												break;
+											}
+										}
+									}
+									//get the information of the state
+									IndoorGMLState stateInstance;
+									string stateId = parseHelper->getNamedAttribute(state->getAttributes(), "gml:id");
+									stateInstance.setId(stateId);
+
+									//get the duality information of state
+									DOMNode* duality = 0;
+									duality = parseHelper->getNamedNode(state->getChildNodes(), frontTag + "duality");
+									if (duality != 0) {
+										string dualityId = parseHelper->getNamedAttribute(duality->getAttributes(), "xlink:href");
+										dualityId = dualityId.substr(1, dualityId.length());
+										stateInstance.setDuality(dualityId);
+									}
+
+									//get the connects information of state
+									vector<DOMNode*>connects;
+									connects = parseHelper->getNamedNodes(state->getChildNodes(), frontTag + "connects");
+
+									if (connects.size() != 0) {
+										vector<string>connectsIds;
+										for (int k = 0; k < connects.size(); k++) {
+											DOMNode* connect = connects.at(k);
+											string connectId = parseHelper->getNamedAttribute(connect->getAttributes(), "xlink:href");
+											size_t pos;
+											if ((pos = connectId.find("#")) != string::npos) {
+												connectId = connectId.substr(1);
+											}
+											connectsIds.push_back(connectId);
+										}
+										stateInstance.setConnects(connectsIds);
+									}
+									stateInstance.setGeometry(stateGeometryPoint);
+									stateList.push_back(stateInstance);
+
 								}
-								connectsIds.push_back(connectId);
+
 							}
-							stateInstance.setConnects(connectsIds);
 						}
-						stateInstance.setGeometry(stateGeometryPoint);
-						stateList.push_back(stateInstance);
-					
 					}
 
 				}
 			}
 		}
+	
 
 		putGeometryIntoFloorList(geomManager, minimumGapHeight, floorList, floorListInfoMap, stateList, transitionList);
 

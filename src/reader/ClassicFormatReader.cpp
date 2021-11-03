@@ -75,8 +75,6 @@ bool proceedMesh(aiMesh* mesh,
 		}
 		else
 		{
-			polyhedron->setColorMode(gaia3d::SingleColor);
-
 			printf("[WARNING]file not found : %s\n", fullPath.c_str());
 			LogWriter::getLogWriter()->changeCurrentConversionJobStatus(LogWriter::warning);
 			LogWriter::getLogWriter()->addDescriptionToCurrentConversionJobLog(" proceedMesh : texture file not found("+fullPath+")");
@@ -101,6 +99,8 @@ bool proceedMesh(aiMesh* mesh,
 		{
 			if (mesh->mColors[0] != NULL)
 				colorMode = gaia3d::ColorsOnVertices;
+			else
+				colorMode = gaia3d::SingleColor;
 		}
 	}
 	polyhedron->setColorMode(colorMode);
@@ -361,7 +361,7 @@ bool ClassicFormatReader::readRawDataFile(std::string& filePath)
 			bbox.addPoint(vertices[j]->position.x, vertices[j]->position.y, vertices[j]->position.z);
 	}
 
-	if (bbox.getMaxLength() > 600.0)
+	if (bbox.getMaxLength() > 2500.0)
 	{
 		for (size_t i = 0; i < meshCount; i++)
 		{
