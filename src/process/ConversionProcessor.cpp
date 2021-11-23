@@ -540,6 +540,7 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 	// copy data from original to this container
 	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
 
+
 	// copy texture info
 	if (!originalTextureInfo.empty())
 		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
@@ -548,6 +549,40 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 
 	// calculate original bounding box
 	calculateBoundingBox(allMeshes, fullBbox);
+
+	// test code : for checking precision
+	double totalSurfaceArea = 0.0;
+	std::vector<gaia3d::BoundingBox> prevBboxes;
+	{
+		size_t testMeshCount = allMeshes.size();
+
+		for (size_t i = 0; i < testMeshCount; i++)
+		{
+			gaia3d::TrianglePolyhedron* mesh = allMeshes[i];
+			size_t surfaceCount = mesh->getSurfaces().size();
+			for (size_t j = 0; j < surfaceCount; j++)
+			{
+				gaia3d::Surface* surface = mesh->getSurfaces()[j];
+				size_t triangleCount = surface->getTriangles().size();
+				for (size_t k = 0; k < triangleCount; k++)
+				{
+					gaia3d::Triangle* triangle = surface->getTriangles()[k];
+
+					gaia3d::Point3D edge1 = triangle->getVertices()[1]->position - triangle->getVertices()[0]->position;
+					gaia3d::Point3D edge2 = triangle->getVertices()[2]->position - triangle->getVertices()[0]->position;
+
+					double thisArea = (edge1 ^ edge2).magnitude() / 2.0;
+
+					totalSurfaceArea += thisArea;
+				}
+			}
+
+			prevBboxes.push_back(mesh->getBoundingBox());
+		}
+
+		printf("[TEST] total surface area before conversion : %f\n", totalSurfaceArea);
+	}
+	// test code end
 
 	// calculate plane normals and align them to their vertex normals
 	trimVertexNormals(allMeshes);
@@ -665,6 +700,43 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 			delete[] lineData;
 		}
 	}
+
+	// test code : for checking precision
+	/*totalSurfaceArea = 0.0;
+	std::vector<gaia3d::BoundingBox> curBboxes;
+	{
+		size_t testMeshCount = allMeshes.size();
+
+		for (size_t i = 0; i < testMeshCount; i++)
+		{
+			gaia3d::TrianglePolyhedron* mesh = allMeshes[i];
+			size_t surfaceCount = mesh->getSurfaces().size();
+			for (size_t j = 0; j < surfaceCount; j++)
+			{
+				gaia3d::Surface* surface = mesh->getSurfaces()[j];
+				size_t triangleCount = surface->getTriangles().size();
+				for (size_t k = 0; k < triangleCount; k++)
+				{
+					gaia3d::Triangle* triangle = surface->getTriangles()[k];
+
+					gaia3d::Point3D edge1 = triangle->getVertices()[1]->position - triangle->getVertices()[0]->position;
+					gaia3d::Point3D edge2 = triangle->getVertices()[2]->position - triangle->getVertices()[0]->position;
+
+					double thisArea = (edge1 ^ edge2).magnitude() / 2.0;
+
+					totalSurfaceArea += thisArea;
+				}
+			}
+
+			this->calculateBoundingBox(mesh);
+			curBboxes.push_back(mesh->getBoundingBox());
+		}
+
+		printf("[TEST] total surface area after conversion : %f\n", totalSurfaceArea);
+
+		int holda = 0;
+	}*/
+	// test code end
 }
 
 //void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,

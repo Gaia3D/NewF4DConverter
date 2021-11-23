@@ -70,7 +70,10 @@ Reader* ReaderFactory::makeReader(std::string& filePath)
 	if (fileExt.compare(std::string("obj")) == 0 ||
 		fileExt.compare(std::string("dae")) == 0 ||
 		fileExt.compare(std::string("3ds")) == 0 ||
-		fileExt.compare(std::string("fbx")) == 0)
+		fileExt.compare(std::string("fbx")) == 0 ||
+		fileExt.compare(std::string("blend")) == 0 ||
+		fileExt.compare(std::string("gltf")) == 0 ||
+		fileExt.compare(std::string("ply")) == 0)
 	{
 		return new ClassicFormatReader;
 	}
