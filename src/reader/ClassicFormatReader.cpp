@@ -8,6 +8,7 @@
 #include <assimp/postprocess.h>     // Post processing flags
 
 #include <proj_api.h>
+#include <boost/algorithm/string.hpp>    
 
 #include "../geometry/Matrix4.h"
 #include "../util/GeometryUtility.h"
@@ -40,8 +41,12 @@ bool proceedMesh(aiMesh* mesh,
 		// collect texture info
 		aiString texturePath;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
+
+		std::string tmpTexturePath(texturePath.C_Str());
+		boost::to_lower(tmpTexturePath);
 		
-		std::string fullPath = folder + "/" + std::string(texturePath.C_Str());
+		//std::string fullPath = folder + "/" + std::string(texturePath.C_Str());
+		std::string fullPath = folder + "/" + tmpTexturePath;
 
 		size_t lastSlashIndex = fullPath.find_last_of("\\/");
 		std::string fileName;

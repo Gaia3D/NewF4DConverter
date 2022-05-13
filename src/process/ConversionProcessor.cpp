@@ -531,6 +531,176 @@ void ConversionProcessor::convertSplittedRealisticMesh(std::vector<gaia3d::Trian
 	}
 }
 
+void runPreExperiments(std::vector<gaia3d::TrianglePolyhedron*>& meshes, double& area, std::map<size_t, std::vector<double>>& bboxes)
+{
+	size_t meshCount = meshes.size();
+	printf("[INFO] total object count : %zd\n", meshCount);
+	area = 0.0;
+	size_t totalTriangleCount = 0;
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		size_t id = meshes[i]->getId();
+		bboxes[id] = std::vector<double>();
+		(bboxes[id]).push_back(meshes[i]->getBoundingBox().getXLength());
+		(bboxes[id]).push_back(meshes[i]->getBoundingBox().getYLength());
+		(bboxes[id]).push_back(meshes[i]->getBoundingBox().getZLength());
+
+		for (size_t j = 0; j < meshes[i]->getSurfaces().size(); j++)
+		{
+			gaia3d::Surface* surface = meshes[i]->getSurfaces()[j];
+			totalTriangleCount += surface->getTriangles().size();
+			for (size_t k = 0; k < surface->getTriangles().size(); k++)
+			{
+				gaia3d::Triangle* triangle = surface->getTriangles()[k];
+				gaia3d::Vertex* v0 = triangle->getVertices()[0];
+				gaia3d::Vertex* v1 = triangle->getVertices()[1];
+				gaia3d::Vertex* v2 = triangle->getVertices()[2];
+
+				double edge1X = v1->position.x - v0->position.x;
+				double edge1Y = v1->position.y - v0->position.y;
+				double edge1Z = v1->position.z - v0->position.z;
+				double edge2X = v2->position.x - v0->position.x;
+				double edge2Y = v2->position.y - v0->position.y;
+				double edge2Z = v2->position.z - v0->position.z;
+				double cx, cy, cz;
+				gaia3d::GeometryUtility::crossProduct(edge1X, edge1Y, edge1Z, edge2X, edge2Y, edge2Z, cx, cy, cz);
+				gaia3d::Point3D cp;
+				cp.set(cx, cy, cz);
+
+				area += cp.magnitude() / 2.0;
+			}
+		}
+	}
+
+	printf("[INFO]total triangle count : %zd\n", totalTriangleCount);
+	printf("[INFO]total surface area : %f\n", area);
+}
+
+void runPostExperiments(std::vector<gaia3d::OctreeBox*>& octrees, double& area, std::map<size_t, std::vector<double>>& bboxes)
+{
+	size_t octreeCount = octrees.size();
+	size_t totalMeshCount = 0, totalTriangleCount = 0;
+	area = 0.0;
+	std::map<size_t, bool> marked;
+	for (size_t i = 0; i < octreeCount; i++)
+	{
+		gaia3d::OctreeBox* octree = octrees[i];
+
+		for (size_t j = 0; j < octree->meshes.size(); j++)
+		{
+			gaia3d::TrianglePolyhedron* reference = octree->meshes[j];
+			gaia3d::TrianglePolyhedron* model;
+			if (reference->getReferenceInfo().model == NULL)
+				model = reference;
+			else
+				model = reference->getReferenceInfo().model;
+
+			size_t id = reference->getId();
+
+			if (marked.find(id) != marked.end())
+			{
+				continue;
+			}
+
+			totalMeshCount++;
+
+			marked[id] = true;
+
+			bboxes[id] = std::vector<double>();
+			gaia3d::BoundingBox bbox;
+			for (size_t k = 0; k < model->getVertices().size(); k++)
+			{
+				gaia3d::Vertex* vertex = model->getVertices()[k];
+				gaia3d::Point3D point = (reference->getReferenceInfo().mat) * (vertex->position);
+				bbox.addPoint(point.x, point.y, point.z);
+			}
+
+			(bboxes[id]).push_back(bbox.getXLength());
+			(bboxes[id]).push_back(bbox.getYLength());
+			(bboxes[id]).push_back(bbox.getZLength());
+
+			/*(bboxes[id]).push_back(reference->getBoundingBox().getXLength());
+			(bboxes[id]).push_back(reference->getBoundingBox().getYLength());
+			(bboxes[id]).push_back(reference->getBoundingBox().getZLength());*/
+
+			for (size_t k = 0; k < model->getSurfaces().size(); k++)
+			{
+				gaia3d::Surface* surface = model->getSurfaces()[k];
+				totalTriangleCount += surface->getTriangles().size();
+				for (size_t m = 0; m < surface->getTriangles().size(); m++)
+				{
+					gaia3d::Triangle* triangle = surface->getTriangles()[m];
+					gaia3d::Vertex* v0 = triangle->getVertices()[0];
+					gaia3d::Vertex* v1 = triangle->getVertices()[1];
+					gaia3d::Vertex* v2 = triangle->getVertices()[2];
+
+					double edge1X = v1->position.x - v0->position.x;
+					double edge1Y = v1->position.y - v0->position.y;
+					double edge1Z = v1->position.z - v0->position.z;
+					double edge2X = v2->position.x - v0->position.x;
+					double edge2Y = v2->position.y - v0->position.y;
+					double edge2Z = v2->position.z - v0->position.z;
+					double cx, cy, cz;
+					gaia3d::GeometryUtility::crossProduct(edge1X, edge1Y, edge1Z, edge2X, edge2Y, edge2Z, cx, cy, cz);
+					gaia3d::Point3D cp;
+					cp.set(cx, cy, cz);
+
+					area += cp.magnitude() / 2.0;
+				}
+			}
+		}
+	}
+
+	printf("[INFO](processed)total object count : %zd\n", totalMeshCount);
+	printf("[INFO](processed)total triangle count : %zd\n", totalTriangleCount);
+	printf("[INFO](processed)total surface area : %f\n", area);
+}
+
+void compareBboxes(std::map<size_t, std::vector<double>>& before, std::map<size_t, std::vector<double>>& after, size_t& errorCount)
+{
+	if (before.size() != after.size())
+	{
+		printf("[INFO] before/after counts are different! %zd to %zd\n", before.size(), after.size());
+	}
+
+	errorCount = 0;
+	std::map<size_t, std::vector<double>>::iterator beforeItr = before.begin();
+	std::vector<size_t> errorId;
+	for (; beforeItr != before.end(); beforeItr++)
+	{
+		if (after.find(beforeItr->first) == after.end())
+		{
+			printf("[INFO] this object does not exist after processing. %zd\n", beforeItr->first);
+			errorCount++;
+			continue;
+		}
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			double beforeLength = (beforeItr->second)[i];
+			double afterLength = (after[beforeItr->first])[i];
+
+			if (beforeLength < 1E-3 && afterLength < 1E-3)
+				continue;
+
+			if (beforeLength - 0.001 * beforeLength > afterLength || beforeLength + 0.001 * beforeLength < afterLength)
+			{
+				errorCount++;
+				errorId.push_back(beforeItr->first);
+				break;
+			}
+		}
+	}
+
+	if (errorCount != 0)
+	{
+		for (size_t i = 0; i < errorId.size(); i++)
+		{
+			printf("[Info]  #%zd : %f, %f, %f to %f, %f, %f\n", errorId[i], before[errorId[i]][0], before[errorId[i]][1], before[errorId[i]][2], after[errorId[i]][0], after[errorId[i]][1], after[errorId[i]][2]);
+		}
+	}
+}
+
 void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
 	std::map<std::string, std::string>& originalTextureInfo)
 {
@@ -540,49 +710,19 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 	// copy data from original to this container
 	allMeshes.insert(allMeshes.end(), originalMeshes.begin(), originalMeshes.end());
 
-
 	// copy texture info
 	if (!originalTextureInfo.empty())
 		allTextureInfo.insert(originalTextureInfo.begin(), originalTextureInfo.end());
 
-	// check if all texture files are available or not
+	// TODO check if all texture files are available or not
 
 	// calculate original bounding box
 	calculateBoundingBox(allMeshes, fullBbox);
 
-	// test code : for checking precision
-	double totalSurfaceArea = 0.0;
-	std::vector<gaia3d::BoundingBox> prevBboxes;
-	{
-		size_t testMeshCount = allMeshes.size();
-
-		for (size_t i = 0; i < testMeshCount; i++)
-		{
-			gaia3d::TrianglePolyhedron* mesh = allMeshes[i];
-			size_t surfaceCount = mesh->getSurfaces().size();
-			for (size_t j = 0; j < surfaceCount; j++)
-			{
-				gaia3d::Surface* surface = mesh->getSurfaces()[j];
-				size_t triangleCount = surface->getTriangles().size();
-				for (size_t k = 0; k < triangleCount; k++)
-				{
-					gaia3d::Triangle* triangle = surface->getTriangles()[k];
-
-					gaia3d::Point3D edge1 = triangle->getVertices()[1]->position - triangle->getVertices()[0]->position;
-					gaia3d::Point3D edge2 = triangle->getVertices()[2]->position - triangle->getVertices()[0]->position;
-
-					double thisArea = (edge1 ^ edge2).magnitude() / 2.0;
-
-					totalSurfaceArea += thisArea;
-				}
-			}
-
-			prevBboxes.push_back(mesh->getBoundingBox());
-		}
-
-		printf("[TEST] total surface area before conversion : %f\n", totalSurfaceArea);
-	}
-	// test code end
+	//// experiment test
+	//double originalArea;
+	//std::map<size_t, std::vector<double>> bboxes;
+	//runPreExperiments(allMeshes, originalArea, bboxes);
 
 	// calculate plane normals and align them to their vertex normals
 	trimVertexNormals(allMeshes);
@@ -701,42 +841,18 @@ void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhe
 		}
 	}
 
-	// test code : for checking precision
-	/*totalSurfaceArea = 0.0;
-	std::vector<gaia3d::BoundingBox> curBboxes;
-	{
-		size_t testMeshCount = allMeshes.size();
+	//// experiment test
+	//std::vector<gaia3d::OctreeBox*> leafBoxes;
+	//this->getSpatialOctree()->getAllLeafBoxes(leafBoxes, true);
+	//double afterArea;
+	//std::map<size_t, std::vector<double>> afterBboxes;
+	//runPostExperiments(leafBoxes, afterArea, afterBboxes);
 
-		for (size_t i = 0; i < testMeshCount; i++)
-		{
-			gaia3d::TrianglePolyhedron* mesh = allMeshes[i];
-			size_t surfaceCount = mesh->getSurfaces().size();
-			for (size_t j = 0; j < surfaceCount; j++)
-			{
-				gaia3d::Surface* surface = mesh->getSurfaces()[j];
-				size_t triangleCount = surface->getTriangles().size();
-				for (size_t k = 0; k < triangleCount; k++)
-				{
-					gaia3d::Triangle* triangle = surface->getTriangles()[k];
+	//size_t errorCount;
+	//compareBboxes(bboxes, afterBboxes, errorCount);
+	//printf("[INFO] %zd out of %zd objects were mis-transformed.\n", errorCount, bboxes.size());
 
-					gaia3d::Point3D edge1 = triangle->getVertices()[1]->position - triangle->getVertices()[0]->position;
-					gaia3d::Point3D edge2 = triangle->getVertices()[2]->position - triangle->getVertices()[0]->position;
-
-					double thisArea = (edge1 ^ edge2).magnitude() / 2.0;
-
-					totalSurfaceArea += thisArea;
-				}
-			}
-
-			this->calculateBoundingBox(mesh);
-			curBboxes.push_back(mesh->getBoundingBox());
-		}
-
-		printf("[TEST] total surface area after conversion : %f\n", totalSurfaceArea);
-
-		int holda = 0;
-	}*/
-	// test code end
+	//system("pause");
 }
 
 //void ConversionProcessor::convertSemanticData(std::vector<gaia3d::TrianglePolyhedron*>& originalMeshes,
