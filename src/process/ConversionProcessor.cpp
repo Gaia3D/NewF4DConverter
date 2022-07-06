@@ -4560,7 +4560,9 @@ void ConversionProcessor::mergeFaceTexsturesIntoSingleOne(
 	size_t mosaicCol, mosaicRow;
 	mosaicCol = mosaicRow = ((size_t)sqrt(totalFaceTextureCount)) + 1;
 
-	size_t expandedPixel = (size_t)(faceImageWidth * 0.025);
+	//size_t expandedPixel = (size_t)(faceImageWidth * 0.025);
+	//size_t expandedPixel = (size_t)(faceImageWidth * 0.001);
+	size_t expandedPixel = (size_t)0;
 	mosaicWidth = (unsigned int)((faceImageWidth + expandedPixel * 2) * mosaicCol);
 	mosaicHeight = (unsigned int)((faceImageHeight + expandedPixel * 2) * mosaicRow);
 	size_t mosaicTextureSize = mosaicWidth * mosaicHeight * 4;
@@ -4776,8 +4778,11 @@ void ConversionProcessor::insertSubTextureIntoMosaicTexture(
 	float minT = (float)(dataRGBA_leftDownPixelRow + textoreCoord_offSet) / (float)mosaicTexturePixelHeight;
 	float maxT = (float)(dataRGBA_leftDownPixelRow + dataRGBA_height - textoreCoord_offSet) / (float)mosaicTexturePixelHeight;
 
-	float textMarginS = (maxS - minS) * 0.0464f;
-	float textMarginT = (maxT - minT) * 0.0464f;
+	//float textMarginS = (maxS - minS) * 0.0464f;
+	//float textMarginT = (maxT - minT) * 0.0464f;
+
+	float textMarginS = 0.0f;
+	float textMarginT = 0.0f;
 
 	textureCoordinate[0] = minS + textMarginS;
 	textureCoordinate[1] = minT + textMarginT;
