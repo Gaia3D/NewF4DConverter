@@ -1244,7 +1244,7 @@ void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedr
 
 						if (anglePNormalAndVNormal0 > 90.0 || anglePNormalAndVNormal1 > 90.0 || anglePNormalAndVNormal2 > 90.0)
 						{
-							size_t tempIndex = triangle->getVertexIndices()[0];
+							/*size_t tempIndex = triangle->getVertexIndices()[0];
 							triangle->getVertexIndices()[0] = triangle->getVertexIndices()[1];
 							triangle->getVertexIndices()[1] = tempIndex;
 
@@ -1252,7 +1252,11 @@ void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedr
 							triangle->getVertices()[0] = triangle->getVertices()[1];
 							triangle->getVertices()[1] = tempVertex;
 
-							triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);
+							triangle->setNormal(-planeNormal.x, -planeNormal.y, -planeNormal.z);*/
+
+							* (triangle->getNormal()) = planeNormal;
+
+							triangle->alignVertexNormalsToPlaneNormal();
 						}
 						else
 							*(triangle->getNormal()) = planeNormal;
