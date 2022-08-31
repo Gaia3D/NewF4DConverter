@@ -1260,6 +1260,8 @@ void ConversionProcessor::trimVertexNormals(std::vector<gaia3d::TrianglePolyhedr
 						}
 						else
 							*(triangle->getNormal()) = planeNormal;
+
+
 					}
 				}
 			}
